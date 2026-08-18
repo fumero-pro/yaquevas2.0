@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acceder — YaQueVas</title>
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div id="yqv-nav"></div>
+
+<section class="section" style="max-width:440px; margin:0 auto;">
+  <div class="container">
+    <h1>Accede a tu cuenta</h1>
+    <div class="card">
+      <div id="formError"></div>
+      <form id="loginForm">
+        <label class="first" for="email">Email</label>
+        <input id="email" type="email" required autocomplete="email">
+        <label for="password">Contraseña</label>
+        <input id="password" type="password" required autocomplete="current-password">
+        <button class="btn btn-primary btn-block" style="margin-top:18px;" type="submit">Entrar</button>
+      </form>
+      <p class="muted" style="margin-top:16px; font-size:0.85rem;">
+        Usuarios de demostración: <br>
+        <code>marta.viajera@yaquevas.demo</code> / <code>DemoPass123!</code> (viajero)<br>
+        <code>carlos.remitente@yaquevas.demo</code> / <code>DemoPass123!</code> (remitente)<br>
+        <code>admin@yaquevas.demo</code> / <code>AdminDemo2026!</code> (administración)
+      </p>
+    </div>
+    <p class="center" style="margin-top:16px;">¿No tienes cuenta? <a href="/registro.html">Crear una cuenta</a></p>
+  </div>
+</section>
+
+<div id="yqv-footer"></div>
+<script src="/js/api.js"></script>
+<script src="/js/nav.js"></script>
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errBox = document.getElementById('formError');
+  errBox.innerHTML = '';
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  try {
+    const data = await YQV.api('/api/auth/login', { method: 'POST', body: { email, password }, auth: false });
+    YQV.setSession(data.token, data.user);
+    const params = new URLSearchParams(window.location.search);
+    window.location.href = params.get('next') || '/mi-cuenta.html';
+  } catch (err) {
+    errBox.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+  }
+});
+</script>
+</body>
+</html>

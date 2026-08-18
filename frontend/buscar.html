@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buscar — YaQueVas</title>
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div id="yqv-nav"></div>
+
+<section class="section">
+  <div class="container">
+    <h1>Buscar viajes y envíos</h1>
+    <div class="card">
+      <div class="field-row cols-3">
+        <div><label class="first">Isla de origen</label><select id="f_origin"><option value="">Todas</option></select></div>
+        <div><label class="first">Isla de destino</label><select id="f_destination"><option value="">Todas</option></select></div>
+        <div><label class="first">Mostrar</label>
+          <select id="f_type">
+            <option value="trips">Viajes publicados</option>
+            <option value="shipments">Envíos publicados</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="searchBtn" style="margin-top:14px;">Buscar</button>
+    </div>
+
+    <div id="results" class="stack" style="margin-top:24px;"></div>
+  </div>
+</section>
+
+<div id="yqv-footer"></div>
+<script src="/js/api.js"></script>
+<script src="/js/nav.js"></script>
+<script>
+function renderIslandOptions() {
+  for (const sel of [document.getElementById('f_origin'), document.getElementById('f_destination')]) {
+    sel.innerHTML += YQV.ISLANDS.map(i => `<option value="${i}">${i}</option>`).join('');
+  }
+}
+renderIslandOptions();
+
+async function doSearch() {
+  const origin = document.getElementById('f_origin').value;
+  const destination = document.getElementById('f_destination').value;
+  const type = document.getElementById('f_type').value;
+  const box = document.getElementById('results');
+  box.innerHTML = '<p class="muted">Buscando…</p>';
+
+  const qs = new URLSearchParams();
+  if (origin) qs.set('origin_island', origin);
+  if (destination) qs.set('destination_island', destination);
+  qs.set('status', 'publicado');
+
+  try {
+    if (type === 'trips') {
+      const data = await YQV.api(`/api/trips?${qs.toString()}`, { auth: false });
+      if (data.trips.length === 0) { box.innerHTML = '<div class="alert alert-info">No hay viajes publicados con estos filtros.</div>'; return; }
+      box.innerHTML = data.trips.map(t => `
+        <div class="card row between">
+          <div>
+            <strong>${t.origin_island} → ${t.destination_island}</strong> · ${YQV.fmtDate(t.trip_date)} · ${YQV.TRANSPORT_LABELS[t.transport_mode]}
+            <div class="muted" style="font-size:0.85rem;">Espacio libre: ${t.status_capacidad.remaining_l} L · ${t.status_capacidad.remaining_kg} kg · ${t.accepts_fragile ? 'Acepta frágiles' : 'No acepta frágiles'}</div>
+            ${t.notes ? `<div class="muted" style="font-size:0.85rem;">"${t.notes}"</div>` : ''}
+          </div>
+          <a href="/enviar.html" class="btn btn-outline">Enviar algo en este viaje</a>
+        </div>
+      `).join('');
+    } else {
+      const data = await YQV.api(`/api/shipments?${qs.toString()}`, { auth: false });
+      if (data.shipments.length === 0) { box.innerHTML = '<div class="alert alert-info">No hay envíos publicados con estos filtros.</div>'; return; }
+      box.innerHTML = data.shipments.map(s => `
+        <div class="card row between">
+          <div>
+            <strong>${s.origin_island} → ${s.destination_island}</strong> · ${YQV.fmtDate(s.desired_date)}
+            <div class="muted" style="font-size:0.85rem;">${s.items.length} bulto(s) · ${s.weight_kg} kg · ${s.fragile ? 'Frágil' : 'No frágil'}</div>
+          </div>
+          <a href="/ya-voy.html" class="btn btn-outline">Publicar un viaje compatible</a>
+        </div>
+      `).join('');
+    }
+  } catch (err) {
+    box.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+  }
+}
+document.getElementById('searchBtn').addEventListener('click', doSearch);
+doSearch();
+</script>
+</body>
+</html>

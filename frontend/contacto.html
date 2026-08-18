@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contacto — YaQueVas</title>
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div id="yqv-nav"></div>
+<section class="section">
+  <div class="container" style="max-width:520px;">
+    <h1>Contacto</h1>
+    <p>Identificación de la empresa (aviso legal, LSSI): <strong>YaQueVas</strong> — datos fiscales y de contacto definitivos pendientes de constitución de la sociedad. <a href="/legal.html?doc=aviso_legal">Ver aviso legal</a>.</p>
+    <div class="card">
+      <div id="formMsg"></div>
+      <form id="ticketForm">
+        <label class="first">Asunto</label>
+        <input id="subject" required>
+        <label>Mensaje</label>
+        <textarea id="message" rows="4" required></textarea>
+        <button class="btn btn-primary btn-block" style="margin-top:14px;" type="submit">Enviar consulta</button>
+      </form>
+    </div>
+  </div>
+</section>
+<div id="yqv-footer"></div>
+<script src="/js/api.js"></script>
+<script src="/js/nav.js"></script>
+<script>
+document.getElementById('ticketForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!YQV.requireLoginOrRedirect()) return;
+  const box = document.getElementById('formMsg');
+  try {
+    await YQV.api('/api/support/tickets', { method: 'POST', body: {
+      subject: document.getElementById('subject').value, message: document.getElementById('message').value,
+    }});
+    box.innerHTML = '<div class="alert alert-ok">Consulta enviada. Te responderemos pronto.</div>';
+    document.getElementById('ticketForm').reset();
+  } catch (err) {
+    box.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+  }
+});
+</script>
+</body>
+</html>

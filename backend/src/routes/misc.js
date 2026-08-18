@@ -1,0 +1,66 @@
+'use strict';
+const { requireAuth } = require('../middleware/auth');
+const { newId } = require('../lib/auth');
+const { getConfig } = require('../lib/config');
+
+function register(router, db) {
+  router.get('/api/notifications', async (req, res) => {
+    const user = requireAuth(req, res, db);
+    if (!user) return;
+    const rows = db.prepare('SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50').all(user.id);
+    res.json({ notifications: rows });
+  });
+
+  router.post('/api/notifications/:id/read', async (req, res, body, params) => {
+    const user = requireAuth(req, res, db);
+    if (!user) return;
+    db.prepare('UPDATE notifications SET read = 1 WHERE id = ? AND user_id = ?').run(params.id, user.id);
+    res.json({ ok: true });
+  });
+
+  // Configuración pública (lo mínimo que necesita el frontend: comisión, descuento, islas, modo demo)
+  router.get('/api/config/public', async (req, res) => {
+    const cfg = getConfig(db);
+    res.json({
+      commission_sender_pct: Number(cfg.commission_sender_pct),
+      commission_traveler_pct: Number(cfg.commission_traveler_pct),
+      baremo_discount_pct: Number(cfg.baremo_discount_pct),
+      demo_mode: cfg.demo_mode === 'true',
+      company_name: cfg.company_name,
+    });
+  });
+
+  router.get('/api/prohibited-items', async (req, res) => {
+    const rows = db.prepare('SELECT id, name, category, note FROM prohibited_items WHERE active = 1 ORDER BY category, name').all();
+    res.json({ prohibited_items: rows });
+  });
+
+  router.get('/api/legal/:doc_type', async (req, res, body, params) => {
+    const doc = db.prepare('SELECT * FROM legal_documents WHERE doc_type = ? ORDER BY created_at DESC LIMIT 1').get(params.doc_type);
+    if (!doc) return res.status(404).json({ error: 'Documento legal no encontrado.' });
+    res.json({ document: doc });
+  });
+
+  // Centro de ayuda: sistema básico de tickets (punto 62)
+  router.post('/api/support/tickets', async (req, res, body) => {
+    const user = requireAuth(req, res, db);
+    if (!user) return;
+    if (!body.subject) return res.status(400).json({ error: 'El asunto es obligatorio.' });
+    const id = newId('ticket');
+    const now = new Date().toISOString();
+    db.prepare(
+      `INSERT INTO support_tickets (id, user_id, subject, message, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'abierta', ?, ?)`
+    ).run(id, user.id, body.subject, body.message || '', now, now);
+    res.status(201).json({ ticket_id: id });
+  });
+
+  router.get('/api/support/tickets', async (req, res) => {
+    const user = requireAuth(req, res, db);
+    if (!user) return;
+    const rows = db.prepare('SELECT * FROM support_tickets WHERE user_id = ? ORDER BY created_at DESC').all(user.id);
+    res.json({ tickets: rows });
+  });
+}
+
+module.exports = { register };

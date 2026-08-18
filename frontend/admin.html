@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Administración — YaQueVas</title>
+<link rel="stylesheet" href="/css/styles.css">
+<style>
+  .admin-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 20px 0; }
+  .admin-tab { padding: 10px 16px; border-radius: 999px; background: var(--mist-100); border: none; cursor: pointer; font-weight: 600; font-family: var(--font-body); }
+  .admin-tab.active { background: var(--marine-900); color: white; }
+  .admin-panel { display: none; }
+  .admin-panel.active { display: block; }
+</style>
+</head>
+<body>
+<div id="yqv-nav"></div>
+
+<section class="section">
+  <div class="container">
+    <h1>Panel de administración</h1>
+    <p class="muted">Pensado para gestionarse sin conocimientos técnicos: números grandes, botones claros, formularios sencillos.</p>
+    <div id="gate"></div>
+
+    <div id="adminApp" style="display:none;">
+      <div class="admin-tabs">
+        <button class="admin-tab active" data-tab="dashboard">Panel general</button>
+        <button class="admin-tab" data-tab="config">Configuración</button>
+        <button class="admin-tab" data-tab="prohibited">Objetos prohibidos</button>
+        <button class="admin-tab" data-tab="operations">Operaciones</button>
+        <button class="admin-tab" data-tab="disputes">Incidencias</button>
+        <button class="admin-tab" data-tab="audit">Auditoría</button>
+        <button class="admin-tab" data-tab="export">Exportar</button>
+      </div>
+
+      <div class="admin-panel active" id="panel-dashboard"></div>
+      <div class="admin-panel" id="panel-config"></div>
+      <div class="admin-panel" id="panel-prohibited"></div>
+      <div class="admin-panel" id="panel-operations"></div>
+      <div class="admin-panel" id="panel-disputes"></div>
+      <div class="admin-panel" id="panel-audit"></div>
+      <div class="admin-panel" id="panel-export"></div>
+    </div>
+  </div>
+</section>
+
+<div id="yqv-footer"></div>
+<script src="/js/api.js"></script>
+<script src="/js/nav.js"></script>
+<script>
+async function init() {
+  const gate = document.getElementById('gate');
+  if (!YQV.isLoggedIn()) {
+    gate.innerHTML = `<div class="alert alert-info">Accede con una cuenta de administración. <a href="/login.html?next=/admin.html">Ir a acceder</a></div>`;
+    return;
+  }
+  if (!YQV.isAdmin()) {
+    gate.innerHTML = `<div class="alert alert-error">Tu cuenta no tiene permisos de administración.</div>`;
+    return;
+  }
+  document.getElementById('adminApp').style.display = 'block';
+
+  document.querySelectorAll('.admin-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(`panel-${tab.dataset.tab}`).classList.add('active');
+    });
+  });
+
+  await loadDashboard();
+  await loadConfig();
+  await loadProhibited();
+  await loadOperations();
+  await loadDisputes();
+  await loadAudit();
+  loadExport();
+}
+
+async function loadDashboard() {
+  const panel = document.getElementById('panel-dashboard');
+  try {
+    const { stats, rutas_mas_usadas } = await YQV.api('/api/admin/dashboard');
+    panel.innerHTML = `
+      <div class="card-grid cols-3">
+        ${bigStat('Usuarios totales', stats.usuarios_totales)}
+        ${bigStat('Viajeros activos', stats.viajeros_activos)}
+        ${bigStat('Envíos totales', stats.envios_totales)}
+        ${bigStat('Viajes totales', stats.viajes_totales)}
+        ${bigStat('Operaciones completadas', stats.operaciones_completadas)}
+        ${bigStat('En curso', stats.operaciones_en_curso)}
+        ${bigStat('Cancelaciones', stats.cancelaciones)}
+        ${bigStat('Incidencias abiertas', stats.incidencias_abiertas)}
+        ${bigStat('Pagos pendientes', stats.pagos_pendientes)}
+      </div>
+      <div class="card-grid cols-3" style="margin-top:18px;">
+        ${bigStat('Dinero procesado', YQV.fmtEur(stats.dinero_procesado))}
+        ${bigStat('Comisión YaQueVas', YQV.fmtEur(stats.comision_yaquevas_total))}
+        ${bigStat('Pagado a viajeros', YQV.fmtEur(stats.payouts_viajeros_total))}
+      </div>
+      <h3 style="margin-top:24px;">Rutas más usadas</h3>
+      <div class="table-wrap"><table>
+        <tr><th>Ruta</th><th>Envíos</th></tr>
+        ${rutas_mas_usadas.map(r => `<tr><td>${r.ruta}</td><td>${r.total}</td></tr>`).join('') || '<tr><td colspan="2" class="muted">Sin datos todavía.</td></tr>'}
+      </table></div>
+    `;
+  } catch (err) { panel.innerHTML = `<div class="alert alert-error">${err.message}</div>`; }
+}
+function bigStat(label, value) {
+  return `<div class="card"><div class="big-number">${value}</div><p>${label}</p></div>`;
+}
+
+async function loadConfig() {
+  const panel = document.getElementById('panel-config');
+  try {
+    const { config } = await YQV.api('/api/admin/config');
+    panel.innerHTML = `
+      <div class="card">
+        <h3>Comisiones y baremo</h3>
+        <p class="muted">La comisión total de YaQueVas es la suma de ambos porcentajes. Por defecto 6% + 6% = 12%.</p>
+        <div class="field-row cols-2">
+          <div><label class="first">Comisión al remitente (%)</label><input id="cfg_commission_sender_pct" type="number" step="0.1" value="${config.commission_sender_pct}"></div>
+          <div><label class="first">Comisión al viajero (%)</label><input id="cfg_commission_traveler_pct" type="number" step="0.1" value="${config.commission_traveler_pct}"></div>
+        </div>
+        <div class="field-row cols-2">
+          <div><label class="first">Descuento del baremo (%)</label><input id="cfg_baremo_discount_pct" type="number" step="1" value="${config.baremo_discount_pct}"></div>
+          <div><label class="first">Recargo por kg extra (€)</label><input id="cfg_price_per_kg_extra" type="number" step="0.1" value="${config.price_per_kg_extra}"></div>
+        </div>
+        <div class="field-row cols-2">
+          <div><label class="first">Precio mínimo (€)</label><input id="cfg_min_price" type="number" step="1" value="${config.min_price}"></div>
+          <div><label class="first">Precio máximo (€)</label><input id="cfg_max_price" type="number" step="1" value="${config.max_price}"></div>
+        </div>
+        <div class="field-row cols-2">
+          <div><label class="first">Recargo frágil (€)</label><input id="cfg_fragile_surcharge" type="number" step="0.5" value="${config.fragile_surcharge}"></div>
+          <div><label class="first">Recargo equipaje extra (€)</label><input id="cfg_extra_luggage_surcharge" type="number" step="0.5" value="${config.extra_luggage_surcharge}"></div>
+        </div>
+        <button class="btn btn-primary" id="saveConfigBtn" style="margin-top:14px;">Guardar cambios</button>
+      </div>
+    `;
+    document.getElementById('saveConfigBtn').addEventListener('click', async () => {
+      const body = {};
+      ['commission_sender_pct','commission_traveler_pct','baremo_discount_pct','price_per_kg_extra','min_price','max_price','fragile_surcharge','extra_luggage_surcharge']
+        .forEach(k => body[k] = document.getElementById(`cfg_${k}`).value);
+      try { await YQV.api('/api/admin/config', { method: 'PUT', body }); YQV.toast('Configuración guardada.', 'ok'); }
+      catch (err) { YQV.toast(err.message, 'error'); }
+    });
+  } catch (err) { panel.innerHTML = `<div class="alert alert-error">${err.message}</div>`; }
+}
+
+async function loadProhibited() {
+  const panel = document.getElementById('panel-prohibited');
+  try {
+    const { prohibited_items } = await YQV.api('/api/admin/prohibited-items');
+    panel.innerHTML = `
+      <div class="card">
+        <h3>Añadir objeto</h3>
+        <div class="field-row cols-3">
+          <div><label class="first">Nombre</label><input id="p_name"></div>
+          <div><label class="first">Categoría</label>
+            <select id="p_category"><option value="prohibido">Prohibido</option><option value="permitido_aceptacion_expresa">Permitido con aceptación expresa</option></select>
+          </div>
+          <div><label class="first">Nota</label><input id="p_note"></div>
+        </div>
+        <button class="btn btn-primary" id="addProhibitedBtn" style="margin-top:12px;">Añadir</button>
+      </div>
+      <div class="table-wrap" style="margin-top:16px;"><table>
+        <tr><th>Nombre</th><th>Categoría</th><th>Nota</th><th>Activo</th></tr>
+        ${prohibited_items.map(p => `<tr><td>${p.name}</td><td>${p.category}</td><td>${p.note || ''}</td><td>${p.active ? 'Sí' : 'No'}</td></tr>`).join('')}
+      </table></div>
+    `;
+    document.getElementById('addProhibitedBtn').addEventListener('click', async () => {
+      try {
+        await YQV.api('/api/admin/prohibited-items', { method: 'POST', body: {
+          name: document.getElementById('p_name').value, category: document.getElementById('p_category').value, note: document.getElementById('p_note').value,
+        }});
+        YQV.toast('Objeto añadido.', 'ok'); loadProhibited();
+      } catch (err) { YQV.toast(err.message, 'error'); }
+    });
+  } catch (err) { panel.innerHTML = `<div class="alert alert-error">${err.message}</div>`; }
+}
+
+async function loadOperations() {
+  const panel = document.getElementById('panel-operations');
+  try {
+    const { operations } = await YQV.api('/api/admin/operations');
+    panel.innerHTML = `<div class="table-wrap"><table>
+      <tr><th>ID</th><th>Estado</th><th>Base</th><th>Comisión</th><th>Fecha</th></tr>
+      ${operations.map(o => `<tr><td>${o.id}</td><td>${YQV.STATUS_LABELS[o.status] || o.status}</td><td>${YQV.fmtEur(o.base_price)}</td><td>${YQV.fmtEur(o.platform_commission)}</td><td>${YQV.fmtDate(o.created_at)}</td></tr>`).join('') || '<tr><td colspan="5" class="muted">Sin operaciones.</td></tr>'}
+    </table></div>`;
+  } catch (err) { panel.innerHTML = `<div class="alert alert-error">${err.message}</div>`; }
+}
+
+async function loadDisputes() {
+  const panel = document.getElementById('panel-disputes');
+  try {
+    const { disputes } = await YQV.api('/api/admin/disputes');
+    panel.innerHTML = `<div class="table-wrap"><table>
+      <tr><th>ID</th><th>Tipo</th><th>Estado</th><th>Descripción</th><th>Acción</th></tr>
+      ${disputes.map(d => `<tr><td>${d.id}</td><td>${d.dispute_type}</td><td>${d.status}</td><td>${d.description || ''}</td>
+        <td><select data-id="${d.id}" class="disputeStatus"><option ${d.status==='abierta'?'selected':''}>abierta</option><option ${d.status==='en_revision'?'selected':''}>en_revision</option><option ${d.status==='esperando_informacion'?'selected':''}>esperando_informacion</option><option ${d.status==='resuelta'?'selected':''}>resuelta</option><option ${d.status==='cerrada'?'selected':''}>cerrada</option></select></td>
+      </tr>`).join('') || '<tr><td colspan="5" class="muted">Sin incidencias.</td></tr>'}
+    </table></div>`;
+    panel.querySelectorAll('.disputeStatus').forEach(sel => {
+      sel.addEventListener('change', async () => {
+        try { await YQV.api(`/api/admin/disputes/${sel.dataset.id}`, { method: 'PUT', body: { status: sel.value } }); YQV.toast('Incidencia actualizada.', 'ok'); }
+        catch (err) { YQV.toast(err.message, 'error'); }
+      });
+    });
+  } catch (err) { panel.innerHTML = `<div class="alert alert-error">${err.message}</div>`; }
+}
+
+async function loadAudit() {
+  const panel = document.getElementById('panel-audit');
+  try {
+    const { audit_log } = await YQV.api('/api/admin/audit-log');
+    panel.innerHTML = `<div class="table-wrap"><table>
+      <tr><th>Fecha</th><th>Acción</th><th>Objetivo</th></tr>
+      ${audit_log.map(a => `<tr><td>${YQV.fmtDateTime(a.created_at)}</td><td>${a.action}</td><td>${a.target || ''}</td></tr>`).join('') || '<tr><td colspan="3" class="muted">Sin registros.</td></tr>'}
+    </table></div>`;
+  } catch (err) { panel.innerHTML = `<div class="alert alert-error">${err.message}</div>`; }
+}
+
+function loadExport() {
+  const panel = document.getElementById('panel-export');
+  const token = YQV.getToken();
+  panel.innerHTML = `
+    <div class="card stack">
+      <p>Las exportaciones requieren tu sesión de administrador; ábrelas copiando el enlace en una pestaña donde ya hayas iniciado sesión, o usa el botón para descargarlas directamente.</p>
+      ${['operaciones','usuarios','pagos','incidencias'].map(e => `<button class="btn btn-outline" data-entity="${e}">Exportar ${e} (CSV)</button>`).join('')}
+    </div>
+  `;
+  panel.querySelectorAll('button[data-entity]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const res = await fetch(`/api/admin/export/${btn.dataset.entity}`, { headers: { Authorization: `Bearer ${token}` } });
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `${btn.dataset.entity}.csv`; a.click();
+    });
+  });
+}
+
+init();
+</script>
+</body>
+</html>

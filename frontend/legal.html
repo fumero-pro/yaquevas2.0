@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Documento legal — YaQueVas</title>
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div id="yqv-nav"></div>
+<section class="section">
+  <div class="container" style="max-width:720px;">
+    <h1 id="docTitle">Documento legal</h1>
+    <div class="alert alert-info">Este documento es un borrador inicial generado automáticamente para la versión de demostración. <strong>Pendiente de validación legal</strong> antes de cualquier uso en producción.</div>
+    <div id="docContent" class="card"><p class="muted">Cargando…</p></div>
+  </div>
+</section>
+<div id="yqv-footer"></div>
+<script src="/js/api.js"></script>
+<script src="/js/nav.js"></script>
+<script>
+const TITLES = { terminos: 'Términos y condiciones', privacidad: 'Política de privacidad', cookies: 'Política de cookies', aviso_legal: 'Aviso legal', condiciones_operativas: 'Condiciones operativas' };
+const docType = new URLSearchParams(window.location.search).get('doc') || 'terminos';
+document.getElementById('docTitle').textContent = TITLES[docType] || 'Documento legal';
+YQV.api(`/api/legal/${docType}`, { auth: false }).then(data => {
+  document.getElementById('docContent').innerHTML = `
+    <p>${data.document.content}</p>
+    <p class="muted" style="font-size:0.8rem;">Versión ${data.document.version} · publicado ${YQV.fmtDate(data.document.created_at)}</p>
+  `;
+}).catch(err => {
+  document.getElementById('docContent').innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+});
+</script>
+</body>
+</html>

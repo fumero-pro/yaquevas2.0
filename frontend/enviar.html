@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enviar algo — YaQueVas</title>
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div id="yqv-nav"></div>
+
+<section class="section">
+  <div class="container" style="max-width:760px;">
+    <h1>¿Qué necesitas enviar?</h1>
+    <p>Cuéntanos qué es, a quién va dirigido y cuándo lo necesitas. Solo se puede enviar contenido legal y admisible para el medio de transporte.</p>
+
+    <div id="formError"></div>
+
+    <form id="shipForm" class="card">
+      <fieldset>
+        <legend>Destinatario</legend>
+        <label class="first">Nombre de quien recibe</label>
+        <input id="recipient_name" required placeholder="Ej. Ana (mi madre)">
+        <label>Teléfono del destinatario (opcional)</label>
+        <input id="recipient_phone" type="tel" placeholder="+34 600 000 000">
+      </fieldset>
+
+      <fieldset>
+        <legend>Ruta</legend>
+        <div class="field-row cols-2">
+          <div>
+            <label class="first">Isla de origen</label>
+            <select id="origin_island" required></select>
+          </div>
+          <div>
+            <label class="first">Isla de destino</label>
+            <select id="destination_island" required></select>
+          </div>
+        </div>
+        <div class="field-row cols-2">
+          <div><label>Localidad de origen</label><input id="origin_place" placeholder="Ej. Santa Cruz de Tenerife"></div>
+          <div><label>Localidad de destino</label><input id="destination_place" placeholder="Ej. Las Palmas de Gran Canaria"></div>
+        </div>
+        <label>Fecha deseada</label>
+        <input id="desired_date" type="date" required>
+      </fieldset>
+
+      <fieldset>
+        <legend>Contenido</legend>
+        <div id="itemsList" class="stack"></div>
+        <div class="row" style="margin-top:10px;">
+          <select id="newItemType">
+            <option value="sobre">Sobre</option>
+            <option value="maleta_pequena">Maleta pequeña</option>
+            <option value="maleta_grande">Maleta grande</option>
+            <option value="caja_mediana">Caja mediana</option>
+          </select>
+          <input id="newItemDesc" placeholder="Descripción (ej. cargador, ropa, documentos)" style="flex:1; min-width:180px;">
+          <button type="button" class="btn btn-outline" id="addItemBtn">+ Añadir bulto</button>
+        </div>
+        <div class="field-row cols-3" style="margin-top:16px;">
+          <div><label class="first">Peso total aprox. (kg)</label><input id="weight_kg" type="number" step="0.1" min="0" required></div>
+          <div><label class="first">Dimensiones (opcional)</label><input id="dimensions" placeholder="30x20x10 cm"></div>
+          <div><label class="first">Valor declarado (€, opcional)</label><input id="declared_value" type="number" step="1" min="0"></div>
+        </div>
+        <div class="checkbox-row">
+          <input id="fragile" type="checkbox">
+          <label for="fragile">Es frágil</label>
+        </div>
+        <label>Observaciones</label>
+        <textarea id="notes" rows="2" placeholder="Cualquier detalle que el viajero deba saber"></textarea>
+      </fieldset>
+
+      <div class="alert alert-info">
+        Declaro que la información proporcionada sobre el contenido del envío es correcta y que el envío es legal y admisible para el medio de transporte seleccionado.
+      </div>
+      <div class="checkbox-row">
+        <input id="truthfulness" type="checkbox" required>
+        <label for="truthfulness">Confirmo que esta declaración es veraz.</label>
+      </div>
+
+      <button class="btn btn-primary btn-lg btn-block" type="submit" style="margin-top:16px;">Publicar envío y buscar viajero</button>
+    </form>
+
+    <div id="resultsBox" style="margin-top:32px;"></div>
+  </div>
+</section>
+
+<div id="yqv-footer"></div>
+<script src="/js/api.js"></script>
+<script src="/js/nav.js"></script>
+<script>
+let items = [];
+
+function renderIslandOptions() {
+  for (const sel of [document.getElementById('origin_island'), document.getElementById('destination_island')]) {
+    sel.innerHTML = YQV.ISLANDS.map(i => `<option value="${i}">${i}</option>`).join('');
+  }
+  document.getElementById('destination_island').value = YQV.ISLANDS[1];
+}
+
+function renderItems() {
+  const box = document.getElementById('itemsList');
+  if (items.length === 0) {
+    box.innerHTML = '<p class="muted">Todavía no has añadido ningún bulto.</p>';
+    return;
+  }
+  const labels = { sobre: 'Sobre', maleta_pequena: 'Maleta pequeña', maleta_grande: 'Maleta grande', caja_mediana: 'Caja mediana' };
+  box.innerHTML = items.map((it, idx) => `
+    <div class="row between" style="background:var(--mist-100); padding:10px 14px; border-radius:8px;">
+      <span><strong>${labels[it.item_type]}</strong> — ${it.description || 'sin descripción'}</span>
+      <button type="button" class="btn btn-ghost" data-idx="${idx}" style="color:var(--danger);">Quitar</button>
+    </div>
+  `).join('');
+  box.querySelectorAll('button[data-idx]').forEach(btn => {
+    btn.addEventListener('click', () => { items.splice(Number(btn.dataset.idx), 1); renderItems(); });
+  });
+}
+
+document.getElementById('addItemBtn').addEventListener('click', () => {
+  const item_type = document.getElementById('newItemType').value;
+  const description = document.getElementById('newItemDesc').value.trim();
+  items.push({ item_type, quantity: 1, description });
+  document.getElementById('newItemDesc').value = '';
+  renderItems();
+});
+
+renderIslandOptions();
+renderItems();
+{
+  const d = new Date(); d.setDate(d.getDate() + 3);
+  document.getElementById('desired_date').value = d.toISOString().slice(0, 10);
+}
+
+document.getElementById('shipForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!YQV.requireLoginOrRedirect()) return;
+  const errBox = document.getElementById('formError');
+  errBox.innerHTML = '';
+
+  if (items.length === 0) {
+    errBox.innerHTML = '<div class="alert alert-error">Añade al menos un bulto (sobre, maleta o caja).</div>';
+    return;
+  }
+
+  const body = {
+    recipient_name: document.getElementById('recipient_name').value.trim(),
+    recipient_phone: document.getElementById('recipient_phone').value.trim(),
+    origin_island: document.getElementById('origin_island').value,
+    origin_place: document.getElementById('origin_place').value.trim(),
+    destination_island: document.getElementById('destination_island').value,
+    destination_place: document.getElementById('destination_place').value.trim(),
+    desired_date: document.getElementById('desired_date').value,
+    weight_kg: Number(document.getElementById('weight_kg').value || 0),
+    dimensions: document.getElementById('dimensions').value.trim(),
+    declared_value: document.getElementById('declared_value').value ? Number(document.getElementById('declared_value').value) : null,
+    fragile: document.getElementById('fragile').checked,
+    notes: document.getElementById('notes').value.trim(),
+    truthfulness_accepted: document.getElementById('truthfulness').checked,
+    items,
+  };
+
+  try {
+    const data = await YQV.api('/api/shipments', { method: 'POST', body });
+    YQV.toast('Envío publicado. Buscando viajeros compatibles…', 'ok');
+    if (data.aviso_categoria) YQV.toast(data.aviso_categoria, 'info');
+    await showMatches(data.shipment.id);
+    document.getElementById('shipForm').style.display = 'none';
+  } catch (err) {
+    errBox.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+  }
+});
+
+async function showMatches(shipmentId) {
+  const box = document.getElementById('resultsBox');
+  box.innerHTML = '<p class="muted">Buscando viajes compatibles…</p>';
+  try {
+    const data = await YQV.api(`/api/matching/for-shipment/${shipmentId}`, { auth: false });
+    const price = data.precio_orientativo;
+    let html = `
+      <div class="card" style="background:var(--marine-900); color:white;">
+        <h3 style="color:white;">Precio orientativo YaQueVas</h3>
+        <div class="big-number" style="color:white;">${YQV.fmtEur(price.orientative_price)}</div>
+        <p style="color:#C9DCE2;">Basado en una media de referencia de ${YQV.fmtEur(price.reference_price)} con un ${price.discount_pct}% de descuento orientativo. Este precio es orientativo, no obligatorio.</p>
+      </div>
+    `;
+    if (data.matches.length === 0) {
+      html += `<div class="alert alert-info" style="margin-top:20px;">Todavía no hay viajes compatibles con tu ruta y fecha. Te avisaremos en cuanto aparezca uno (notificación pendiente de canal real; en esta demo revisa "Mi cuenta" más tarde).</div>`;
+    } else {
+      html += `<h3 style="margin-top:24px;">Viajes compatibles</h3><div class="stack">`;
+      for (const m of data.matches) {
+        const t = m.trip;
+        const cls = m.compatibilidad_pct >= 80 ? 'high' : m.compatibilidad_pct >= 50 ? 'mid' : 'low';
+        html += `
+          <div class="card row between">
+            <div>
+              <strong>${t.origin_island} → ${t.destination_island}</strong> · ${YQV.fmtDate(t.trip_date)} · ${YQV.TRANSPORT_LABELS[t.transport_mode]}
+              <div class="muted" style="font-size:0.85rem;">Espacio libre: ${t.status_capacidad.remaining_l} L · ${t.status_capacidad.remaining_kg} kg restantes</div>
+            </div>
+            <div class="row">
+              <span class="match-score ${cls}">${m.compatibilidad_pct}%</span>
+              <button class="btn btn-primary" data-trip="${t.id}" data-ship="${shipmentId}">Solicitar</button>
+            </div>
+          </div>
+        `;
+      }
+      html += `</div>`;
+    }
+    box.innerHTML = html;
+    box.querySelectorAll('button[data-trip]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!YQV.requireLoginOrRedirect()) return;
+        try {
+          const res = await YQV.api('/api/bookings', { method: 'POST', body: { shipment_id: btn.dataset.ship, trip_id: btn.dataset.trip } });
+          YQV.toast('Solicitud enviada al viajero.', 'ok');
+          window.location.href = `/operacion.html?id=${res.booking.id}`;
+        } catch (err) {
+          YQV.toast(err.message, 'error');
+        }
+      });
+    });
+  } catch (err) {
+    box.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+  }
+}
+</script>
+</body>
+</html>

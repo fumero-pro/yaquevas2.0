@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Operación — YaQueVas</title>
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div id="yqv-nav"></div>
+
+<section class="section">
+  <div class="container" style="max-width:720px;">
+    <a href="/mi-cuenta.html" class="btn-ghost">&larr; Volver a mi cuenta</a>
+    <h1 id="title">Operación</h1>
+    <div id="content"><p class="muted">Cargando…</p></div>
+  </div>
+</section>
+
+<div id="yqv-footer"></div>
+<script src="/js/api.js"></script>
+<script src="/js/nav.js"></script>
+<script>
+if (!YQV.requireLoginOrRedirect()) { /* redirige */ }
+const bookingId = new URLSearchParams(window.location.search).get('id');
+const user = YQV.getUser();
+
+function statusPill(status) {
+  const good = ['pago_liberado', 'finalizado', 'entregado'];
+  const bad = ['cancelado', 'rechazado', 'disputa', 'incidencia', 'bloqueado'];
+  const cls = good.includes(status) ? 'ok' : bad.includes(status) ? 'danger' : 'warn';
+  return `<span class="pill ${cls}">${YQV.STATUS_LABELS[status] || status}</span>`;
+}
+
+// Genera una representación visual determinista (a partir del token) a modo de vista previa de QR.
+// NOTA: es una demostración visual, no un QR real escaneable por lectores estándar.
+// El token de seguridad (único, de un solo uso) sí es real y lo emite el backend.
+function drawFakeQr(canvas, token) {
+  const ctx = canvas.getContext('2d');
+  const size = 21;
+  canvas.width = size * 8; canvas.height = size * 8;
+  let seed = 0;
+  for (let i = 0; i < token.length; i++) seed = (seed * 31 + token.charCodeAt(i)) >>> 0;
+  function rnd() { seed = (seed * 1103515245 + 12345) >>> 0; return (seed >>> 8) / 16777216; }
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#0B2436';
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const isFinder = (x < 6 && y < 6) || (x > size - 7 && y < 6) || (x < 6 && y > size - 7);
+      if (isFinder || rnd() > 0.55) ctx.fillRect(x * 8, y * 8, 8, 8);
+    }
+  }
+}
+
+async function load() {
+  const box = document.getElementById('content');
+  let booking;
+  try {
+    const data = await YQV.api(`/api/bookings/${bookingId}`);
+    booking = data.booking;
+  } catch (err) {
+    box.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+    return;
+  }
+
+  const isSender = booking.sender_id === user.id;
+  const isTraveler = booking.traveler_id === user.id;
+  document.getElementById('title').innerHTML = `Operación ${statusPill(booking.status)}`;
+
+  let html = `
+    <div class="card">
+      <div class="row between">
+        <span>Rol: <strong>${isSender ? 'Remitente' : 'Viajero'}</strong></span>
+        <span class="muted">${YQV.fmtDateTime(booking.created_at)}</span>
+      </div>
+      <div class="divider"></div>
+      <table>
+        <tr><td>Precio base</td><td>${YQV.fmtEur(booking.base_price)}</td></tr>
+        <tr><td>Comisión remitente (+${booking.sender_commission_pct}%)</td><td>${YQV.fmtEur(booking.sender_total - booking.base_price)}</td></tr>
+        <tr><td>Comisión viajero (-${booking.traveler_commission_pct}%)</td><td>${YQV.fmtEur(booking.base_price - booking.traveler_net)}</td></tr>
+        <tr><td><strong>${isSender ? 'Total a pagar' : 'Total a cobrar'}</strong></td><td><strong>${YQV.fmtEur(isSender ? booking.sender_total : booking.traveler_net)}</strong></td></tr>
+        <tr><td>Comisión total YaQueVas (12%)</td><td>${YQV.fmtEur(booking.platform_commission)}</td></tr>
+      </table>
+    </div>
+  `;
+
+  // --- Acciones del viajero: aceptar contenido ---
+  if (isTraveler && booking.status === 'solicitado') {
+    html += `
+      <div class="card" style="margin-top:16px;">
+        <h3>Revisa el envío antes de aceptar</h3>
+        <p class="muted">Consulta el detalle completo del envío en <a href="#" id="viewShipmentLink">esta ficha</a> antes de continuar: contenido, peso, dimensiones, fotos, valor declarado y observaciones.</p>
+        <div id="shipmentPreview"></div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="confirmContent">
+          <label for="confirmContent">He visto el contenido, peso, dimensiones, fotografías, valor declarado, fragilidad y observaciones de este envío.</label>
+        </div>
+        <div class="row" style="margin-top:12px;">
+          <button class="btn btn-primary" id="acceptBtn">ACEPTO TRANSPORTAR ESTE ENVÍO</button>
+          <button class="btn btn-outline" id="rejectBtn" style="color:var(--danger); border-color:var(--danger);">No puedo llevarlo</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // --- Acciones del remitente: pagar ---
+  if (isSender && booking.status === 'aceptado') {
+    html += `
+      <div class="card" style="margin-top:16px;">
+        <h3>El viajero ha aceptado tu envío</h3>
+        <p>Realiza el pago para confirmar la operación. El importe queda retenido por el proveedor de pagos hasta que se confirme la entrega.</p>
+        <button class="btn btn-primary btn-lg" id="payBtn">Pagar ${YQV.fmtEur(booking.sender_total)} (demo)</button>
+      </div>
+    `;
+  }
+
+  // --- QR / código, visible para ambos una vez aceptado ---
+  if (['aceptado', 'pago_realizado', 'recogido', 'en_transito'].includes(booking.status)) {
+    html += `<div id="qrSection" style="margin-top:16px;"></div>`;
+  }
+
+  // --- Acciones del viajero: recogida / tránsito / entrega ---
+  if (isTraveler && booking.status === 'pago_realizado') {
+    html += `<div class="card" style="margin-top:16px;"><button class="btn btn-secondary" id="pickupBtn">Marcar como recogido</button></div>`;
+  }
+  if (isTraveler && booking.status === 'recogido') {
+    html += `<div class="card" style="margin-top:16px;"><button class="btn btn-secondary" id="transitBtn">Marcar viaje iniciado</button></div>`;
+  }
+  if (isTraveler && ['recogido', 'en_transito'].includes(booking.status)) {
+    html += `
+      <div class="card" style="margin-top:16px;">
+        <h3>Confirmar entrega</h3>
+        <p>Escanea el QR del destinatario o introduce el código numérico de respaldo de 6 dígitos.</p>
+        <label class="first">Código numérico de respaldo</label>
+        <input id="deliverCode" maxlength="6" placeholder="000000">
+        <button class="btn btn-primary" id="deliverBtn" style="margin-top:12px;">Confirmar entrega</button>
+      </div>
+    `;
+  }
+
+  // --- Confirmación final de entrega ---
+  if (['entregado', 'pago_liberado', 'finalizado'].includes(booking.status)) {
+    html += `
+      <div class="alert alert-ok" style="margin-top:16px;">
+        <strong>Entrega confirmada.</strong> ${isSender
+          ? 'El pago ha quedado liberado al viajero.'
+          : `El pago de ${YQV.fmtEur(booking.traveler_net)} ha quedado liberado a tu cuenta.`}
+        ${booking.delivered_at ? `<br><span class="muted">Entregado el ${YQV.fmtDateTime(booking.delivered_at)}.</span>` : ''}
+      </div>
+    `;
+  }
+  if (['cancelado', 'rechazado'].includes(booking.status)) {
+    html += `<div class="alert alert-error" style="margin-top:16px;">Esta operación se ha ${booking.status === 'cancelado' ? 'cancelado' : 'rechazado'} y no continuará.</div>`;
+  }
+
+  // --- Incidencias y cancelación ---
+  if (!['entregado', 'pago_liberado', 'finalizado', 'cancelado', 'rechazado'].includes(booking.status)) {
+    html += `
+      <div class="card" style="margin-top:16px;">
+        <div class="row between">
+          <span class="muted">¿Algún problema con esta operación?</span>
+          <div class="row">
+            <button class="btn btn-outline" id="disputeBtn">Tengo un problema</button>
+            <button class="btn btn-outline" id="cancelBtn" style="color:var(--danger); border-color:var(--danger);">Cancelar</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  box.innerHTML = html;
+
+  // --- Eventos ---
+  const shipmentBtn = document.getElementById('viewShipmentLink');
+  if (shipmentBtn) shipmentBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    try {
+      const s = await YQV.api(`/api/shipments/${booking.shipment_id}`, { auth: false });
+      const sh = s.shipment;
+      document.getElementById('shipmentPreview').innerHTML = `
+        <div class="alert alert-info">
+          <strong>Destinatario:</strong> ${sh.recipient_name}<br>
+          <strong>Peso:</strong> ${sh.weight_kg} kg · <strong>Dimensiones:</strong> ${sh.dimensions || 'no indicadas'}<br>
+          <strong>Valor declarado:</strong> ${sh.declared_value != null ? YQV.fmtEur(sh.declared_value) : 'no indicado'} · <strong>Frágil:</strong> ${sh.fragile ? 'Sí' : 'No'}<br>
+          <strong>Bultos:</strong> ${sh.items.map(i => `${i.item_type} (${i.description || 'sin descripción'})`).join(', ')}<br>
+          <strong>Observaciones:</strong> ${sh.notes || 'ninguna'}
+        </div>
+      `;
+    } catch (err) { YQV.toast(err.message, 'error'); }
+  });
+
+  const acceptBtn = document.getElementById('acceptBtn');
+  if (acceptBtn) acceptBtn.addEventListener('click', async () => {
+    if (!document.getElementById('confirmContent').checked) {
+      YQV.toast('Debes confirmar que has visto el contenido antes de aceptar.', 'error'); return;
+    }
+    try {
+      await YQV.api(`/api/bookings/${bookingId}/accept`, { method: 'POST', body: { confirmo_que_he_visto_el_contenido: true } });
+      YQV.toast('Envío aceptado. Queda registrado con fecha y hora.', 'ok');
+      load();
+    } catch (err) { YQV.toast(err.message, 'error'); }
+  });
+
+  const rejectBtn = document.getElementById('rejectBtn');
+  if (rejectBtn) rejectBtn.addEventListener('click', async () => {
+    try { await YQV.api(`/api/bookings/${bookingId}/reject`, { method: 'POST' }); YQV.toast('Solicitud rechazada.', 'ok'); load(); }
+    catch (err) { YQV.toast(err.message, 'error'); }
+  });
+
+  const payBtn = document.getElementById('payBtn');
+  if (payBtn) payBtn.addEventListener('click', async () => {
+    try {
+      const res = await YQV.api(`/api/bookings/${bookingId}/pay`, { method: 'POST' });
+      YQV.toast(res.aviso, 'ok');
+      load();
+    } catch (err) { YQV.toast(err.message, 'error'); }
+  });
+
+  const pickupBtn = document.getElementById('pickupBtn');
+  if (pickupBtn) pickupBtn.addEventListener('click', async () => {
+    try { await YQV.api(`/api/bookings/${bookingId}/pickup`, { method: 'POST' }); YQV.toast('Recogida confirmada.', 'ok'); load(); }
+    catch (err) { YQV.toast(err.message, 'error'); }
+  });
+
+  const transitBtn = document.getElementById('transitBtn');
+  if (transitBtn) transitBtn.addEventListener('click', async () => {
+    try { await YQV.api(`/api/bookings/${bookingId}/in-transit`, { method: 'POST' }); YQV.toast('Viaje iniciado.', 'ok'); load(); }
+    catch (err) { YQV.toast(err.message, 'error'); }
+  });
+
+  const deliverBtn = document.getElementById('deliverBtn');
+  if (deliverBtn) deliverBtn.addEventListener('click', async () => {
+    const code = document.getElementById('deliverCode').value.trim();
+    try {
+      await YQV.api(`/api/bookings/${bookingId}/deliver`, { method: 'POST', body: { backup_code: code } });
+      YQV.toast('Entrega confirmada. Pago liberado.', 'ok');
+      load();
+    } catch (err) { YQV.toast(err.message, 'error'); }
+  });
+
+  const disputeBtn = document.getElementById('disputeBtn');
+  if (disputeBtn) disputeBtn.addEventListener('click', async () => {
+    const type = prompt('Tipo de problema: no_recibido, danado, perdido, contenido, pago, entrega');
+    if (!type) return;
+    const description = prompt('Describe brevemente el problema:') || '';
+    try {
+      await YQV.api(`/api/bookings/${bookingId}/dispute`, { method: 'POST', body: { dispute_type: type, description } });
+      YQV.toast('Incidencia registrada. La revisará el equipo de YaQueVas.', 'ok');
+      load();
+    } catch (err) { YQV.toast(err.message, 'error'); }
+  });
+
+  const cancelBtn = document.getElementById('cancelBtn');
+  if (cancelBtn) cancelBtn.addEventListener('click', async () => {
+    if (!confirm('¿Seguro que quieres cancelar esta operación?')) return;
+    try {
+      await YQV.api(`/api/bookings/${bookingId}/cancel`, { method: 'POST', body: { motivo: 'Cancelado por el usuario' } });
+      YQV.toast('Operación cancelada.', 'ok');
+      load();
+    } catch (err) { YQV.toast(err.message, 'error'); }
+  });
+
+  const qrSection = document.getElementById('qrSection');
+  if (qrSection) {
+    try {
+      const qr = await YQV.api(`/api/bookings/${bookingId}/qr`);
+      const waLink = `https://wa.me/?text=${encodeURIComponent(`Aquí tienes el código para confirmar la entrega de tu envío en YaQueVas. Código de respaldo: ${qr.backup_code}`)}`;
+      qrSection.innerHTML = `
+        <div class="qr-box">
+          <canvas id="qrCanvas" class="qr-visual"></canvas>
+          <p class="muted" style="font-size:0.8rem; text-align:center;">Vista previa de demostración del QR. Muéstralo al viajero o compártelo por WhatsApp.</p>
+          <div class="backup-code">${qr.backup_code}</div>
+          <a href="${waLink}" target="_blank" class="btn btn-secondary">Enviar por WhatsApp</a>
+        </div>
+      `;
+      drawFakeQr(document.getElementById('qrCanvas'), qr.qr_token);
+    } catch (err) { /* puede que aún no haya QR */ }
+  }
+}
+load();
+</script>
+</body>
+</html>

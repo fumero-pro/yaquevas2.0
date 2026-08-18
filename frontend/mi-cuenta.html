@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi cuenta — YaQueVas</title>
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div id="yqv-nav"></div>
+
+<section class="section">
+  <div class="container">
+    <h1 id="greeting">Mi cuenta</h1>
+
+    <div id="notifBox" style="margin-bottom:24px;"></div>
+
+    <h2>Mis operaciones</h2>
+    <p class="muted">Envíos y viajes ya emparejados: aquí sigues el estado, aceptas, pagas y entregas.</p>
+    <div id="bookingsBox" class="stack"></div>
+
+    <div class="divider"></div>
+
+    <div class="card-grid cols-2">
+      <div>
+        <h2>Mis viajes publicados</h2>
+        <div id="tripsBox" class="stack"></div>
+      </div>
+      <div>
+        <h2>Mis envíos publicados</h2>
+        <div id="shipmentsBox" class="stack"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="yqv-footer"></div>
+<script src="/js/api.js"></script>
+<script src="/js/nav.js"></script>
+<script>
+if (!YQV.requireLoginOrRedirect()) { /* redirige */ }
+
+async function load() {
+  const user = YQV.getUser();
+  document.getElementById('greeting').textContent = `Hola, ${user.name}`;
+
+  try {
+    const notifs = await YQV.api('/api/notifications');
+    const unread = notifs.notifications.filter(n => !n.read);
+    document.getElementById('notifBox').innerHTML = unread.length === 0 ? '' : `
+      <div class="card">
+        <h3 style="font-size:1rem;">Notificaciones (${unread.length})</h3>
+        <div class="stack">
+          ${unread.slice(0, 8).map(n => `<div class="row between"><span><strong>${n.title}</strong> — ${n.body || ''}</span><span class="muted" style="font-size:0.8rem;">${YQV.fmtDateTime(n.created_at)}</span></div>`).join('')}
+        </div>
+      </div>
+    `;
+  } catch {}
+
+  try {
+    const data = await YQV.api('/api/bookings');
+    const box = document.getElementById('bookingsBox');
+    if (data.bookings.length === 0) {
+      box.innerHTML = '<div class="alert alert-info">Todavía no tienes ninguna operación en marcha.</div>';
+    } else {
+      box.innerHTML = data.bookings.map(b => {
+        const role = b.sender_id === user.id ? 'Remitente' : 'Viajero';
+        return `
+        <div class="card row between">
+          <div>
+            <span class="pill">${role}</span> <strong style="margin-left:8px;">${YQV.STATUS_LABELS[b.status] || b.status}</strong>
+            <div class="muted" style="font-size:0.85rem;">Base: ${YQV.fmtEur(b.base_price)} · ${role === 'Remitente' ? 'Pagas ' + YQV.fmtEur(b.sender_total) : 'Cobras ' + YQV.fmtEur(b.traveler_net)}</div>
+          </div>
+          <a class="btn btn-outline" href="/operacion.html?id=${b.id}">Ver operación</a>
+        </div>`;
+      }).join('');
+    }
+  } catch (err) { YQV.toast(err.message, 'error'); }
+
+  try {
+    const data = await YQV.api('/api/trips?mine=1');
+    const box = document.getElementById('tripsBox');
+    box.innerHTML = data.trips.length === 0 ? '<p class="muted">Sin viajes publicados.</p>' : data.trips.map(t => `
+      <div class="card">
+        <strong>${t.origin_island} → ${t.destination_island}</strong> · ${YQV.fmtDate(t.trip_date)}
+        <div class="muted" style="font-size:0.85rem;">${YQV.STATUS_LABELS[t.status] || t.status} · Espacio usado: ${t.status_capacidad.space_used_pct}%</div>
+      </div>
+    `).join('');
+  } catch {}
+
+  try {
+    const data = await YQV.api('/api/shipments?mine=1');
+    const box = document.getElementById('shipmentsBox');
+    box.innerHTML = data.shipments.length === 0 ? '<p class="muted">Sin envíos publicados.</p>' : data.shipments.map(s => `
+      <div class="card">
+        <strong>${s.origin_island} → ${s.destination_island}</strong> · ${YQV.fmtDate(s.desired_date)}
+        <div class="muted" style="font-size:0.85rem;">${YQV.STATUS_LABELS[s.status] || s.status} · ${s.items.length} bulto(s)</div>
+      </div>
+    `).join('');
+  } catch {}
+}
+load();
+</script>
+</body>
+</html>

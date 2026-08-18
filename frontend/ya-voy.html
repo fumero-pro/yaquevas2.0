@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ya voy / tengo espacio — YaQueVas</title>
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div id="yqv-nav"></div>
+
+<section class="section">
+  <div class="container" style="max-width:760px;">
+    <h1>¿Ya tienes un viaje planeado?</h1>
+    <p>Cuéntanos tu ruta y cuánto espacio te sobra. Nunca estarás obligado a aceptar nada: tú decides qué llevas.</p>
+
+    <div id="formError"></div>
+
+    <form id="tripForm" class="card">
+      <fieldset>
+        <legend>Ruta y fecha</legend>
+        <div class="field-row cols-2">
+          <div><label class="first">Isla de origen</label><select id="origin_island" required></select></div>
+          <div><label class="first">Isla de destino</label><select id="destination_island" required></select></div>
+        </div>
+        <div class="field-row cols-2">
+          <div><label>Localidad de origen</label><input id="origin_place" placeholder="Ej. Santa Cruz de Tenerife"></div>
+          <div><label>Localidad de destino</label><input id="destination_place" placeholder="Ej. Las Palmas de Gran Canaria"></div>
+        </div>
+        <div class="field-row cols-3">
+          <div><label class="first">Fecha</label><input id="trip_date" type="date" required></div>
+          <div><label class="first">Hora salida (opcional)</label><input id="departure_time" type="time"></div>
+          <div><label class="first">Hora llegada aprox. (opcional)</label><input id="arrival_time" type="time"></div>
+        </div>
+        <label>Medio de transporte</label>
+        <select id="transport_mode">
+          <option value="avion">Avión</option>
+          <option value="barco">Barco</option>
+          <option value="coche">Coche</option>
+        </select>
+      </fieldset>
+
+      <fieldset>
+        <legend>Espacio disponible (sistema Tetris)</legend>
+        <div class="field-row cols-3">
+          <div><label class="first">Maletas grandes</label><input id="cap_maletas_grandes" type="number" min="0" value="0"></div>
+          <div><label class="first">Maletas pequeñas</label><input id="cap_maletas_pequenas" type="number" min="0" value="1"></div>
+          <div><label class="first">Sobres</label><input id="cap_sobres" type="number" min="0" value="3"></div>
+        </div>
+        <div class="field-row cols-2">
+          <div><label class="first">Cajas medianas</label><input id="cap_cajas_medianas" type="number" min="0" value="0"></div>
+          <div><label class="first">Peso disponible (kg)</label><input id="cap_kg" type="number" min="0" value="10"></div>
+        </div>
+        <div class="card" style="margin-top:14px; background:var(--mist-100);" id="capacityPreview"></div>
+        <div class="checkbox-row"><input id="accepts_fragile" type="checkbox" checked><label for="accepts_fragile">Acepto objetos frágiles</label></div>
+        <div class="checkbox-row"><input id="accepts_detours" type="checkbox"><label for="accepts_detours">Acepto pequeños desvíos dentro de la isla</label></div>
+        <label>Observaciones</label>
+        <textarea id="notes" rows="2" placeholder="Ej. vuelo directo, solo equipaje de mano, etc."></textarea>
+      </fieldset>
+
+      <button class="btn btn-secondary btn-lg btn-block" type="submit">Publicar viaje y buscar envíos</button>
+    </form>
+
+    <div id="resultsBox" style="margin-top:32px;"></div>
+  </div>
+</section>
+
+<div id="yqv-footer"></div>
+<script src="/js/api.js"></script>
+<script src="/js/nav.js"></script>
+<script>
+function renderIslandOptions() {
+  for (const sel of [document.getElementById('origin_island'), document.getElementById('destination_island')]) {
+    sel.innerHTML = YQV.ISLANDS.map(i => `<option value="${i}">${i}</option>`).join('');
+  }
+  document.getElementById('destination_island').value = YQV.ISLANDS[1];
+}
+renderIslandOptions();
+{
+  const d = new Date(); d.setDate(d.getDate() + 3);
+  document.getElementById('trip_date').value = d.toISOString().slice(0, 10);
+}
+
+function updatePreview() {
+  const g = id => Number(document.getElementById(id).value || 0);
+  const volumeL = g('cap_maletas_grandes') * 100 + g('cap_maletas_pequenas') * 45 + g('cap_sobres') * 1 + g('cap_cajas_medianas') * 30;
+  document.getElementById('capacityPreview').innerHTML = `
+    <strong>Capacidad total estimada:</strong> ${volumeL} L de espacio · ${g('cap_kg')} kg de peso.
+    <p class="muted" style="margin:6px 0 0;">Se irá descontando automáticamente a medida que aceptes envíos.</p>
+  `;
+}
+['cap_maletas_grandes','cap_maletas_pequenas','cap_sobres','cap_cajas_medianas','cap_kg'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updatePreview);
+});
+updatePreview();
+
+document.getElementById('tripForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!YQV.requireLoginOrRedirect()) return;
+  const errBox = document.getElementById('formError');
+  errBox.innerHTML = '';
+
+  const body = {
+    origin_island: document.getElementById('origin_island').value,
+    origin_place: document.getElementById('origin_place').value.trim(),
+    destination_island: document.getElementById('destination_island').value,
+    destination_place: document.getElementById('destination_place').value.trim(),
+    trip_date: document.getElementById('trip_date').value,
+    departure_time: document.getElementById('departure_time').value || null,
+    arrival_time: document.getElementById('arrival_time').value || null,
+    transport_mode: document.getElementById('transport_mode').value,
+    capacity: {
+      maletas_grandes: Number(document.getElementById('cap_maletas_grandes').value || 0),
+      maletas_pequenas: Number(document.getElementById('cap_maletas_pequenas').value || 0),
+      sobres: Number(document.getElementById('cap_sobres').value || 0),
+      cajas_medianas: Number(document.getElementById('cap_cajas_medianas').value || 0),
+      kg: Number(document.getElementById('cap_kg').value || 0),
+    },
+    accepts_fragile: document.getElementById('accepts_fragile').checked,
+    accepts_detours: document.getElementById('accepts_detours').checked,
+    notes: document.getElementById('notes').value.trim(),
+  };
+
+  try {
+    const data = await YQV.api('/api/trips', { method: 'POST', body });
+    YQV.toast('Viaje publicado. Buscando envíos compatibles…', 'ok');
+    await showMatches(data.trip.id);
+    document.getElementById('tripForm').style.display = 'none';
+  } catch (err) {
+    errBox.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+  }
+});
+
+async function showMatches(tripId) {
+  const box = document.getElementById('resultsBox');
+  box.innerHTML = '<p class="muted">Buscando envíos compatibles…</p>';
+  try {
+    const data = await YQV.api(`/api/matching/for-trip/${tripId}`);
+    if (data.matches.length === 0) {
+      box.innerHTML = `<div class="alert alert-info">Todavía no hay envíos compatibles con tu ruta y fecha. En cuanto aparezca uno recibirás una notificación.</div>`;
+      return;
+    }
+    let html = `<h3>Envíos compatibles</h3><div class="stack">`;
+    for (const m of data.matches) {
+      const s = m.shipment;
+      const cls = m.compatibilidad_pct >= 80 ? 'high' : m.compatibilidad_pct >= 50 ? 'mid' : 'low';
+      html += `
+        <div class="card row between">
+          <div>
+            <strong>${s.origin_island} → ${s.destination_island}</strong> · ${YQV.fmtDate(s.desired_date)}
+            <div class="muted" style="font-size:0.85rem;">${s.items.length} bulto(s) · ${s.weight_kg} kg · ${s.fragile ? 'Frágil' : 'No frágil'}</div>
+          </div>
+          <div class="row">
+            <span class="match-score ${cls}">${m.compatibilidad_pct}%</span>
+            <button class="btn btn-secondary" data-ship="${s.id}" data-trip="${tripId}">Solicitar</button>
+          </div>
+        </div>
+      `;
+    }
+    html += `</div>`;
+    box.innerHTML = html;
+    box.querySelectorAll('button[data-ship]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        try {
+          const res = await YQV.api('/api/bookings', { method: 'POST', body: { shipment_id: btn.dataset.ship, trip_id: btn.dataset.trip } });
+          YQV.toast('Solicitud creada. Revisa el contenido antes de aceptar.', 'ok');
+          window.location.href = `/operacion.html?id=${res.booking.id}`;
+        } catch (err) {
+          YQV.toast(err.message, 'error');
+        }
+      });
+    });
+  } catch (err) {
+    box.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+  }
+}
+</script>
+</body>
+</html>

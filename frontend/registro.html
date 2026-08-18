@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crear cuenta — YaQueVas</title>
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div id="yqv-nav"></div>
+
+<section class="section" style="max-width:480px; margin:0 auto;">
+  <div class="container">
+    <h1>Crea tu cuenta</h1>
+    <div class="card">
+      <div id="formError"></div>
+      <form id="regForm">
+        <div class="field-row cols-2">
+          <div><label class="first">Nombre</label><input id="name" required></div>
+          <div><label class="first">Apellidos</label><input id="surname" required></div>
+        </div>
+        <label>Email</label>
+        <input id="email" type="email" required>
+        <label>Teléfono</label>
+        <input id="phone" type="tel" placeholder="+34 600 000 000">
+        <label>Contraseña</label>
+        <input id="password" type="password" required minlength="8">
+        <p class="field-hint">Mínimo 8 caracteres.</p>
+        <label>País</label>
+        <select id="country">
+          <option value="ES" selected>España</option>
+          <option value="OTRO">Otro</option>
+        </select>
+        <div class="checkbox-row">
+          <input id="terms" type="checkbox" required>
+          <label for="terms">He leído y acepto los <a href="/legal.html?doc=terminos" target="_blank">términos y condiciones</a> y la <a href="/legal.html?doc=privacidad" target="_blank">política de privacidad</a>.</label>
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">Crear cuenta</button>
+      </form>
+    </div>
+    <p class="center" style="margin-top:16px;">¿Ya tienes cuenta? <a href="/login.html">Accede aquí</a></p>
+  </div>
+</section>
+
+<div id="yqv-footer"></div>
+<script src="/js/api.js"></script>
+<script src="/js/nav.js"></script>
+<script>
+document.getElementById('regForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errBox = document.getElementById('formError');
+  errBox.innerHTML = '';
+  const body = {
+    name: document.getElementById('name').value.trim(),
+    surname: document.getElementById('surname').value.trim(),
+    email: document.getElementById('email').value.trim(),
+    phone: document.getElementById('phone').value.trim(),
+    password: document.getElementById('password').value,
+    country: document.getElementById('country').value,
+    accepted_terms: document.getElementById('terms').checked,
+  };
+  try {
+    const data = await YQV.api('/api/auth/register', { method: 'POST', body, auth: false });
+    YQV.setSession(data.token, data.user);
+    YQV.toast('Cuenta creada. ¡Bienvenido a YaQueVas!', 'ok');
+    window.location.href = '/mi-cuenta.html';
+  } catch (err) {
+    errBox.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+  }
+});
+</script>
+</body>
+</html>
