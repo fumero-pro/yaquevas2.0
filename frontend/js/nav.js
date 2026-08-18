@@ -1,7 +1,21 @@
 // Inyecta la barra de navegación, el banner de modo demo y el pie de página
 // en cualquier página que incluya #yqv-nav / #yqv-footer y cargue este script.
 (function () {
+  const LOGO_SVG = '<svg width="30" height="30" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="100" height="100" rx="26" fill="#0A3D8F"/><path d="M20 62 L78 22 L60 78 L50 58 L20 62 Z" fill="#FFC72C"/><path d="M50 58 L78 22 L50 58 Z" fill="#C79400"/></svg>';
+
+  function injectFavicon() {
+    if (document.getElementById('yqv-favicon')) return;
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%230A3D8F"/><path d="M20 62 L78 22 L60 78 L50 58 L20 62 Z" fill="%23FFC72C"/><path d="M50 58 L78 22 L50 58 Z" fill="%23C79400"/></svg>';
+    const link = document.createElement('link');
+    link.id = 'yqv-favicon';
+    link.rel = 'icon';
+    link.type = 'image/svg+xml';
+    link.href = 'data:image/svg+xml,' + svg;
+    document.head.appendChild(link);
+  }
+
   function renderNav() {
+    injectFavicon();
     const mount = document.getElementById('yqv-nav');
     if (!mount) return;
     const user = YQV.getUser();
@@ -11,7 +25,7 @@
       <div class="badge-demo-banner">MODO DEMOSTRACIÓN — datos, pagos y verificación simulados. Ninguna operación es real.</div>
       <div class="topbar">
         <div class="topbar-inner">
-          <a class="logo" href="/index.html">Ya<span class="dot">Que</span>Vas</a>
+          <a class="logo" href="/index.html">${LOGO_SVG}Ya<span class="dot">Que</span>Vas</a>
           <button class="btn btn-outline nav-toggle" id="navToggleBtn" aria-label="Abrir menú">☰</button>
           <nav class="nav-links" id="navLinks">
             <a href="/como-funciona.html">Cómo funciona</a>
@@ -108,7 +122,7 @@
       <footer>
         <div class="container footer-grid">
           <div>
-            <div class="logo" style="margin-bottom:10px;">Ya<span class="dot">Que</span>Vas</div>
+            <div class="logo" style="margin-bottom:10px;">${LOGO_SVG}Ya<span class="dot">Que</span>Vas</div>
             <p>Si ya vas, puedes llevarlo. YaQueVas conecta viajes que ya se iban a hacer con envíos legales entre las Islas Canarias, con una compensación justa para quien viaja.</p>
             <p class="muted">YaQueVas no es una empresa de transporte ni de paquetería: facilita la conexión, el pago y la entrega entre particulares que ya viajaban.</p>
           </div>

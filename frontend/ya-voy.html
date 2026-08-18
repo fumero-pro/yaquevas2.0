@@ -13,6 +13,7 @@
   <div class="container" style="max-width:760px;">
     <h1>¿Ya tienes un viaje planeado?</h1>
     <p>Cuéntanos tu ruta y cuánto espacio te sobra. Nunca estarás obligado a aceptar nada: tú decides qué llevas.</p>
+    <p style="color:var(--teal-dark); font-weight:600;">El viaje te sale casi gratis, niñ@ — gánate unas perritas extra con el espacio que ya te sobraba.</p>
 
     <div id="formError"></div>
 
@@ -35,9 +36,10 @@
         <label>Medio de transporte</label>
         <select id="transport_mode">
           <option value="avion">Avión</option>
-          <option value="barco">Barco</option>
+          <option value="barco">Barco (ferry)</option>
           <option value="coche">Coche</option>
         </select>
+        <p id="ferryTip" class="muted" style="font-size:0.85rem; display:none; margin-top:6px;">🚗⛴️ Si vas en ferry con el coche, puedes meter bultos grandes en el maletero — indícalo en el espacio disponible de abajo.</p>
       </fieldset>
 
       <fieldset>
@@ -93,6 +95,13 @@ function updatePreview() {
   document.getElementById(id).addEventListener('input', updatePreview);
 });
 updatePreview();
+
+function updateFerryTip() {
+  const mode = document.getElementById('transport_mode').value;
+  document.getElementById('ferryTip').style.display = mode === 'barco' ? 'block' : 'none';
+}
+document.getElementById('transport_mode').addEventListener('change', updateFerryTip);
+updateFerryTip();
 
 document.getElementById('tripForm').addEventListener('submit', async (e) => {
   e.preventDefault();

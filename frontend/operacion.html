@@ -43,7 +43,7 @@ function drawFakeQr(canvas, token) {
   for (let i = 0; i < token.length; i++) seed = (seed * 31 + token.charCodeAt(i)) >>> 0;
   function rnd() { seed = (seed * 1103515245 + 12345) >>> 0; return (seed >>> 8) / 16777216; }
   ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = '#0B2436';
+  ctx.fillStyle = '#0A3D8F';
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const isFinder = (x < 6 && y < 6) || (x > size - 7 && y < 6) || (x < 6 && y > size - 7);

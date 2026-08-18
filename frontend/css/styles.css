@@ -1,26 +1,25 @@
 /* =========================================================
    YaQueVas — Sistema de diseño
-   Inspirado en el Atlántico y el paisaje volcánico canario:
-   noche marina profunda, bruma costera y ceniza volcánica
-   con un acento de "guagua" naranja para la acción principal.
+   Paleta basada en la bandera de Canarias: azul, blanco y
+   amarillo, con bruma costera y ceniza volcánica de fondo.
    ========================================================= */
 
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  --marine-900: #0B2436;
-  --marine-800: #123449;
-  --marine-700: #1B4A63;
+  --marine-900: #0A3D8F;
+  --marine-800: #0D4CAE;
+  --marine-700: #1B63C7;
   --mist-100: #EDF3F2;
   --mist-50: #F7FAF9;
   --ash-600: #4B5B60;
   --ash-400: #7C8C90;
   --line: #D7E1DF;
-  --coral: #FF6B39;
-  --coral-dark: #E0521F;
+  --coral: #FFC72C;
+  --coral-dark: #C79400;
   --teal: #1B998B;
   --teal-dark: #147A70;
-  --sun: #F2A93B;
+  --sun: #F5C84C;
   --danger: #C6432B;
   --ok: #1B8A5A;
 
@@ -95,7 +94,7 @@ strong { color: var(--marine-900); }
 }
 .notif-bell:hover { background: var(--mist-100); }
 .notif-count {
-  position: absolute; top: -2px; right: -2px; background: var(--coral); color: white;
+  position: absolute; top: -2px; right: -2px; background: var(--coral); color: var(--marine-900);
   font-size: 0.65rem; font-weight: 700; min-width: 16px; height: 16px; border-radius: 999px;
   display: flex; align-items: center; justify-content: center; padding: 0 3px;
 }
@@ -146,7 +145,7 @@ strong { color: var(--marine-900); }
 }
 .btn:hover { text-decoration: none; }
 .btn:active { transform: scale(0.98); }
-.btn-primary { background: var(--coral); color: white; box-shadow: var(--shadow-2); }
+.btn-primary { background: var(--coral); color: var(--marine-900); box-shadow: var(--shadow-2); }
 .btn-primary:hover { background: var(--coral-dark); }
 .btn-secondary { background: var(--marine-900); color: white; }
 .btn-secondary:hover { background: var(--marine-800); }
@@ -160,12 +159,12 @@ strong { color: var(--marine-900); }
 
 /* ---------- Hero (inicio) ---------- */
 .hero {
-  background: radial-gradient(1200px 500px at 15% -10%, #163C52 0%, var(--marine-900) 55%, #081826 100%);
+  background: radial-gradient(1200px 500px at 15% -10%, #1E56B0 0%, var(--marine-900) 55%, #041B4D 100%);
   color: white; padding: 64px 0 88px; position: relative; overflow: hidden;
 }
 .hero::after {
   content: ''; position: absolute; right: -80px; bottom: -120px; width: 420px; height: 420px;
-  border-radius: 50%; background: radial-gradient(circle, rgba(255,107,57,0.28), transparent 70%);
+  border-radius: 50%; background: radial-gradient(circle, rgba(255,199,44,0.28), transparent 70%);
 }
 .hero-eyebrow {
   display: inline-block; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase;
@@ -189,7 +188,7 @@ strong { color: var(--marine-900); }
   display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px;
   background: var(--mist-100); color: var(--marine-800); font-size: 0.82rem; font-weight: 600;
 }
-.pill.demo { background: #FFF1E8; color: var(--coral-dark); }
+.pill.demo { background: #FFF6DC; color: var(--coral-dark); }
 .pill.ok { background: #E6F5EC; color: var(--ok); }
 .pill.warn { background: #FDF2E3; color: #9A6A15; }
 .pill.danger { background: #FBE9E5; color: var(--danger); }
