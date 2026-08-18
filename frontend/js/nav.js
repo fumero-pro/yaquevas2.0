@@ -1,11 +1,12 @@
 // Inyecta la barra de navegación, el banner de modo demo y el pie de página
 // en cualquier página que incluya #yqv-nav / #yqv-footer y cargue este script.
 (function () {
-  const LOGO_SVG = '<svg width="30" height="30" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="100" height="100" rx="26" fill="#0A3D8F"/><path d="M20 62 L78 22 L60 78 L50 58 L20 62 Z" fill="#FFC72C"/><path d="M50 58 L78 22 L50 58 Z" fill="#C79400"/></svg>';
+  const ISLANDS_MARK = '<circle cx="50" cy="50" r="50" fill="{{BLUE}}"/><polyline points="20,68 24,45 36,60 50,50 62,59 74,49 82,32" stroke="{{YELLOW}}" stroke-width="4.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="68" r="4.3" fill="{{YELLOW}}"/><circle cx="24" cy="45" r="5" fill="{{YELLOW}}"/><circle cx="36" cy="60" r="4.3" fill="{{YELLOW}}"/><circle cx="50" cy="50" r="6.4" fill="{{YELLOW}}"/><circle cx="62" cy="59" r="6" fill="{{YELLOW}}"/><circle cx="74" cy="49" r="5.3" fill="{{YELLOW}}"/><circle cx="82" cy="32" r="4.3" fill="{{YELLOW}}"/>';
+  const LOGO_SVG = '<svg width="30" height="30" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' + ISLANDS_MARK.replace(/\{\{BLUE\}\}/g, '#0A3D8F').replace(/\{\{YELLOW\}\}/g, '#FFC72C') + '</svg>';
 
   function injectFavicon() {
     if (document.getElementById('yqv-favicon')) return;
-    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%230A3D8F"/><path d="M20 62 L78 22 L60 78 L50 58 L20 62 Z" fill="%23FFC72C"/><path d="M50 58 L78 22 L50 58 Z" fill="%23C79400"/></svg>';
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' + ISLANDS_MARK.replace(/\{\{BLUE\}\}/g, '%230A3D8F').replace(/\{\{YELLOW\}\}/g, '%23FFC72C') + '</svg>';
     const link = document.createElement('link');
     link.id = 'yqv-favicon';
     link.rel = 'icon';
@@ -147,8 +148,27 @@
     `;
   }
 
+  function initScrollReveal() {
+    if (!('IntersectionObserver' in window)) return; // sin soporte: el contenido ya es visible por defecto, no se pierde nada
+    const targets = document.querySelectorAll('.card');
+    if (!targets.length) return;
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('reveal-visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    targets.forEach((el) => {
+      el.classList.add('reveal-init');
+      observer.observe(el);
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     renderNav();
     renderFooter();
+    initScrollReveal();
   });
 })();

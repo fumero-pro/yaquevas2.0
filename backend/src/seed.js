@@ -41,7 +41,7 @@ function seed() {
     ['Explosivos', 'prohibido', 'Materiales explosivos o pirotécnicos.'],
     ['Mercancías peligrosas', 'prohibido', 'Sustancias inflamables, corrosivas o tóxicas no autorizadas.'],
     ['Dinero en efectivo', 'prohibido', 'Efectivo no admitido según las reglas del servicio.'],
-    ['Animales vivos', 'permitido_aceptacion_expresa', 'Requiere condiciones especiales y aceptación expresa del viajero.'],
+    ['Animales vivos', 'prohibido', 'No se pueden transportar mascotas a través de YaQueVas: aerolíneas y navieras exigen que sea el propietario quien viaje con el animal y su documentación (cartilla sanitaria, vacuna antirrábica vigente). Si necesitas viajar con tu mascota, contacta directamente con la compañía.'],
     ['Perfumes', 'permitido_aceptacion_expresa', 'Líquidos inflamables en avión: sujeto a normativa de equipaje de mano.'],
     ['Medicamentos', 'permitido_aceptacion_expresa', 'Requiere declaración correcta y aceptación expresa.'],
   ];
@@ -52,6 +52,9 @@ function seed() {
         .run(newId('proh'), name, category, note);
     }
   }
+  // Corrige bases ya sembradas donde "Animales vivos" quedó como aceptación expresa (debe ser prohibido).
+  db.prepare("UPDATE prohibited_items SET category = 'prohibido', note = ? WHERE name = 'Animales vivos' AND category != 'prohibido'")
+    .run('No se pueden transportar mascotas a través de YaQueVas: aerolíneas y navieras exigen que sea el propietario quien viaje con el animal y su documentación (cartilla sanitaria, vacuna antirrábica vigente). Si necesitas viajar con tu mascota, contacta directamente con la compañía.');
 
   // Documentos legales v1 (marcados como borrador inicial, pendientes de revisión legal -> punto 53)
   const existingLegal = db.prepare("SELECT COUNT(*) c FROM legal_documents WHERE doc_type = 'terminos'").get().c;
