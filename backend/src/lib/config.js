@@ -3,8 +3,8 @@
 const DEFAULTS = {
   commission_sender_pct: '6',
   commission_traveler_pct: '6',
-  baremo_discount_pct: '20',
-  min_price: '5',
+  baremo_discount_pct: '30',
+  min_price: '2.5',
   max_price: '200',
   price_per_kg_extra: '0.8',
   fragile_surcharge: '2',

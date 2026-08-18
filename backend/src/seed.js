@@ -75,18 +75,21 @@ function seed() {
   // Configuración inicial explícita (aunque los defaults ya cubren esto, se deja constancia)
   setConfigValue(db, 'commission_sender_pct', '6', ownerId);
   setConfigValue(db, 'commission_traveler_pct', '6', ownerId);
-  setConfigValue(db, 'baremo_discount_pct', '20', ownerId);
+  setConfigValue(db, 'baremo_discount_pct', '30', ownerId);
   setConfigValue(db, 'demo_mode', 'true', ownerId);
   setConfigValue(db, 'company_name', 'YaQueVas', ownerId);
 
-  // Muestras de precio de referencia demo (para que el baremo tenga algo con lo que calcular -> punto 16)
-  const existingSamples = db.prepare('SELECT COUNT(*) c FROM pricing_reference_samples').get().c;
-  if (existingSamples === 0) {
+  // Muestras de precio de referencia, basadas en la tarifa oficial de Correos para envíos
+  // interinsulares en Canarias (zona Z6, tarifas 2025): 5,41 € hasta 2 kg, 6,21 € de 2 a 5 kg.
+  // Sustituye a las muestras demo antiguas (importes inventados, no reales -> punto 85).
+  db.prepare("DELETE FROM pricing_reference_samples WHERE source LIKE '%(demo)%'").run();
+  const existingRealSamples = db.prepare("SELECT COUNT(*) c FROM pricing_reference_samples WHERE source LIKE 'Correos%'").get().c;
+  if (existingRealSamples === 0) {
     const samples = [
-      ['Tenerife', 'Gran Canaria', 'Referencia mensajería A (demo)', 22],
-      ['Tenerife', 'Gran Canaria', 'Referencia mensajería B (demo)', 18],
-      ['Tenerife', 'La Palma', 'Referencia mensajería A (demo)', 19],
-      ['Gran Canaria', 'Tenerife', 'Referencia mensajería A (demo)', 21],
+      ['Tenerife', 'Gran Canaria', 'Correos - tarifa oficial interinsular Z6 2025 (hasta 2kg)', 5.41],
+      ['Tenerife', 'Gran Canaria', 'Correos - tarifa oficial interinsular Z6 2025 (2-5kg)', 6.21],
+      ['Gran Canaria', 'Tenerife', 'Correos - tarifa oficial interinsular Z6 2025 (hasta 2kg)', 5.41],
+      ['Tenerife', 'La Palma', 'Correos - tarifa oficial interinsular Z6 2025 (hasta 2kg)', 5.41],
     ];
     for (const [o, d, source, price] of samples) {
       db.prepare('INSERT INTO pricing_reference_samples (id, route_key, source, price, captured_at) VALUES (?, ?, ?, ?, ?)')
