@@ -20,4 +20,13 @@ db.exec('PRAGMA foreign_keys = ON;');
 const migrationSql = fs.readFileSync(path.join(__dirname, 'migrations', '001_init.sql'), 'utf8');
 db.exec(migrationSql);
 
+// Añade columnas nuevas a bases de datos ya existentes (CREATE TABLE IF NOT EXISTS no las
+// crea retroactivamente). Cada ALTER se intenta por separado y se ignora si ya existe.
+for (const stmt of [
+  "ALTER TABLE notifications ADD COLUMN related_type TEXT",
+  "ALTER TABLE notifications ADD COLUMN related_id TEXT",
+]) {
+  try { db.exec(stmt); } catch (e) { if (!/duplicate column/i.test(e.message)) throw e; }
+}
+
 module.exports = { db, isNew, DB_PATH };

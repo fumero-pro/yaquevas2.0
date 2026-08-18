@@ -177,6 +177,7 @@ async function load() {
     try {
       const s = await YQV.api(`/api/shipments/${booking.shipment_id}`, { auth: false });
       const sh = s.shipment;
+      const photos = sh.items.filter(i => i.photo_url);
       document.getElementById('shipmentPreview').innerHTML = `
         <div class="alert alert-info">
           <strong>Destinatario:</strong> ${sh.recipient_name}<br>
@@ -184,6 +185,14 @@ async function load() {
           <strong>Valor declarado:</strong> ${sh.declared_value != null ? YQV.fmtEur(sh.declared_value) : 'no indicado'} · <strong>Frágil:</strong> ${sh.fragile ? 'Sí' : 'No'}<br>
           <strong>Bultos:</strong> ${sh.items.map(i => `${i.item_type} (${i.description || 'sin descripción'})`).join(', ')}<br>
           <strong>Observaciones:</strong> ${sh.notes || 'ninguna'}
+          ${photos.length > 0 ? `
+            <div style="margin-top:10px;">
+              <strong>Fotos:</strong>
+              <div class="row" style="gap:8px; margin-top:6px; flex-wrap:wrap;">
+                ${photos.map(i => `<img src="${i.photo_url}" alt="Foto de ${i.item_type}" style="width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid var(--line);">`).join('')}
+              </div>
+            </div>
+          ` : ''}
         </div>
       `;
     } catch (err) { YQV.toast(err.message, 'error'); }

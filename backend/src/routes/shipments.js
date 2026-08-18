@@ -5,6 +5,18 @@ const { itemsToUsage } = require('../lib/tetris');
 const { ISLANDS } = require('./trips');
 
 const ITEM_TYPES = ['maleta_grande', 'maleta_pequena', 'sobre', 'caja_mediana'];
+const MAX_PHOTO_CHARS = 1.5 * 1024 * 1024; // ~1.5MB de texto base64 por foto (demo: guardado embebido en SQLite)
+
+function validatePhoto(photo) {
+  if (!photo) return { ok: true, value: null };
+  if (typeof photo !== 'string' || !/^data:image\/(png|jpe?g|webp);base64,/.test(photo)) {
+    return { ok: false, error: 'Formato de foto no válido (debe ser PNG, JPG o WEBP).' };
+  }
+  if (photo.length > MAX_PHOTO_CHARS) {
+    return { ok: false, error: 'La foto es demasiado grande (máximo ~1MB por foto).' };
+  }
+  return { ok: true, value: photo };
+}
 
 function serializeShipment(s, items) {
   return {
@@ -25,7 +37,7 @@ function serializeShipment(s, items) {
     notes: s.notes,
     status: s.status,
     created_at: s.created_at,
-    items: (items || []).map((i) => ({ id: i.id, item_type: i.item_type, quantity: i.quantity, description: i.description })),
+    items: (items || []).map((i) => ({ id: i.id, item_type: i.item_type, quantity: i.quantity, description: i.description, photo_url: i.photo_url || null })),
   };
 }
 
@@ -64,6 +76,8 @@ function register(router, db) {
       if (!ITEM_TYPES.includes(it.item_type)) {
         return res.status(400).json({ error: `Tipo de bulto no válido: ${it.item_type}` });
       }
+      const photoCheck = validatePhoto(it.photo);
+      if (!photoCheck.ok) return res.status(400).json({ error: photoCheck.error });
     }
 
     // Comprobación básica contra la lista de objetos prohibidos (punto 6)
@@ -92,8 +106,8 @@ function register(router, db) {
     );
     for (const it of items) {
       db.prepare(
-        `INSERT INTO shipment_items (id, shipment_id, item_type, quantity, description) VALUES (?, ?, ?, ?, ?)`
-      ).run(newId('item'), id, it.item_type, Number(it.quantity || 1), it.description || '');
+        `INSERT INTO shipment_items (id, shipment_id, item_type, quantity, description, photo_url) VALUES (?, ?, ?, ?, ?, ?)`
+      ).run(newId('item'), id, it.item_type, Number(it.quantity || 1), it.description || '', it.photo || null);
     }
 
     const shipment = db.prepare('SELECT * FROM shipments WHERE id = ?').get(id);

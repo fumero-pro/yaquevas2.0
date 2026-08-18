@@ -32,10 +32,11 @@ function serializeBooking(b) {
   };
 }
 
-function notify(db, userId, type, title, bodyText) {
+function notify(db, userId, type, title, bodyText, relatedId) {
   db.prepare(
-    `INSERT INTO notifications (id, user_id, type, title, body, created_at) VALUES (?, ?, ?, ?, ?, ?)`
-  ).run(newId('notif'), userId, type, title, bodyText || '', new Date().toISOString());
+    `INSERT INTO notifications (id, user_id, type, title, body, related_type, related_id, created_at)
+     VALUES (?, ?, ?, ?, ?, 'booking', ?, ?)`
+  ).run(newId('notif'), userId, type, title, bodyText || '', relatedId || null, new Date().toISOString());
 }
 
 function register(router, db) {
@@ -43,7 +44,7 @@ function register(router, db) {
   router.post('/api/bookings', async (req, res, body) => {
     const user = requireAuth(req, res, db);
     if (!user) return;
-    const { shipment_id, trip_id } = body;
+    const { shipment_id, trip_id, proposed_price } = body;
     const shipment = db.prepare('SELECT * FROM shipments WHERE id = ?').get(shipment_id);
     const trip = db.prepare('SELECT * FROM trips WHERE id = ?').get(trip_id);
     if (!shipment || !trip) return res.status(404).json({ error: 'Envío o viaje no encontrado.' });
@@ -72,8 +73,21 @@ function register(router, db) {
       fragile: !!shipment.fragile,
       extraLuggage: items.length > 2,
     });
+    // El remitente puede ajustar el precio orientativo dentro de un margen (+/-30%,
+    // y sin salirse del mínimo/máximo configurado) antes de solicitar la operación.
+    let finalPrice = price.orientative_price;
+    if (proposed_price !== undefined && proposed_price !== null && proposed_price !== '') {
+      const proposed = Number(proposed_price);
+      if (!Number.isFinite(proposed) || proposed <= 0) {
+        return res.status(400).json({ error: 'El precio propuesto no es válido.' });
+      }
+      const minAllowed = Math.max(Number(config.min_price ?? 5), price.orientative_price * 0.7);
+      const maxAllowed = Math.min(Number(config.max_price ?? 200), price.orientative_price * 1.3);
+      finalPrice = Math.min(maxAllowed, Math.max(minAllowed, proposed));
+    }
+
     const commission = calculateCommission(
-      price.orientative_price,
+      finalPrice,
       Number(config.commission_sender_pct),
       Number(config.commission_traveler_pct)
     );
@@ -92,8 +106,8 @@ function register(router, db) {
     );
     db.prepare("UPDATE shipments SET status = 'solicitud_recibida' WHERE id = ?").run(shipment.id);
 
-    notify(db, trip.user_id, 'solicitud', 'Nueva solicitud de envío', `Tienes una nueva solicitud compatible con tu viaje ${trip.origin_island} → ${trip.destination_island}.`);
-    notify(db, shipment.sender_id, 'solicitud', 'Solicitud enviada', 'Hemos avisado al viajero de tu solicitud.');
+    notify(db, trip.user_id, 'solicitud', 'Nueva solicitud de envío', `Tienes una nueva solicitud compatible con tu viaje ${trip.origin_island} → ${trip.destination_island}.`, id);
+    notify(db, shipment.sender_id, 'solicitud', 'Solicitud enviada', 'Hemos avisado al viajero de tu solicitud.', id);
 
     const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(id);
     res.status(201).json({ booking: serializeBooking(booking), shipment: serializeShipment(shipment, items), trip: serializeTrip(trip) });
@@ -140,7 +154,7 @@ function register(router, db) {
     db.prepare("UPDATE shipments SET status = 'aceptado' WHERE id = ?").run(shipment.id);
     db.prepare('UPDATE trips SET used_json = ? WHERE id = ?').run(JSON.stringify(fit.usageAfter), trip.id);
 
-    notify(db, shipment.sender_id, 'aceptacion', 'Tu envío ha sido aceptado', 'El viajero ha aceptado transportar tu envío. Ya puedes realizar el pago.');
+    notify(db, shipment.sender_id, 'aceptacion', 'Tu envío ha sido aceptado', 'El viajero ha aceptado transportar tu envío. Ya puedes realizar el pago.', booking.id);
 
     const updated = db.prepare('SELECT * FROM bookings WHERE id = ?').get(booking.id);
     res.json({ booking: serializeBooking(updated), aceptacion_registrada: { id: acceptanceId, terms_version: TERMS_VERSION, accepted_at: now } });
@@ -154,7 +168,7 @@ function register(router, db) {
     if (booking.traveler_id !== user.id) return res.status(403).json({ error: 'Solo el viajero puede rechazar.' });
     db.prepare("UPDATE bookings SET status = 'rechazado' WHERE id = ?").run(booking.id);
     db.prepare("UPDATE shipments SET status = 'publicado' WHERE id = ?").run(booking.shipment_id);
-    notify(db, booking.sender_id, 'rechazo', 'El viajero no puede llevar tu envío', 'Busca otro viaje compatible en YaQueVas.');
+    notify(db, booking.sender_id, 'rechazo', 'El viajero no puede llevar tu envío', 'Busca otro viaje compatible en YaQueVas.', booking.id);
     res.json({ ok: true });
   });
 
@@ -175,7 +189,7 @@ function register(router, db) {
 
     db.prepare("UPDATE bookings SET status = 'pago_realizado' WHERE id = ?").run(booking.id);
     db.prepare("UPDATE shipments SET status = 'pago_realizado' WHERE id = ?").run(booking.shipment_id);
-    notify(db, booking.traveler_id, 'pago', 'Pago recibido (retenido hasta la entrega)', 'El remitente ha pagado. El importe se liberará cuando confirmes la entrega.');
+    notify(db, booking.traveler_id, 'pago', 'Pago recibido (retenido hasta la entrega)', 'El remitente ha pagado. El importe se liberará cuando confirmes la entrega.', booking.id);
 
     const updated = db.prepare('SELECT * FROM bookings WHERE id = ?').get(booking.id);
     res.json({ booking: serializeBooking(updated), modo_demo: true, aviso: 'Pago simulado (MODO DEMOSTRACIÓN — OPERACIÓN SIMULADA). Pendiente de conectar proveedor de pagos real.' });
@@ -190,7 +204,7 @@ function register(router, db) {
     if (booking.status !== 'pago_realizado') return res.status(400).json({ error: `No se puede recoger en estado "${booking.status}".` });
     db.prepare("UPDATE bookings SET status = 'recogido' WHERE id = ?").run(booking.id);
     db.prepare("UPDATE shipments SET status = 'recogido' WHERE id = ?").run(booking.shipment_id);
-    notify(db, booking.sender_id, 'recogida', 'Tu envío ha sido recogido', 'El viajero ya lo lleva consigo.');
+    notify(db, booking.sender_id, 'recogida', 'Tu envío ha sido recogido', 'El viajero ya lo lleva consigo.', booking.id);
     res.json({ ok: true });
   });
 
@@ -203,7 +217,7 @@ function register(router, db) {
     if (!['recogido'].includes(booking.status)) return res.status(400).json({ error: `Transición no válida desde "${booking.status}".` });
     db.prepare("UPDATE bookings SET status = 'en_transito' WHERE id = ?").run(booking.id);
     db.prepare("UPDATE shipments SET status = 'en_transito' WHERE id = ?").run(booking.shipment_id);
-    notify(db, booking.sender_id, 'en_transito', 'Tu viaje ha comenzado', 'El viajero está en camino con tu envío.');
+    notify(db, booking.sender_id, 'en_transito', 'Tu viaje ha comenzado', 'El viajero está en camino con tu envío.', booking.id);
     res.json({ ok: true });
   });
 
@@ -258,8 +272,8 @@ function register(router, db) {
 
     db.prepare("UPDATE bookings SET status = 'pago_liberado' WHERE id = ?").run(booking.id);
 
-    notify(db, booking.sender_id, 'entrega', 'Entrega confirmada', 'Tu envío ha llegado a su destino.');
-    notify(db, booking.traveler_id, 'pago_liberado', 'Pago liberado', `Se ha liberado tu compensación de ${booking.traveler_net} € (modo demo).`);
+    notify(db, booking.sender_id, 'entrega', 'Entrega confirmada', 'Tu envío ha llegado a su destino.', booking.id);
+    notify(db, booking.traveler_id, 'pago_liberado', 'Pago liberado', `Se ha liberado tu compensación de ${booking.traveler_net} € (modo demo).`, booking.id);
 
     const updated = db.prepare('SELECT * FROM bookings WHERE id = ?').get(booking.id);
     res.json({ booking: serializeBooking(updated), modo_demo: true });
@@ -285,7 +299,7 @@ function register(router, db) {
         `INSERT INTO refunds (id, booking_id, requested_by, reason, amount, status, created_at) VALUES (?, ?, ?, ?, ?, 'completado', ?)`
       ).run(newId('ref'), booking.id, user.id, body.motivo || 'Cancelación de la operación', paid.amount, now);
     }
-    notify(db, booking.sender_id === user.id ? booking.traveler_id : booking.sender_id, 'cancelacion', 'Operación cancelada', body.motivo || '');
+    notify(db, booking.sender_id === user.id ? booking.traveler_id : booking.sender_id, 'cancelacion', 'Operación cancelada', body.motivo || '', booking.id);
     res.json({ ok: true });
   });
 

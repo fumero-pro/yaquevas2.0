@@ -51,7 +51,7 @@ const YQV = (() => {
     return data;
   }
 
-  const ISLANDS = ['Tenerife', 'Gran Canaria', 'La Palma', 'La Gomera', 'El Hierro', 'Fuerteventura', 'Lanzarote'];
+  const ISLANDS = ['Tenerife', 'Gran Canaria', 'La Palma', 'La Gomera', 'El Hierro', 'Fuerteventura', 'Lanzarote', 'La Graciosa'];
   const TRANSPORT_LABELS = { avion: 'Avión ✈️', barco: 'Barco 🚢', coche: 'Coche 🚗' };
   const STATUS_LABELS = {
     borrador: 'Borrador', publicado: 'Publicado', buscando_viajero: 'Buscando viajero',

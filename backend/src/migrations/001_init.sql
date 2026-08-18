@@ -151,6 +151,8 @@ CREATE TABLE IF NOT EXISTS notifications (
   title TEXT NOT NULL,
   body TEXT,
   read INTEGER NOT NULL DEFAULT 0,
+  related_type TEXT, -- booking | trip | shipment (a qué recurso enlaza la notificación)
+  related_id TEXT,
   created_at TEXT NOT NULL
 );
 

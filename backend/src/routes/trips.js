@@ -3,7 +3,7 @@ const { requireAuth } = require('../middleware/auth');
 const { newId } = require('../lib/auth');
 const { capacityStatus } = require('../lib/tetris');
 
-const ISLANDS = ['Tenerife', 'Gran Canaria', 'La Palma', 'La Gomera', 'El Hierro', 'Fuerteventura', 'Lanzarote'];
+const ISLANDS = ['Tenerife', 'Gran Canaria', 'La Palma', 'La Gomera', 'El Hierro', 'Fuerteventura', 'Lanzarote', 'La Graciosa'];
 const TRANSPORT_MODES = ['avion', 'barco', 'coche'];
 
 function serializeTrip(t) {

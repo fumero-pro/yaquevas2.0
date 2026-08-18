@@ -19,6 +19,13 @@
             <a href="/ya-voy.html">Ya voy / tengo espacio</a>
             <a href="/buscar.html">Buscar</a>
             <a href="/faq.html">Ayuda</a>
+            ${user ? `<div class="notif-bell-wrap" id="notifBellWrap">
+              <button class="notif-bell" id="notifBellBtn" aria-label="Notificaciones">🔔<span class="notif-count" id="notifCount" style="display:none;">0</span></button>
+              <div class="notif-dropdown" id="notifDropdown">
+                <div class="notif-dropdown-header">Notificaciones</div>
+                <div class="notif-list" id="notifList"><div class="notif-empty">Cargando…</div></div>
+              </div>
+            </div>` : ''}
             ${user ? `<a href="/mi-cuenta.html">Mi cuenta (${user.name})</a>` : `<a href="/login.html">Acceder</a>`}
             ${user ? `<a href="#" id="logoutLink">Salir</a>` : `<a href="/registro.html" class="btn btn-primary" style="padding:10px 18px;">Crear cuenta</a>`}
             ${isAdmin ? `<a href="/admin.html">Administración</a>` : ''}
@@ -35,6 +42,63 @@
       YQV.clearSession();
       window.location.href = '/index.html';
     });
+    if (user) initNotifBell();
+  }
+
+  function notifTargetUrl(n) {
+    if (n.related_type === 'booking' && n.related_id) return `/operacion.html?id=${n.related_id}`;
+    return '/mi-cuenta.html';
+  }
+
+  async function initNotifBell() {
+    const btn = document.getElementById('notifBellBtn');
+    const dropdown = document.getElementById('notifDropdown');
+    const countEl = document.getElementById('notifCount');
+    const listEl = document.getElementById('notifList');
+    if (!btn) return;
+
+    let notifs = [];
+    async function loadNotifs() {
+      try {
+        const data = await YQV.api('/api/notifications');
+        notifs = data.notifications || [];
+        renderList();
+      } catch { /* silencioso: no bloquear la navegación por esto */ }
+    }
+    function renderList() {
+      const unreadCount = notifs.filter((n) => !n.read).length;
+      countEl.textContent = unreadCount > 9 ? '9+' : String(unreadCount);
+      countEl.style.display = unreadCount > 0 ? 'flex' : 'none';
+      listEl.innerHTML = notifs.length === 0
+        ? '<div class="notif-empty">No tienes notificaciones todavía.</div>'
+        : notifs.slice(0, 12).map((n) => `
+          <button class="notif-item ${n.read ? '' : 'unread'}" data-id="${n.id}">
+            <div class="notif-item-title">${n.title}</div>
+            ${n.body ? `<div class="notif-item-body">${n.body}</div>` : ''}
+            <div class="notif-item-time">${YQV.fmtDateTime(n.created_at)}</div>
+          </button>
+        `).join('');
+      listEl.querySelectorAll('.notif-item').forEach((el) => {
+        el.addEventListener('click', async () => {
+          const n = notifs.find((x) => x.id === el.dataset.id);
+          if (!n) return;
+          if (!n.read) {
+            try { await YQV.api(`/api/notifications/${n.id}/read`, { method: 'POST' }); } catch {}
+          }
+          window.location.href = notifTargetUrl(n);
+        });
+      });
+    }
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dropdown.classList.toggle('open');
+    });
+    document.addEventListener('click', (e) => {
+      if (!dropdown.contains(e.target) && e.target !== btn) dropdown.classList.remove('open');
+    });
+
+    await loadNotifs();
   }
 
   function renderFooter() {

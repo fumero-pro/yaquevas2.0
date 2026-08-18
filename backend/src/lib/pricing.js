@@ -22,6 +22,8 @@ function distanceCategory(originIsland, destinationIsland) {
   if (originIsland === destinationIsland) return 'misma_isla';
   const near = new Set(['Tenerife', 'La Gomera', 'La Palma', 'El Hierro']);
   if (near.has(originIsland) && near.has(destinationIsland)) return 'interinsular_corta';
+  const chinijo = new Set(['Lanzarote', 'La Graciosa']);
+  if (chinijo.has(originIsland) && chinijo.has(destinationIsland)) return 'interinsular_corta';
   return 'interinsular_larga';
 }
 
