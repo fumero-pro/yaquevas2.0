@@ -1,7 +1,7 @@
 // Inyecta la barra de navegación, el banner de modo demo y el pie de página
 // en cualquier página que incluya #yqv-nav / #yqv-footer y cargue este script.
 (function () {
-  const ISLANDS_MARK = '<circle cx="50" cy="50" r="50" fill="{{BLUE}}"/><polyline points="20,68 24,45 36,60 50,50 62,59 74,49 82,32" stroke="{{YELLOW}}" stroke-width="4.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="68" r="4.3" fill="{{YELLOW}}"/><circle cx="24" cy="45" r="5" fill="{{YELLOW}}"/><circle cx="36" cy="60" r="4.3" fill="{{YELLOW}}"/><circle cx="50" cy="50" r="6.4" fill="{{YELLOW}}"/><circle cx="62" cy="59" r="6" fill="{{YELLOW}}"/><circle cx="74" cy="49" r="5.3" fill="{{YELLOW}}"/><circle cx="82" cy="32" r="4.3" fill="{{YELLOW}}"/>';
+  const ISLANDS_MARK = '<circle cx="50" cy="50" r="50" fill="{{BLUE}}"/><polyline points="27,63 30,39 47,50 60,63 71,52 76,34" stroke="{{YELLOW}}" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="27" cy="63" r="6.2" fill="{{YELLOW}}"/><circle cx="30" cy="39" r="6.5" fill="{{YELLOW}}"/><circle cx="47" cy="50" r="9" fill="{{YELLOW}}"/><circle cx="60" cy="63" r="8" fill="{{YELLOW}}"/><circle cx="71" cy="52" r="6.8" fill="{{YELLOW}}"/><circle cx="76" cy="34" r="6.2" fill="{{YELLOW}}"/>';
   const LOGO_SVG = '<svg width="30" height="30" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' + ISLANDS_MARK.replace(/\{\{BLUE\}\}/g, '#0A3D8F').replace(/\{\{YELLOW\}\}/g, '#FFC72C') + '</svg>';
 
   function injectFavicon() {
