@@ -20,6 +20,7 @@
       <a href="/enviar.html" class="btn btn-primary btn-lg">QUIERO ENVIAR ALGO</a>
       <a href="/ya-voy.html" class="btn btn-lg" style="background:white;color:var(--marine-900);">YA VOY / TENGO ESPACIO</a>
     </div>
+    <button type="button" id="downloadAppBtn" class="btn btn-outline" style="margin-top:18px; border-color:rgba(255,255,255,0.5); color:white;">📱 Descargar app (próximamente)</button>
   </div>
 </section>
 
@@ -101,5 +102,10 @@
 <div id="yqv-footer"></div>
 <script src="/js/api.js"></script>
 <script src="/js/nav.js"></script>
+<script>
+document.getElementById('downloadAppBtn').addEventListener('click', () => {
+  YQV.toast('La app para Android e iPhone está en desarrollo. De momento, usa la web — funciona igual de bien en el móvil.', 'info');
+});
+</script>
 </body>
 </html>
