@@ -50,7 +50,8 @@ async function load() {
   const isTraveler = booking.traveler_id === user.id;
   document.getElementById('title').innerHTML = `Operación ${statusPill(booking.status)}`;
 
-  let html = `
+  let html = `<div id="trustCard" style="margin-bottom:16px;"></div>`;
+  html += `
     <div class="card">
       <div class="row between">
         <span>Rol: <strong>${isSender ? 'Remitente' : 'Viajero'}</strong></span>
@@ -160,6 +161,7 @@ async function load() {
         </div>
       `;
     }
+    html += `<div id="reviewSection" style="margin-top:16px;"></div>`;
   }
   if (['cancelado', 'rechazado'].includes(booking.status)) {
     html += `<div class="alert alert-error" style="margin-top:16px;">Esta operación se ha ${booking.status === 'cancelado' ? 'cancelado' : 'rechazado'} y no continuará.</div>`;
@@ -358,6 +360,70 @@ async function load() {
     loadMessages();
     if (window.__yqvChatPoll) clearInterval(window.__yqvChatPoll);
     window.__yqvChatPoll = setInterval(loadMessages, 5000);
+  }
+
+  // --- Tarjeta de confianza de la otra parte ---
+  const trustCard = document.getElementById('trustCard');
+  if (trustCard) {
+    try {
+      const otherId = isSender ? booking.traveler_id : booking.sender_id;
+      const trust = await YQV.api(`/api/users/${otherId}/trust`, { auth: false });
+      trustCard.innerHTML = `
+        <div class="card row between" style="align-items:center;">
+          <div class="row" style="gap:10px; align-items:center;">
+            <div style="width:38px; height:38px; border-radius:50%; background:var(--marine-900); color:white; display:flex; align-items:center; justify-content:center; font-weight:700; flex:none;">${trust.name.charAt(0).toUpperCase()}</div>
+            <div>
+              <strong>${trust.name}</strong>
+              ${trust.identity_verified ? `<span class="pill ok" style="margin-left:6px;">Identidad verificada</span>` : ''}
+              <div class="muted" style="font-size:0.82rem;">
+                ${trust.rating_count > 0 ? `★ ${trust.rating_avg} (${trust.rating_count})` : 'Sin valoraciones todavía'} · ${trust.completed_operations} operaciones completadas
+              </div>
+            </div>
+          </div>
+          <span class="pill" style="font-size:0.72rem;">Pago protegido</span>
+        </div>
+      `;
+    } catch (err) { /* silencioso: no bloquear la operación por esto */ }
+  }
+
+  // --- Valorar la operación, una vez entregada ---
+  const reviewSection = document.getElementById('reviewSection');
+  if (reviewSection) {
+    try {
+      const status = await YQV.api(`/api/bookings/${bookingId}/review-status`);
+      if (status.already_reviewed) {
+        reviewSection.innerHTML = `<div class="alert alert-info">Ya has valorado esta operación. Gracias.</div>`;
+      } else {
+        reviewSection.innerHTML = `
+          <div class="card">
+            <h3 style="font-size:1rem;">¿Qué tal ha ido?</h3>
+            <p class="muted" style="font-size:0.85rem;">Valora a ${isSender ? 'quien ha llevado tu envío' : 'quien ha enviado el paquete'}.</p>
+            <div class="row" id="starRow" style="gap:4px; font-size:1.6rem; cursor:pointer;">
+              ${[1, 2, 3, 4, 5].map(n => `<span data-star="${n}" style="color:var(--line);">★</span>`).join('')}
+            </div>
+            <button type="button" class="btn btn-primary" id="submitReviewBtn" style="margin-top:12px;" disabled>Enviar valoración</button>
+          </div>
+        `;
+        let selected = 0;
+        const stars = reviewSection.querySelectorAll('[data-star]');
+        const submitBtn = document.getElementById('submitReviewBtn');
+        function paintStars(n) {
+          stars.forEach((s) => { s.style.color = Number(s.dataset.star) <= n ? 'var(--sun)' : 'var(--line)'; });
+        }
+        stars.forEach((s) => {
+          s.addEventListener('mouseenter', () => paintStars(Number(s.dataset.star)));
+          s.addEventListener('click', () => { selected = Number(s.dataset.star); paintStars(selected); submitBtn.disabled = false; });
+        });
+        reviewSection.querySelector('#starRow').addEventListener('mouseleave', () => paintStars(selected));
+        submitBtn.addEventListener('click', async () => {
+          try {
+            await YQV.api(`/api/bookings/${bookingId}/review`, { method: 'POST', body: { rating: selected } });
+            YQV.toast('¡Gracias por tu valoración!', 'ok');
+            reviewSection.innerHTML = `<div class="alert alert-info">Ya has valorado esta operación. Gracias.</div>`;
+          } catch (err) { YQV.toast(err.message, 'error'); }
+        });
+      }
+    } catch (err) { /* silencioso */ }
   }
 }
 load();

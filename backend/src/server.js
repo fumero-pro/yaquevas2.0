@@ -14,6 +14,7 @@ require('./routes/shipments').register(router, db);
 require('./routes/matching').register(router, db);
 require('./routes/bookings').register(router, db);
 require('./routes/chat').register(router, db);
+require('./routes/trust').register(router, db);
 require('./routes/misc').register(router, db);
 require('./routes/admin').register(router, db);
 

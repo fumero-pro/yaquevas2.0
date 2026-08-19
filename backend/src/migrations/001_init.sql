@@ -144,6 +144,17 @@ CREATE TABLE IF NOT EXISTS support_tickets (
   updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS reviews (
+  id TEXT PRIMARY KEY,
+  booking_id TEXT NOT NULL REFERENCES bookings(id),
+  reviewer_id TEXT NOT NULL REFERENCES users(id),
+  reviewee_id TEXT NOT NULL REFERENCES users(id),
+  rating INTEGER NOT NULL, -- 1 a 5
+  comment TEXT,
+  created_at TEXT NOT NULL,
+  UNIQUE(booking_id, reviewer_id)
+);
+
 CREATE TABLE IF NOT EXISTS messages (
   id TEXT PRIMARY KEY,
   booking_id TEXT NOT NULL REFERENCES bookings(id),
