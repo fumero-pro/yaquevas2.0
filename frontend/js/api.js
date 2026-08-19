@@ -77,6 +77,17 @@ const YQV = (() => {
     try { return new Date(d).toLocaleString('es-ES'); } catch { return d; }
   }
 
+  // Escapa contenido de usuario antes de interpolarlo en innerHTML (evita XSS almacenado).
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function el(tag, attrs = {}, children = []) {
     const node = document.createElement(tag);
     for (const [k, v] of Object.entries(attrs)) {
@@ -131,7 +142,7 @@ const YQV = (() => {
 
   return {
     api, getToken, getUser, setSession, clearSession, isLoggedIn, isAdmin,
-    ISLANDS, TRANSPORT_LABELS, STATUS_LABELS, fmtEur, fmtDate, fmtDateTime, el, toast, share,
+    ISLANDS, TRANSPORT_LABELS, STATUS_LABELS, fmtEur, fmtDate, fmtDateTime, el, toast, share, escapeHtml,
     requireLoginOrRedirect,
   };
 })();

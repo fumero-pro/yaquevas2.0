@@ -88,8 +88,8 @@
         ? '<div class="notif-empty">No tienes notificaciones todavía.</div>'
         : notifs.slice(0, 12).map((n) => `
           <button class="notif-item ${n.read ? '' : 'unread'}" data-id="${n.id}">
-            <div class="notif-item-title">${n.title}</div>
-            ${n.body ? `<div class="notif-item-body">${n.body}</div>` : ''}
+            <div class="notif-item-title">${YQV.escapeHtml(n.title)}</div>
+            ${n.body ? `<div class="notif-item-body">${YQV.escapeHtml(n.body)}</div>` : ''}
             <div class="notif-item-time">${YQV.fmtDateTime(n.created_at)}</div>
           </button>
         `).join('');
