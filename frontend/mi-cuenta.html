@@ -95,7 +95,13 @@ async function load() {
   try {
     const data = await YQV.api('/api/trips?mine=1');
     const box = document.getElementById('tripsBox');
-    box.innerHTML = data.trips.length === 0 ? '<p class="muted">Sin viajes publicados.</p>' : data.trips.map(t => `
+    box.innerHTML = data.trips.length === 0 ? `
+      <div class="empty-state">
+        ${YQVIcons.svg('suitcase', { size: 26 })}
+        <p>Todavía no has publicado ningún viaje.</p>
+        <a href="/ya-voy.html" class="btn btn-outline">Publicar mi primer viaje</a>
+      </div>
+    ` : data.trips.map(t => `
       <div class="card">
         <strong>${t.origin_island} → ${t.destination_island}</strong> · ${YQV.fmtDate(t.trip_date)}
         <div class="muted" style="font-size:0.85rem;">${YQV.STATUS_LABELS[t.status] || t.status} · Espacio usado: ${t.status_capacidad.space_used_pct}%</div>
@@ -106,7 +112,13 @@ async function load() {
   try {
     const data = await YQV.api('/api/shipments?mine=1');
     const box = document.getElementById('shipmentsBox');
-    box.innerHTML = data.shipments.length === 0 ? '<p class="muted">Sin envíos publicados.</p>' : data.shipments.map(s => `
+    box.innerHTML = data.shipments.length === 0 ? `
+      <div class="empty-state">
+        ${YQVIcons.svg('package', { size: 26 })}
+        <p>Todavía no has publicado ningún envío.</p>
+        <a href="/enviar.html" class="btn btn-outline">Publicar mi primer envío</a>
+      </div>
+    ` : data.shipments.map(s => `
       <div class="card">
         <strong>${s.origin_island} → ${s.destination_island}</strong> · ${YQV.fmtDate(s.desired_date)}
         <div class="muted" style="font-size:0.85rem;">${YQV.STATUS_LABELS[s.status] || s.status} · ${s.items.length} bulto(s)</div>
