@@ -73,7 +73,7 @@ async function doSearch() {
             ${t.notes ? `<div class="muted" style="font-size:0.85rem;">"${t.notes}"</div>` : ''}
           </div>
           <div class="row">
-            <button type="button" class="btn btn-ghost share-btn" data-text="Viaje ${t.origin_island} → ${t.destination_island} el ${YQV.fmtDate(t.trip_date)} en YaQueVas">${YQVIcons.svg('link', { size: 16 })}</button>
+            <button type="button" class="btn btn-ghost share-btn" aria-label="Compartir" data-text="Viaje ${t.origin_island} → ${t.destination_island} el ${YQV.fmtDate(t.trip_date)} en YaQueVas">${YQVIcons.svg('link', { size: 16 })}</button>
             <a href="/enviar.html" class="btn btn-outline">Enviar algo en este viaje</a>
           </div>
         </div>
@@ -88,7 +88,7 @@ async function doSearch() {
             <div class="muted" style="font-size:0.85rem;">${s.items.length} bulto(s) · ${s.weight_kg} kg · ${s.fragile ? 'Frágil' : 'No frágil'}</div>
           </div>
           <div class="row">
-            <button type="button" class="btn btn-ghost share-btn" data-text="Envío ${s.origin_island} → ${s.destination_island} buscando viajero en YaQueVas">${YQVIcons.svg('link', { size: 16 })}</button>
+            <button type="button" class="btn btn-ghost share-btn" aria-label="Compartir" data-text="Envío ${s.origin_island} → ${s.destination_island} buscando viajero en YaQueVas">${YQVIcons.svg('link', { size: 16 })}</button>
             <a href="/ya-voy.html" class="btn btn-outline">Publicar un viaje compatible</a>
           </div>
         </div>
