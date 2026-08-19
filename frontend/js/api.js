@@ -104,6 +104,19 @@ const YQV = (() => {
     setTimeout(() => item.remove(), 4200);
   }
 
+  async function share({ title, text, url }) {
+    const fullUrl = url || window.location.href;
+    if (navigator.share) {
+      try { await navigator.share({ title, text, url: fullUrl }); return; } catch (e) { /* usuario canceló, no hacer nada */ return; }
+    }
+    try {
+      await navigator.clipboard.writeText(`${text}\n${fullUrl}`);
+      toast('Enlace copiado. Pégalo donde quieras compartirlo.', 'ok');
+    } catch (e) {
+      window.open(`https://wa.me/?text=${encodeURIComponent(`${text}\n${fullUrl}`)}`, '_blank');
+    }
+  }
+
   function requireLoginOrRedirect() {
     if (!isLoggedIn()) {
       window.location.href = `/login.html?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
@@ -114,7 +127,7 @@ const YQV = (() => {
 
   return {
     api, getToken, getUser, setSession, clearSession, isLoggedIn, isAdmin,
-    ISLANDS, TRANSPORT_LABELS, STATUS_LABELS, fmtEur, fmtDate, fmtDateTime, el, toast,
+    ISLANDS, TRANSPORT_LABELS, STATUS_LABELS, fmtEur, fmtDate, fmtDateTime, el, toast, share,
     requireLoginOrRedirect,
   };
 })();

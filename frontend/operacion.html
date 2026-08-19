@@ -148,6 +148,15 @@ async function load() {
         ${booking.delivered_at ? `<br><span class="muted">Entregado el ${YQV.fmtDateTime(booking.delivered_at)}.</span>` : ''}
       </div>
     `;
+    if (!isSender) {
+      html += `
+        <div class="card" style="margin-top:16px; text-align:center; background:var(--marine-900); color:white;">
+          <p style="color:#C9DCE2; margin-bottom:4px;">Con un viaje que ya ibas a hacer</p>
+          <div class="big-number" style="color:white;">+${YQV.fmtEur(booking.traveler_net)}</div>
+          <button type="button" class="btn btn-primary" id="shareEarningsBtn" style="margin-top:12px;">Compartir</button>
+        </div>
+      `;
+    }
   }
   if (['cancelado', 'rechazado'].includes(booking.status)) {
     html += `<div class="alert alert-error" style="margin-top:16px;">Esta operación se ha ${booking.status === 'cancelado' ? 'cancelado' : 'rechazado'} y no continuará.</div>`;
@@ -267,6 +276,15 @@ async function load() {
       YQV.toast('Operación cancelada.', 'ok');
       load();
     } catch (err) { YQV.toast(err.message, 'error'); }
+  });
+
+  const shareEarningsBtn = document.getElementById('shareEarningsBtn');
+  if (shareEarningsBtn) shareEarningsBtn.addEventListener('click', () => {
+    YQV.share({
+      title: 'YaQueVas',
+      text: `Ya que iba a viajar, he ganado ${YQV.fmtEur(booking.traveler_net)} con YaQueVas 👀`,
+      url: `${window.location.origin}/index.html`,
+    });
   });
 
   const qrSection = document.getElementById('qrSection');
