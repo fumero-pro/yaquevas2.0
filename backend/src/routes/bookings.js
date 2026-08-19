@@ -5,7 +5,7 @@ const { calculateCommission } = require('../lib/commission');
 const { calculateOrientativePrice } = require('../lib/pricing');
 const { getConfig } = require('../lib/config');
 const { itemsToUsage, addUsage, fitsInTrip } = require('../lib/tetris');
-const { generateQrToken, generateBackupCode } = require('../lib/qr');
+const { generateQrToken, generateBackupCode, renderQrDataUrl } = require('../lib/qr');
 const { serializeTrip } = require('./trips');
 const { serializeShipment } = require('./shipments');
 
@@ -229,8 +229,10 @@ function register(router, db) {
     if (!booking) return res.status(404).json({ error: 'Operación no encontrada.' });
     if (![booking.sender_id, booking.traveler_id].includes(user.id)) return res.status(403).json({ error: 'No tienes acceso a esta operación.' });
     if (!booking.qr_token) return res.status(400).json({ error: 'Esta operación todavía no tiene QR generado.' });
+    const qr_image = await renderQrDataUrl(booking.qr_token);
     res.json({
       qr_token: booking.qr_token,
+      qr_image,
       backup_code: booking.backup_code,
       qr_used: !!booking.qr_used,
       instrucciones: 'Muestra este código al viajero en el momento de la entrega, o comparte el enlace/código por WhatsApp, correo o notificación.',

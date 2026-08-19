@@ -14,5 +14,8 @@
     "reset-db": "rm -f ../data/yaquevas.db && node src/seed.js"
   },
   "license": "UNLICENSED",
-  "notes": "No usa dependencias npm externas a propósito: usa node:sqlite (nativo desde Node 22.5+) y node:http. Esto hace que el proyecto arranque sin 'npm install' y sin acceso a internet. Si más adelante se quiere usar Express, better-sqlite3, etc., basta con instalarlos; el código está organizado por capas para facilitar ese cambio."
+  "notes": "Base en Node puro (node:sqlite, node:http) sin framework. Única dependencia externa: 'qrcode' (renderizado real de códigos QR escaneables). Requiere 'npm install' antes de arrancar.",
+  "dependencies": {
+    "qrcode": "^1.5.4"
+  }
 }

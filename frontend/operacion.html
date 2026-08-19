@@ -32,26 +32,6 @@ function statusPill(status) {
   return `<span class="pill ${cls}">${YQV.STATUS_LABELS[status] || status}</span>`;
 }
 
-// Genera una representación visual determinista (a partir del token) a modo de vista previa de QR.
-// NOTA: es una demostración visual, no un QR real escaneable por lectores estándar.
-// El token de seguridad (único, de un solo uso) sí es real y lo emite el backend.
-function drawFakeQr(canvas, token) {
-  const ctx = canvas.getContext('2d');
-  const size = 21;
-  canvas.width = size * 8; canvas.height = size * 8;
-  let seed = 0;
-  for (let i = 0; i < token.length; i++) seed = (seed * 31 + token.charCodeAt(i)) >>> 0;
-  function rnd() { seed = (seed * 1103515245 + 12345) >>> 0; return (seed >>> 8) / 16777216; }
-  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = '#0A3D8F';
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const isFinder = (x < 6 && y < 6) || (x > size - 7 && y < 6) || (x < 6 && y > size - 7);
-      if (isFinder || rnd() > 0.55) ctx.fillRect(x * 8, y * 8, 8, 8);
-    }
-  }
-}
-
 async function load() {
   const box = document.getElementById('content');
   let booking;
@@ -117,6 +97,26 @@ async function load() {
   // --- QR / código, visible para ambos una vez aceptado ---
   if (['aceptado', 'pago_realizado', 'recogido', 'en_transito'].includes(booking.status)) {
     html += `<div id="qrSection" style="margin-top:16px;"></div>`;
+  }
+
+  // --- Chat: visible para ambos desde que hay operación aceptada (punto 28) ---
+  if (!['solicitado', 'rechazado', 'cancelado'].includes(booking.status)) {
+    html += `
+      <div class="card" style="margin-top:16px;">
+        <h3>Chat con ${isSender ? 'el viajero' : 'el remitente'}</h3>
+        <div class="row" style="gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+          <button type="button" class="btn btn-outline chat-quick" data-action="ubicacion" style="padding:8px 12px; font-size:0.85rem;">📍 Compartir ubicación</button>
+          <button type="button" class="btn btn-outline chat-quick" data-action="hora" style="padding:8px 12px; font-size:0.85rem;">🕐 Proponer hora</button>
+          <button type="button" class="btn btn-outline chat-quick" data-action="ver_viaje" style="padding:8px 12px; font-size:0.85rem;">🧳 Ver viaje</button>
+          <button type="button" class="btn btn-outline chat-quick" data-action="ver_envio" style="padding:8px 12px; font-size:0.85rem;">📦 Ver envío</button>
+        </div>
+        <div id="chatMessages" style="max-height:280px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding:4px;"></div>
+        <div class="row" style="margin-top:10px; gap:8px;">
+          <input id="chatInput" placeholder="Escribe un mensaje…" style="flex:1;">
+          <button class="btn btn-primary" id="chatSendBtn">Enviar</button>
+        </div>
+      </div>
+    `;
   }
 
   // --- Acciones del viajero: recogida / tránsito / entrega ---
@@ -276,14 +276,67 @@ async function load() {
       const waLink = `https://wa.me/?text=${encodeURIComponent(`Aquí tienes el código para confirmar la entrega de tu envío en YaQueVas. Código de respaldo: ${qr.backup_code}`)}`;
       qrSection.innerHTML = `
         <div class="qr-box">
-          <canvas id="qrCanvas" class="qr-visual"></canvas>
-          <p class="muted" style="font-size:0.8rem; text-align:center;">Vista previa de demostración del QR. Muéstralo al viajero o compártelo por WhatsApp.</p>
+          <img src="${qr.qr_image}" alt="Código QR de la operación" class="qr-visual">
+          <p class="muted" style="font-size:0.8rem; text-align:center;">Escanéalo con la cámara del móvil para confirmar la entrega.</p>
           <div class="backup-code">${qr.backup_code}</div>
           <a href="${waLink}" target="_blank" class="btn btn-secondary">Enviar por WhatsApp</a>
         </div>
       `;
-      drawFakeQr(document.getElementById('qrCanvas'), qr.qr_token);
     } catch (err) { /* puede que aún no haya QR */ }
+  }
+
+  // --- Chat ---
+  const chatBox = document.getElementById('chatMessages');
+  if (chatBox) {
+    const actionLabels = {
+      ubicacion: '📍 He compartido mi ubicación (indícala por WhatsApp o en persona).',
+      hora: '🕐 Propongo quedar para la entrega, dime qué hora te viene bien.',
+      ver_viaje: '🧳 Aquí tienes los detalles del viaje.',
+      ver_envio: '📦 Aquí tienes los detalles del envío.',
+    };
+
+    async function loadMessages() {
+      try {
+        const data = await YQV.api(`/api/bookings/${bookingId}/messages`);
+        chatBox.innerHTML = data.messages.length === 0
+          ? '<p class="muted" style="font-size:0.85rem;">Todavía no hay mensajes. Escribe el primero.</p>'
+          : data.messages.map(m => {
+              const mine = m.sender_id === user.id;
+              return `
+                <div style="align-self:${mine ? 'flex-end' : 'flex-start'}; max-width:80%;">
+                  <div style="background:${mine ? 'var(--marine-900)' : 'var(--mist-100)'}; color:${mine ? 'white' : 'var(--marine-900)'}; padding:8px 12px; border-radius:14px; font-size:0.9rem;">${m.body}</div>
+                  <div class="muted" style="font-size:0.7rem; margin-top:2px; text-align:${mine ? 'right' : 'left'};">${YQV.fmtDateTime(m.created_at)}</div>
+                </div>
+              `;
+            }).join('');
+        chatBox.scrollTop = chatBox.scrollHeight;
+      } catch (err) { /* silencioso, se reintenta en el próximo poll */ }
+    }
+
+    async function sendMessage(text, actionType) {
+      try {
+        await YQV.api(`/api/bookings/${bookingId}/messages`, { method: 'POST', body: { body: text, action_type: actionType || null } });
+        await loadMessages();
+      } catch (err) { YQV.toast(err.message, 'error'); }
+    }
+
+    document.getElementById('chatSendBtn').addEventListener('click', () => {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      sendMessage(text, null);
+    });
+    document.getElementById('chatInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('chatSendBtn').click();
+    });
+    document.querySelectorAll('.chat-quick').forEach((btn) => {
+      btn.addEventListener('click', () => sendMessage(actionLabels[btn.dataset.action], btn.dataset.action));
+    });
+
+    loadMessages();
+    if (window.__yqvChatPoll) clearInterval(window.__yqvChatPoll);
+    window.__yqvChatPoll = setInterval(loadMessages, 5000);
   }
 }
 load();
