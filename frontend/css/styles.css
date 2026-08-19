@@ -173,6 +173,30 @@ strong { color: var(--marine-900); }
   content: ''; position: absolute; right: -80px; bottom: -120px; width: 420px; height: 420px;
   border-radius: 50%; background: radial-gradient(circle, rgba(255,199,44,0.28), transparent 70%);
 }
+.canary-map-section {
+  background: radial-gradient(1200px 400px at 85% 110%, #1E56B0 0%, var(--marine-900) 60%, #041B4D 100%);
+}
+.map-route {
+  stroke: var(--coral); stroke-width: 2; opacity: 0.55; fill: none;
+  stroke-dasharray: 6 6; animation: mapFlow 2.4s linear infinite;
+}
+@keyframes mapFlow { to { stroke-dashoffset: -24; } }
+.map-dot { fill: var(--coral); }
+.map-dot-big {
+  animation: mapPulse 2.6s ease-in-out infinite;
+  transform-box: fill-box; transform-origin: center;
+}
+@keyframes mapPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.35); opacity: 0.7; }
+}
+.map-label {
+  fill: #C9DCE2; font-family: Inter, sans-serif; font-size: 12px; text-anchor: middle;
+}
+.map-label-big { fill: white; font-weight: 700; font-size: 13px; }
+@media (prefers-reduced-motion: reduce) {
+  .map-route, .map-dot-big { animation: none; }
+}
 .hero-eyebrow {
   display: inline-block; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase;
   color: var(--sun); font-weight: 700; margin-bottom: 14px;

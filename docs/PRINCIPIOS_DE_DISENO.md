@@ -11,8 +11,8 @@ Ya iba a hacer ese viaje. El lenguaje y el producto deben reforzar "aprovechas l
 ## 3. La confianza se ve, no se declara
 Verificación, valoración, operaciones completadas: visibles en el perfil, no solo mencionadas en el "Acerca de".
 
-## 4. Se entiende en segundos
-Si hace falta un párrafo para explicar una pantalla, la pantalla está mal, no el usuario.
+## 4. Se entiende en segundos, con pocas palabras
+Si hace falta un párrafo para explicar una pantalla, un botón o una notificación, está mal planteado — no el usuario. La "prueba de la parada de guagua" (¿se entiende en 10 segundos, sin contexto, con logo + una frase corta + una cifra?) no es un formato publicitario puntual: es el filtro que debe pasar cualquier texto de la marca, en cualquier pantalla, siempre.
 
 ## 5. Mobile-first de verdad
 Diseñar pensando en alguien con maletas, con una mano libre, con prisa — no en un monitor de escritorio.
