@@ -14,6 +14,8 @@ Verificación, valoración, operaciones completadas: visibles en el perfil, no s
 ## 4. Se entiende en segundos, con pocas palabras
 Si hace falta un párrafo para explicar una pantalla, un botón o una notificación, está mal planteado — no el usuario. La "prueba de la parada de guagua" (¿se entiende en 10 segundos, sin contexto, con logo + una frase corta + una cifra?) no es un formato publicitario puntual: es el filtro que debe pasar cualquier texto de la marca, en cualquier pantalla, siempre.
 
+La forma de conseguirlo sin perder información: capa superior mínima siempre, detalle disponible detrás de un botón explícito ("Cómo funciona", "Ver comparativa") para quien lo quiera. Nunca al revés — nadie debe cargar con el párrafo largo por defecto para que una minoría lo lea.
+
 ## 5. Mobile-first de verdad
 Diseñar pensando en alguien con maletas, con una mano libre, con prisa — no en un monitor de escritorio.
 
