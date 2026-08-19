@@ -52,7 +52,11 @@ const YQV = (() => {
   }
 
   const ISLANDS = ['Tenerife', 'Gran Canaria', 'La Palma', 'La Gomera', 'El Hierro', 'Fuerteventura', 'Lanzarote', 'La Graciosa'];
-  const TRANSPORT_LABELS = { avion: 'Avión ✈️', barco: 'Barco 🚢', coche: 'Coche 🚗' };
+  const TRANSPORT_LABELS = {
+    get avion() { return `${YQVIcons.svg('plane', { size: 15 })} Avión`; },
+    get barco() { return `${YQVIcons.svg('ship', { size: 15 })} Barco`; },
+    get coche() { return `${YQVIcons.svg('car', { size: 15 })} Coche`; },
+  };
   const STATUS_LABELS = {
     borrador: 'Borrador', publicado: 'Publicado', buscando_viajero: 'Buscando viajero',
     solicitud_recibida: 'Solicitud recibida', solicitado: 'Solicitado', aceptado: 'Aceptado',

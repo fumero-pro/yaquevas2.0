@@ -142,6 +142,8 @@ strong { color: var(--marine-900); }
 }
 
 /* ---------- Botones ---------- */
+.yqv-icon { flex: none; vertical-align: middle; }
+
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   font-family: var(--font-body); font-weight: 700; font-size: 1rem;

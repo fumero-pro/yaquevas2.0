@@ -20,7 +20,7 @@
       <a href="/enviar.html" class="btn btn-primary btn-lg">QUIERO ENVIAR ALGO</a>
       <a href="/ya-voy.html" class="btn btn-lg" style="background:white;color:var(--marine-900);">YA VOY / TENGO ESPACIO</a>
     </div>
-    <button type="button" id="downloadAppBtn" class="btn btn-outline" style="margin-top:18px; border-color:rgba(255,255,255,0.5); color:white;">📱 Descargar app (próximamente)</button>
+    <button type="button" id="downloadAppBtn" class="btn btn-outline" style="margin-top:18px; border-color:rgba(255,255,255,0.5); color:white;"><span data-yqv-icon="phone" data-yqv-icon-size="16"></span> Descargar app (próximamente)</button>
   </div>
 </section>
 
@@ -79,11 +79,11 @@
     <p class="lead" style="font-size:1rem;">Viajes y envíos publicados de verdad, en directo.</p>
     <div class="card-grid cols-2" style="margin-top:20px;">
       <div>
-        <h3 style="font-size:1.05rem;">✈️ Viajes disponibles</h3>
+        <h3 style="font-size:1.05rem; display:flex; align-items:center; gap:8px;"><span data-yqv-icon="plane"></span> Viajes disponibles</h3>
         <div id="homeTripsBox" class="stack"><p class="muted">Cargando…</p></div>
       </div>
       <div>
-        <h3 style="font-size:1.05rem;">📦 Envíos buscando viajero</h3>
+        <h3 style="font-size:1.05rem; display:flex; align-items:center; gap:8px;"><span data-yqv-icon="package"></span> Envíos buscando viajero</h3>
         <div id="homeShipmentsBox" class="stack"><p class="muted">Cargando…</p></div>
       </div>
     </div>
@@ -98,16 +98,16 @@
     <h2>¿Qué suele viajar entre islas?</h2>
     <p class="lead" style="font-size:1rem;">Lo de siempre: lo que se te olvida, lo que solo se encuentra en tu isla, o lo que le quieres hacer llegar a la familia.</p>
     <div class="row" style="gap:10px; flex-wrap:wrap; margin-top:20px;">
-      <span class="pill" style="background:white; box-shadow:var(--shadow-1);">👕 Ropa</span>
-      <span class="pill" style="background:white; box-shadow:var(--shadow-1);">💊 Medicamentos</span>
-      <span class="pill" style="background:white; box-shadow:var(--shadow-1);">🔌 Cargadores y electrónica</span>
-      <span class="pill" style="background:white; box-shadow:var(--shadow-1);">📄 Documentos</span>
-      <span class="pill" style="background:white; box-shadow:var(--shadow-1);">🎁 Regalos y recados de familia</span>
-      <span class="pill" style="background:white; box-shadow:var(--shadow-1);">🔑 Llaves</span>
-      <span class="pill" style="background:white; box-shadow:var(--shadow-1);">🧰 Herramientas</span>
-      <span class="pill" style="background:white; box-shadow:var(--shadow-1);">🏄 Equipo de surf o buceo</span>
-      <span class="pill" style="background:white; box-shadow:var(--shadow-1);">📚 Libros</span>
-      <span class="pill" style="background:white; box-shadow:var(--shadow-1);">👟 Calzado</span>
+      <span class="pill" style="background:white; box-shadow:var(--shadow-1);"><span data-yqv-icon="shirt" data-yqv-icon-size="15"></span> Ropa</span>
+      <span class="pill" style="background:white; box-shadow:var(--shadow-1);"><span data-yqv-icon="pill" data-yqv-icon-size="15"></span> Medicamentos</span>
+      <span class="pill" style="background:white; box-shadow:var(--shadow-1);"><span data-yqv-icon="plug" data-yqv-icon-size="15"></span> Cargadores y electrónica</span>
+      <span class="pill" style="background:white; box-shadow:var(--shadow-1);"><span data-yqv-icon="document" data-yqv-icon-size="15"></span> Documentos</span>
+      <span class="pill" style="background:white; box-shadow:var(--shadow-1);"><span data-yqv-icon="gift" data-yqv-icon-size="15"></span> Regalos y recados de familia</span>
+      <span class="pill" style="background:white; box-shadow:var(--shadow-1);"><span data-yqv-icon="key" data-yqv-icon-size="15"></span> Llaves</span>
+      <span class="pill" style="background:white; box-shadow:var(--shadow-1);"><span data-yqv-icon="wrench" data-yqv-icon-size="15"></span> Herramientas</span>
+      <span class="pill" style="background:white; box-shadow:var(--shadow-1);"><span data-yqv-icon="wave" data-yqv-icon-size="15"></span> Equipo de surf o buceo</span>
+      <span class="pill" style="background:white; box-shadow:var(--shadow-1);"><span data-yqv-icon="book" data-yqv-icon-size="15"></span> Libros</span>
+      <span class="pill" style="background:white; box-shadow:var(--shadow-1);"><span data-yqv-icon="shoe" data-yqv-icon-size="15"></span> Calzado</span>
     </div>
   </div>
 </section>
@@ -163,6 +163,7 @@
 
 <div id="yqv-footer"></div>
 <script src="/js/api.js"></script>
+<script src="/js/icons.js"></script>
 <script src="/js/nav.js"></script>
 <script>
 document.getElementById('downloadAppBtn').addEventListener('click', () => {

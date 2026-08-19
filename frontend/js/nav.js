@@ -27,7 +27,7 @@
       <div class="topbar">
         <div class="topbar-inner">
           <a class="logo" href="/index.html">${LOGO_SVG}Ya<span class="dot">Que</span>Vas</a>
-          <button class="btn btn-outline nav-toggle" id="navToggleBtn" aria-label="Abrir menú">☰</button>
+          <button class="btn btn-outline nav-toggle" id="navToggleBtn" aria-label="Abrir menú">${YQVIcons.svg('menu', { size: 18 })}</button>
           <nav class="nav-links" id="navLinks">
             <a href="/como-funciona.html">Cómo funciona</a>
             <a href="/enviar.html">Enviar algo</a>
@@ -35,7 +35,7 @@
             <a href="/buscar.html">Buscar</a>
             <a href="/faq.html">Ayuda</a>
             ${user ? `<div class="notif-bell-wrap" id="notifBellWrap">
-              <button class="notif-bell" id="notifBellBtn" aria-label="Notificaciones">🔔<span class="notif-count" id="notifCount" style="display:none;">0</span></button>
+              <button class="notif-bell" id="notifBellBtn" aria-label="Notificaciones">${YQVIcons.svg('bell', { size: 19 })}<span class="notif-count" id="notifCount" style="display:none;">0</span></button>
               <div class="notif-dropdown" id="notifDropdown">
                 <div class="notif-dropdown-header">Notificaciones</div>
                 <div class="notif-list" id="notifList"><div class="notif-empty">Cargando…</div></div>

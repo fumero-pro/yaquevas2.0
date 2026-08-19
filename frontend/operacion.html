@@ -19,6 +19,7 @@
 
 <div id="yqv-footer"></div>
 <script src="/js/api.js"></script>
+<script src="/js/icons.js"></script>
 <script src="/js/nav.js"></script>
 <script>
 if (!YQV.requireLoginOrRedirect()) { /* redirige */ }
@@ -105,10 +106,10 @@ async function load() {
       <div class="card" style="margin-top:16px;">
         <h3>Chat con ${isSender ? 'el viajero' : 'el remitente'}</h3>
         <div class="row" style="gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-          <button type="button" class="btn btn-outline chat-quick" data-action="ubicacion" style="padding:8px 12px; font-size:0.85rem;">📍 Compartir ubicación</button>
-          <button type="button" class="btn btn-outline chat-quick" data-action="hora" style="padding:8px 12px; font-size:0.85rem;">🕐 Proponer hora</button>
-          <button type="button" class="btn btn-outline chat-quick" data-action="ver_viaje" style="padding:8px 12px; font-size:0.85rem;">🧳 Ver viaje</button>
-          <button type="button" class="btn btn-outline chat-quick" data-action="ver_envio" style="padding:8px 12px; font-size:0.85rem;">📦 Ver envío</button>
+          <button type="button" class="btn btn-outline chat-quick" data-action="ubicacion" style="padding:8px 12px; font-size:0.85rem;">${YQVIcons.svg('pin', { size: 15 })} Compartir ubicación</button>
+          <button type="button" class="btn btn-outline chat-quick" data-action="hora" style="padding:8px 12px; font-size:0.85rem;">${YQVIcons.svg('clock', { size: 15 })} Proponer hora</button>
+          <button type="button" class="btn btn-outline chat-quick" data-action="ver_viaje" style="padding:8px 12px; font-size:0.85rem;">${YQVIcons.svg('suitcase', { size: 15 })} Ver viaje</button>
+          <button type="button" class="btn btn-outline chat-quick" data-action="ver_envio" style="padding:8px 12px; font-size:0.85rem;">${YQVIcons.svg('package', { size: 15 })} Ver envío</button>
         </div>
         <div id="chatMessages" style="max-height:280px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding:4px;"></div>
         <div class="row" style="margin-top:10px; gap:8px;">
@@ -153,7 +154,7 @@ async function load() {
         <div class="card" style="margin-top:16px; text-align:center; background:var(--marine-900); color:white;">
           <p style="color:#C9DCE2; margin-bottom:4px;">Con un viaje que ya ibas a hacer</p>
           <div class="big-number" style="color:white;">+${YQV.fmtEur(booking.traveler_net)}</div>
-          <button type="button" class="btn btn-primary" id="shareEarningsBtn" style="margin-top:12px;">Compartir</button>
+          <button type="button" class="btn btn-primary" id="shareEarningsBtn" style="margin-top:12px;">${YQVIcons.svg('link', { size: 16 })} Compartir</button>
         </div>
       `;
     }
@@ -282,7 +283,7 @@ async function load() {
   if (shareEarningsBtn) shareEarningsBtn.addEventListener('click', () => {
     YQV.share({
       title: 'YaQueVas',
-      text: `Ya que iba a viajar, he ganado ${YQV.fmtEur(booking.traveler_net)} con YaQueVas 👀`,
+      text: `Ya que iba a viajar, he ganado ${YQV.fmtEur(booking.traveler_net)} con YaQueVas`,
       url: `${window.location.origin}/index.html`,
     });
   });
@@ -307,10 +308,10 @@ async function load() {
   const chatBox = document.getElementById('chatMessages');
   if (chatBox) {
     const actionLabels = {
-      ubicacion: '📍 He compartido mi ubicación (indícala por WhatsApp o en persona).',
-      hora: '🕐 Propongo quedar para la entrega, dime qué hora te viene bien.',
-      ver_viaje: '🧳 Aquí tienes los detalles del viaje.',
-      ver_envio: '📦 Aquí tienes los detalles del envío.',
+      ubicacion: 'He compartido mi ubicación (indícala por WhatsApp o en persona).',
+      hora: 'Propongo quedar para la entrega, dime qué hora te viene bien.',
+      ver_viaje: 'Aquí tienes los detalles del viaje.',
+      ver_envio: 'Aquí tienes los detalles del envío.',
     };
 
     async function loadMessages() {
