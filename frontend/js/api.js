@@ -147,7 +147,7 @@ const YQV = (() => {
       box.style.cssText = 'position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:8px;align-items:center;';
       document.body.appendChild(box);
     }
-    const colors = { info: '#1B6FD8', error: '#E14B33', ok: '#1FA66B' };
+    const colors = { info: '#0B5FFF', error: '#DC3545', ok: '#16A34A' };
     const item = document.createElement('div');
     item.textContent = msg;
     item.style.cssText = `background:${colors[type] || colors.info};color:white;padding:12px 18px;border-radius:10px;font-family:Inter,sans-serif;font-size:0.9rem;box-shadow:0 6px 18px rgba(0,0,0,0.2);max-width:90vw;`;
