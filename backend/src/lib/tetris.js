@@ -125,4 +125,6 @@ module.exports = {
   addUsage,
   capacityStatus,
   fitsInTrip,
+  UNIT_VOLUME_L,
+  UNIT_WEIGHT_KG_TYPICAL,
 };

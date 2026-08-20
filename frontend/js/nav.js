@@ -32,6 +32,7 @@
           <button class="btn btn-outline nav-toggle" id="navToggleBtn" aria-label="Abrir menú">${YQVIcons.svg('menu', { size: 18 })}</button>
           <nav class="nav-links" id="navLinks">
             <a href="/como-funciona.html">Cómo funciona</a>
+            <a href="/precios.html">Precios y tamaños</a>
             <a href="/enviar.html">Enviar algo</a>
             <a href="/ya-voy.html">Ya voy / tengo espacio</a>
             <a href="/buscar.html">Buscar</a>

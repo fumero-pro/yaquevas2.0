@@ -3,8 +3,29 @@ const { requireAuth } = require('../middleware/auth');
 const { newId } = require('../lib/auth');
 const { getConfig } = require('../lib/config');
 const { listCountries, listSelectableLocations } = require('../lib/geo');
+const { UNIT_VOLUME_L, UNIT_WEIGHT_KG_TYPICAL } = require('../lib/tetris');
+
+const PACKAGE_LABELS = {
+  sobre: 'Sobre / documentos',
+  maleta_pequena: 'Maleta pequeña',
+  maleta_grande: 'Maleta grande',
+  caja_mediana: 'Caja mediana',
+};
 
 function register(router, db) {
+  // Tamaños de bulto reales (misma fuente que usa el motor "tetris" de capacidad), para la
+  // página pública de precios — nunca cifras inventadas aparte de las que ya usa el producto.
+  router.get('/api/pricing/package-types', async (req, res) => {
+    res.json({
+      package_types: Object.keys(PACKAGE_LABELS).map((key) => ({
+        key,
+        label: PACKAGE_LABELS[key],
+        typical_volume_l: UNIT_VOLUME_L[key],
+        typical_weight_kg: UNIT_WEIGHT_KG_TYPICAL[key],
+      })),
+    });
+  });
+
   // Catálogo geográfico público (países + ubicaciones seleccionables como origen/destino).
   // Sustituye el array de islas hardcodeado que antes vivía en el frontend (js/api.js).
   router.get('/api/geo/countries', async (req, res) => {
