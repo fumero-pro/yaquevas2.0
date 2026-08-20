@@ -8,6 +8,7 @@ const { itemsToUsage, addUsage, fitsInTrip } = require('../lib/tetris');
 const { generateQrToken, generateBackupCode, renderQrDataUrl } = require('../lib/qr');
 const { isPaymentsConfigured, createCheckoutSession, createRefund } = require('../lib/payments');
 const { validatePhoto } = require('../lib/photo');
+const { awardReferralIfEligible } = require('../lib/referral');
 const { serializeTrip } = require('./trips');
 const { serializeShipment } = require('./shipments');
 
@@ -302,6 +303,20 @@ function register(router, db) {
 
     notify(db, booking.sender_id, 'entrega', 'Entrega confirmada', 'Tu envío ha llegado a su destino.', booking.id);
     notify(db, booking.traveler_id, 'pago_liberado', 'Pago liberado', `Se ha liberado tu compensación de ${booking.traveler_net} € (modo demo).`, booking.id);
+
+    // Programa de referidos: se paga solo aquí, al completar la primera operación real de
+    // cada parte — nunca en el registro (ver docs/VIRALIDAD_REFERIDOS.md). Se comprueba tanto
+    // para el remitente como para el viajero, cualquiera de los dos puede ser la persona
+    // que alguien invitó.
+    for (const uid of [booking.sender_id, booking.traveler_id]) {
+      const reward = awardReferralIfEligible(db, uid, booking.id);
+      if (reward) {
+        notify(db, reward.referrer.id, 'recompensa_referido', `Has ganado ${reward.amount} €`,
+          `${reward.referred.name} completó su primera operación en YaQueVas gracias a tu invitación.`, booking.id);
+        notify(db, reward.referred.id, 'recompensa_referido', `Has ganado ${reward.amount} € por tu primera operación`,
+          `Como es tu primera operación completada, tú y quien te invitó ganáis ${reward.amount} € cada uno.`, booking.id);
+      }
+    }
 
     const updated = db.prepare('SELECT * FROM bookings WHERE id = ?').get(booking.id);
     res.json({ booking: serializeBooking(updated), modo_demo: true });

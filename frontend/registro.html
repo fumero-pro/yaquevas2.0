@@ -12,6 +12,7 @@
 <section class="section" style="max-width:480px; margin:0 auto;">
   <div class="container">
     <h1>Crea tu cuenta</h1>
+    <div id="referralBanner"></div>
     <div class="card">
       <div id="formError"></div>
       <form id="regForm">
@@ -47,6 +48,18 @@
 <script src="/js/icons.js"></script>
 <script src="/js/nav.js"></script>
 <script>
+// Programa de referidos: si llegaste desde un enlace de invitación (?ref=CODIGO), lo guardamos
+// y lo mandamos con el registro. La recompensa no se da aquí — se paga cuando completes tu
+// primera operación real (ver backend/src/lib/referral.js), nunca por registrarte sin más.
+const referralCode = new URLSearchParams(window.location.search).get('ref');
+if (referralCode) {
+  document.getElementById('referralBanner').innerHTML = `
+    <div class="alert alert-info" style="margin-bottom:16px;">
+      <span data-yqv-icon="gift" data-yqv-icon-size="16"></span>
+      Te han invitado a YaQueVas. Cuando completes tu primera operación, tú y quien te invitó ganaréis dinero real.
+    </div>`;
+}
+
 document.getElementById('regForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const errBox = document.getElementById('formError');
@@ -59,6 +72,7 @@ document.getElementById('regForm').addEventListener('submit', async (e) => {
     password: document.getElementById('password').value,
     country: document.getElementById('country').value,
     accepted_terms: document.getElementById('terms').checked,
+    referral_code: referralCode || undefined,
   };
   try {
     const data = await YQV.api('/api/auth/register', { method: 'POST', body, auth: false });

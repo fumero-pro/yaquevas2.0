@@ -15,6 +15,7 @@
 
     <div id="notifBox" style="margin-bottom:24px;"></div>
     <div id="identityBox" style="margin-bottom:24px;"></div>
+    <div id="referralBox" style="margin-bottom:24px;"></div>
 
     <h2>Mis operaciones</h2>
     <p class="muted">Envíos y viajes ya emparejados: aquí sigues el estado, aceptas, pagas y entregas.</p>
@@ -70,6 +71,36 @@ async function load() {
         } catch (err) { YQV.toast(err.message, 'error'); }
       });
     }
+  } catch { /* si falla, no bloquea el resto de la página */ }
+
+  try {
+    const ref = await YQV.api('/api/me/referral');
+    const referralBox = document.getElementById('referralBox');
+    const link = `${window.location.origin}/registro.html?ref=${ref.referral_code}`;
+    const completados = ref.invitados.filter(i => i.completo_primera_operacion).length;
+    referralBox.innerHTML = `
+      <div class="card">
+        <h3 style="margin-bottom:4px; display:flex; align-items:center; gap:8px;">${YQVIcons.svg('gift', { size: 18 })} Invita y gana dinero real</h3>
+        <p class="muted" style="margin:0 0 12px;">Cuando la persona que invitas complete su primera operación, ganáis ${YQV.fmtEur(ref.reward_eur)} cada uno. Sin condiciones ocultas, se paga siempre — nunca al registrarse, solo al completar de verdad.</p>
+        <div class="row" style="gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+          <code style="background:var(--mist-100); padding:8px 14px; border-radius:var(--radius-sm); font-weight:700; letter-spacing:0.03em;">${ref.referral_code}</code>
+          <button class="btn btn-outline" id="copyReferralBtn">Copiar enlace</button>
+          <button class="btn btn-primary" id="shareReferralBtn">Compartir invitación</button>
+        </div>
+        <div class="row" style="gap:20px; font-size:0.9rem;">
+          <span><strong>${ref.invitados.length}</strong> invitados</span>
+          <span><strong>${completados}</strong> completaron su primera operación</span>
+          <span><strong style="color:var(--ok);">${YQV.fmtEur(ref.total_ganado)}</strong> ganados en total</span>
+        </div>
+      </div>
+    `;
+    document.getElementById('copyReferralBtn').addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(link); YQV.toast('Enlace copiado.', 'ok'); }
+      catch { YQV.toast(link, 'info'); }
+    });
+    document.getElementById('shareReferralBtn').addEventListener('click', () => {
+      YQV.share({ title: 'YaQueVas', text: `Únete a YaQueVas con mi invitación: cuando completes tu primera operación, ganamos ${YQV.fmtEur(ref.reward_eur)} cada uno.`, url: link });
+    });
   } catch { /* si falla, no bloquea el resto de la página */ }
 
   try {

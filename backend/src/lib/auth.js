@@ -47,7 +47,14 @@ function verifyToken(token) {
   if (!token || typeof token !== 'string' || !token.includes('.')) return null;
   const [b64, sig] = token.split('.');
   const expectedSig = crypto.createHmac('sha256', SECRET).update(b64).digest('base64url');
-  if (sig !== expectedSig) return null;
+  // Comparación en tiempo constante (igual que verifyPassword arriba) — comparar firmas con
+  // !== deja una vía de ataque de temporización: la comparación de strings de V8 corta en
+  // cuanto encuentra el primer byte distinto, así que un atacante podría medir el tiempo de
+  // respuesta y deducir la firma byte a byte. HMAC-SHA256 siempre produce la misma longitud,
+  // así que no hace falta comprobar longitudes antes de timingSafeEqual.
+  const sigBuf = Buffer.from(sig || '', 'base64url');
+  const expectedBuf = Buffer.from(expectedSig, 'base64url');
+  if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) return null;
   try {
     const payload = JSON.parse(Buffer.from(b64, 'base64url').toString('utf8'));
     if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null;

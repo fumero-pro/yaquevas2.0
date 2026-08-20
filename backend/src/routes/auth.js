@@ -3,11 +3,18 @@ const { hashPassword, verifyPassword, signToken, newId } = require('../lib/auth'
 const { requireAuth } = require('../middleware/auth');
 const { rateLimiter } = require('../lib/rateLimit');
 const { isIdentityConfigured, createVerificationSession } = require('../lib/identity');
+const { generateReferralCode, resolveReferrer } = require('../lib/referral');
+const { getConfigValue } = require('../lib/config');
+const { sendEmail, welcomeEmailHtml } = require('../lib/email');
 
 // Mitiga fuerza bruta de credenciales (LAUNCH_CHECKLIST.md): 10 intentos de login o registro
 // por IP cada 5 minutos. No distingue email correcto/incorrecto para no filtrar qué cuentas existen.
 const loginLimiter = rateLimiter({ windowMs: 5 * 60_000, max: 10, keyPrefix: 'login' });
 const registerLimiter = rateLimiter({ windowMs: 5 * 60_000, max: 10, keyPrefix: 'register' });
+// Cada sesión de Stripe Identity real tiene coste — sin límite, una cuenta autenticada podría
+// generar sesiones en bucle. 5 cada 10 min es de sobra para un uso legítimo (se corta en cuanto
+// identity_verified pasa a 1, así que esto solo protege el rato antes de verificarse).
+const identityLimiter = rateLimiter({ windowMs: 10 * 60_000, max: 5, keyPrefix: 'identity' });
 
 function publicUser(u) {
   return {
@@ -21,6 +28,7 @@ function publicUser(u) {
     phone_verified: !!u.phone_verified,
     identity_verified: !!u.identity_verified,
     notif_prefs: JSON.parse(u.notif_prefs_json),
+    referral_code: u.referral_code,
     created_at: u.created_at,
   };
 }
@@ -30,7 +38,7 @@ function register(router, db) {
     if (!registerLimiter(req)) {
       return res.status(429).json({ error: 'Demasiados intentos de registro. Inténtalo de nuevo en unos minutos.' });
     }
-    const { name, surname, email, phone, password, country, accepted_terms } = body;
+    const { name, surname, email, phone, password, country, accepted_terms, referral_code } = body;
     if (!name || !surname || !email || !password) {
       return res.status(400).json({ error: 'Faltan campos obligatorios: nombre, apellidos, email, contraseña.' });
     }
@@ -47,10 +55,16 @@ function register(router, db) {
     const { hash, salt } = hashPassword(password);
     const id = newId('usr');
     const now = new Date().toISOString();
+    // Quien invitó a esta persona (si vino de un enlace de referido válido) — la recompensa no
+    // se paga aquí, solo se guarda quién invitó a quién. Se paga al completar la primera
+    // operación real (ver lib/referral.js), nunca en el registro (lección del fraude de bots
+    // de PayPal, ver docs/VIRALIDAD_REFERIDOS.md).
+    const referrer = resolveReferrer(db, referral_code);
+    const myReferralCode = generateReferralCode(name);
     db.prepare(
-      `INSERT INTO users (id, name, surname, email, phone, password_hash, password_salt, country, role, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'user', ?)`
-    ).run(id, name, surname, email.toLowerCase(), phone || null, hash, salt, country || 'ES', now);
+      `INSERT INTO users (id, name, surname, email, phone, password_hash, password_salt, country, role, referral_code, referred_by, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'user', ?, ?, ?)`
+    ).run(id, name, surname, email.toLowerCase(), phone || null, hash, salt, country || 'ES', myReferralCode, referrer ? referrer.id : null, now);
 
     // Registrar aceptación de términos con versión (punto 45/35)
     const termsDoc = db.prepare("SELECT version FROM legal_documents WHERE doc_type = 'terminos' ORDER BY created_at DESC LIMIT 1").get();
@@ -60,6 +74,9 @@ function register(router, db) {
 
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
     const token = signToken({ sub: id, role: user.role });
+    // Fire-and-forget: un fallo de email nunca debe bloquear ni romper el registro en sí.
+    sendEmail({ to: user.email, subject: '¡Bienvenido a YaQueVas!', html: welcomeEmailHtml(user.name) })
+      .catch((err) => console.error('No se pudo enviar el email de bienvenida:', err.message));
     res.status(201).json({ token, user: publicUser(user) });
   });
 
@@ -79,9 +96,41 @@ function register(router, db) {
   });
 
   router.get('/api/me', async (req, res) => {
+    let user = requireAuth(req, res, db);
+    if (!user) return;
+    // Backfill para cuentas creadas antes de que existiera el programa de referidos (la
+    // migración solo añade la columna, no rellena un código para quien ya existía).
+    if (!user.referral_code) {
+      const code = generateReferralCode(user.name);
+      db.prepare('UPDATE users SET referral_code = ? WHERE id = ?').run(code, user.id);
+      user = db.prepare('SELECT * FROM users WHERE id = ?').get(user.id);
+    }
+    res.json({ user: publicUser(user) });
+  });
+
+  router.get('/api/me/referral', async (req, res) => {
     const user = requireAuth(req, res, db);
     if (!user) return;
-    res.json({ user: publicUser(user) });
+    const referred = db.prepare(
+      `SELECT u.id, u.name, u.surname, u.created_at,
+              rr.amount_eur, rr.status, rr.created_at AS reward_at
+       FROM users u LEFT JOIN referral_rewards rr ON rr.referred_id = u.id
+       WHERE u.referred_by = ? ORDER BY u.created_at DESC`
+    ).all(user.id);
+    const totalGanado = db.prepare(
+      "SELECT COALESCE(SUM(amount_eur), 0) AS total FROM referral_rewards WHERE referrer_id = ? AND status = 'pagado'"
+    ).get(user.id).total;
+    res.json({
+      referral_code: user.referral_code,
+      reward_eur: Number(getConfigValue(db, 'referral_reward_eur') || 5),
+      total_ganado: totalGanado,
+      invitados: referred.map((r) => ({
+        nombre: `${r.name} ${r.surname}`.trim(),
+        se_unio: r.created_at,
+        completo_primera_operacion: !!r.status,
+        recompensa_eur: r.amount_eur || null,
+      })),
+    });
   });
 
   // Verificación de identidad (DNI/pasaporte + biometría). Con STRIPE_SECRET_KEY configurada
@@ -92,6 +141,9 @@ function register(router, db) {
   router.post('/api/me/identity/start', async (req, res, body) => {
     const user = requireAuth(req, res, db);
     if (!user) return;
+    if (!identityLimiter(req)) {
+      return res.status(429).json({ error: 'Demasiados intentos de verificación. Inténtalo de nuevo en unos minutos.' });
+    }
     if (user.identity_verified) return res.json({ ya_verificado: true });
 
     if (isIdentityConfigured()) {

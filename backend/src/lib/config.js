@@ -11,6 +11,10 @@ const DEFAULTS = {
   extra_luggage_surcharge: '3',
   demo_mode: 'true',
   company_name: 'YaQueVas',
+  // Programa de referidos (docs/VIRALIDAD_REFERIDOS.md): cuánto gana cada parte cuando el
+  // referido completa su primera operación real. Configurable desde el panel de admin, igual
+  // que la comisión — nunca hardcodeado en el frontend.
+  referral_reward_eur: '5',
 };
 
 function getConfig(db) {

@@ -18,6 +18,21 @@ const ALTERS = [
   // Prueba de entrega con foto obligatoria (lección de Roadie/GoShare, ver
   // docs/BENCHMARK_COMPETENCIA.md) — antes solo hacía falta el QR/código, sin evidencia visual.
   'ALTER TABLE bookings ADD COLUMN delivery_photo_url TEXT',
+  // Referidos (ver docs/VIRALIDAD_REFERIDOS.md): código propio de cada usuario + quién le
+  // invitó, si alguien. La recompensa se paga solo al completar una operación real, nunca al
+  // registrarse — así se cierra la vía de fraude más común (cuentas falsas sin transacción).
+  'ALTER TABLE users ADD COLUMN referral_code TEXT',
+  'ALTER TABLE users ADD COLUMN referred_by TEXT REFERENCES users(id)',
+  `CREATE TABLE IF NOT EXISTS referral_rewards (
+    id TEXT PRIMARY KEY,
+    referrer_id TEXT NOT NULL REFERENCES users(id),
+    referred_id TEXT NOT NULL REFERENCES users(id),
+    triggering_booking_id TEXT NOT NULL REFERENCES bookings(id),
+    amount_eur REAL NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pendiente', -- pendiente | pagado (demo: se marca pagado al momento)
+    created_at TEXT NOT NULL,
+    UNIQUE(referred_id)
+  )`,
 ];
 
 function applyAlters(db) {

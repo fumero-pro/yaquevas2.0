@@ -7,7 +7,7 @@
 - [ ] Base de datos con backups automáticos y probados (restauración real, no solo "se genera el fichero").
 - [~] Proveedor de pagos real: **cobro al remitente conectado** (Stripe Checkout + webhook verificado, ver `docs/STRIPE_SETUP.md` — no probado contra cuenta real por falta de credenciales en el entorno de desarrollo, pendiente de que el usuario lo valide con sus propias claves de test). Payout automático al viajero **todavía no** (requiere Stripe Connect, no implementado). Reembolsos siguen siendo manuales/simulados.
 - [~] Proveedor de KYC: **Stripe Identity conectado** (`POST /api/me/identity/start`, ver `docs/STRIPE_SETUP.md`), mismo aviso de no probado contra cuenta real. Sin la clave configurada, sigue simulando `identity_verified = 1` al instante (ya no solo en el seed — cualquier usuario puede "verificarse" en modo demo).
-- [ ] Proveedor de email transaccional conectado (verificación de cuenta, notificaciones).
+- [~] Proveedor de email transaccional: **email de bienvenida conectado** (Resend vía API REST, ver `docs/EMAIL_SETUP.md` — mismo aviso que Stripe, no probado contra cuenta real). Sin la clave, sigue simulado (se registra en logs). Pendiente: email de las notificaciones internas (aceptación, pago, entrega), verificación de email con enlace, recuperación de contraseña (no existe ese flujo todavía, ni frontend ni backend).
 - [ ] Proveedor SMS conectado (verificación de teléfono).
 - [ ] WhatsApp Business/API oficial conectado (o mantener el enlace `wa.me` como alternativa básica).
 - [ ] Generación de QR con una librería estándar (el backend ya genera el token seguro de un solo uso; falta el renderizado visual escaneable en producción).
