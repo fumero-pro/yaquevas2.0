@@ -54,3 +54,15 @@ Una oportunidad, un viaje, un ahorro o un destino deben poder compartirse tal cu
 
 ## 17. La repetición es el objetivo, no la operación suelta
 El producto se diseña para que volver a mirar YaQueVas (antes de viajar, antes de enviar) sea el hábito, no una operación aislada. Ninguna mecánica de fidelización debe generar ansiedad — con red de seguridad ante imprevistos reales (viaje cancelado, retraso), no penalización ciega.
+
+## 18. La verificación se explica antes de pedirse
+Nunca una sorpresa a mitad de operación (el error más citado contra Grabr: pedir vídeo de DNI+tarjeta sin avisar, cuentas bloqueadas). Antes de solicitar cualquier documento, decir para qué sirve y qué se hace con él.
+
+## 19. Los reembolsos van al método de pago original, nunca a un "wallet" forzado
+Un reembolso atrapado en un saldo interno que el usuario no pidió es una fuente de desconfianza citada contra Grabr y Vinted. Mismo método, plazo visible desde el primer momento.
+
+## 20. Las disputas tienen un canal humano, nunca solo un bot
+Vinted y Wallapop pierden confianza precisamente por dejar las disputas sin escalado humano. Un bot puede resolver lo simple, pero siempre debe existir una salida a una persona.
+
+## 21. Nunca sugerir ni permitir salir de la plataforma para pagar o hablar
+Wallapop pierde a sus usuarios a estafas por moverse a WhatsApp fuera del chat protegido. El chat debe advertir activamente contra compartir datos de pago o contacto fuera de la app, no limitarse a no ofrecerlo.

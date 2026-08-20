@@ -24,6 +24,13 @@ test('createCheckoutSession lanza un error claro si Stripe no está configurado'
   );
 });
 
+test('createRefund lanza un error claro si Stripe no está configurado', async () => {
+  delete process.env.STRIPE_SECRET_KEY;
+  delete require.cache[require.resolve('../src/lib/payments')];
+  const { createRefund } = require('../src/lib/payments');
+  await assert.rejects(() => createRefund('pi_fake'), /Stripe no está configurado/);
+});
+
 test('verifyWebhookSignature devuelve null sin STRIPE_WEBHOOK_SECRET (aunque haya body)', () => {
   delete process.env.STRIPE_SECRET_KEY;
   delete process.env.STRIPE_WEBHOOK_SECRET;

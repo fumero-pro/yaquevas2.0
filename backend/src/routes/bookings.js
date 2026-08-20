@@ -6,7 +6,7 @@ const { calculateOrientativePrice } = require('../lib/pricing');
 const { getConfig } = require('../lib/config');
 const { itemsToUsage, addUsage, fitsInTrip } = require('../lib/tetris');
 const { generateQrToken, generateBackupCode, renderQrDataUrl } = require('../lib/qr');
-const { isPaymentsConfigured, createCheckoutSession } = require('../lib/payments');
+const { isPaymentsConfigured, createCheckoutSession, createRefund } = require('../lib/payments');
 const { validatePhoto } = require('../lib/photo');
 const { serializeTrip } = require('./trips');
 const { serializeShipment } = require('./shipments');
@@ -320,12 +320,25 @@ function register(router, db) {
     db.prepare("UPDATE bookings SET status = 'cancelado' WHERE id = ?").run(booking.id);
     db.prepare("UPDATE shipments SET status = 'cancelado' WHERE id = ?").run(booking.shipment_id);
 
-    // Si ya se había pagado, se registra el reembolso (simple, punto 25)
+    // Si ya se había pagado, se reembolsa siempre al MISMO método de pago original — nunca a
+    // un saldo interno que el usuario no pidió (principio de diseño 19; error citado contra
+    // Grabr/Vinted). Con un cobro real de Stripe, se llama a su API de reembolso de verdad;
+    // en modo demo, se registra igual que antes.
     const paid = db.prepare("SELECT * FROM payments WHERE booking_id = ? AND type = 'cobro_remitente' AND status = 'completado'").get(booking.id);
     if (paid) {
+      let refundStatus = 'completado';
+      if (paid.provider === 'stripe' && isPaymentsConfigured()) {
+        try {
+          const refund = await createRefund(paid.provider_ref);
+          refundStatus = refund.status === 'succeeded' ? 'completado' : 'pendiente';
+        } catch (err) {
+          console.error('Error al reembolsar en Stripe, booking', booking.id, err.message);
+          refundStatus = 'pendiente'; // no bloquea la cancelación; requiere seguimiento manual
+        }
+      }
       db.prepare(
-        `INSERT INTO refunds (id, booking_id, requested_by, reason, amount, status, created_at) VALUES (?, ?, ?, ?, ?, 'completado', ?)`
-      ).run(newId('ref'), booking.id, user.id, body.motivo || 'Cancelación de la operación', paid.amount, now);
+        `INSERT INTO refunds (id, booking_id, requested_by, reason, amount, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`
+      ).run(newId('ref'), booking.id, user.id, body.motivo || 'Cancelación de la operación', paid.amount, refundStatus, now);
     }
     notify(db, booking.sender_id === user.id ? booking.traveler_id : booking.sender_id, 'cancelacion', 'Operación cancelada', body.motivo || '', booking.id);
     res.json({ ok: true });

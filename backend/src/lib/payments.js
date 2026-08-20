@@ -59,4 +59,15 @@ function verifyWebhookSignature(rawBody, signatureHeader) {
   }
 }
 
-module.exports = { isPaymentsConfigured, createCheckoutSession, verifyWebhookSignature, getStripeClient };
+// Reembolsa al MISMO método de pago original — nunca a un saldo interno ("wallet") que el
+// usuario no pidió, uno de los fallos más citados contra Grabr/Vinted (ver
+// docs/PRINCIPIOS_DE_DISENO.md punto 19). paymentIntentId es el provider_ref guardado en
+// `payments` para el cobro original (session.payment_intent de Stripe Checkout).
+async function createRefund(paymentIntentId) {
+  const stripe = getStripeClient();
+  if (!stripe) throw new Error('Stripe no está configurado (falta STRIPE_SECRET_KEY).');
+  const refund = await stripe.refunds.create({ payment_intent: paymentIntentId });
+  return { refund_id: refund.id, status: refund.status };
+}
+
+module.exports = { isPaymentsConfigured, createCheckoutSession, verifyWebhookSignature, createRefund, getStripeClient };

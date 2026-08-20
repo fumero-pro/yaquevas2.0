@@ -62,7 +62,7 @@
 
 | Operador | Precio verificado | Tiempos | Recogida a domicilio | Fuente |
 |---|---|---|---|---|
-| Liberty Express | 11,99 €/kg + 3,00€ despacho aduanal | No especificado | No confirmado | libertyexpress.com |
+| Liberty Express | Misceláneos/duraderos 11,99 €/kg + 3€ despacho aduanal; electrónicos 11,99 €/kg + 3€ + 5€/artículo; marítimo 7,90 €/kg (mín. 10kg) o promo caja 20kg = 140€ (≈7€/kg); recargo 20€ fuera de La Habana/Holguín; seguro opcional 3% del valor declarado | No especificado | No confirmado | libertyexpress.com |
 | Directo a Cuba | Desde 10€/kg aéreo; marítimo más barato | No especificado | Sí | directoacuba.es |
 | LPX Pack | Desde 6,80€/kg (La Habana, 2+ cajas 20kg); 7,50€/kg provincias | No especificado | Sí, puerta a puerta | lpxpack.com |
 | Cubakilos | ~10 USD/kg misceláneas; 3kg primeros exentos, resto 30% de la tarifa | Express 24-48h / estándar N/E | Sí, gratis | cubakilos.com |
@@ -78,6 +78,12 @@ actual). Misceláneas no comerciales libres hasta 25kg; por encima de 500 USD de
 aranceles progresivos hasta el 100% en tramos altos. Prohibidos: drones sin autorización,
 psicotrópicos, material pornográfico, entre otros. Fuentes: gotosend.com, d-cuba.com,
 cubakilos.com/blog.
+
+**Ancla de mercado (referencia para el motor de precios, no tarifa propia):** el rango observado entre
+operadores formales para Canarias→Cuba es aproximadamente **7-12 €/kg**. Un viajero de YaQueVas podría
+ofrecer un precio competitivo dentro o por debajo de ese rango y aun así dejar margen para la comisión
+de la plataforma — esto es una referencia orientativa para calibrar `pricing_reference_samples` de la
+ruta Cuba, nunca un precio hardcodeado.
 
 **Qué NO se pudo verificar (no usar como dato):** precio por "maleta completa" (el mercado
 cotiza casi siempre por kg, no por bulto — posible diferenciación de YaQueVas), pesos

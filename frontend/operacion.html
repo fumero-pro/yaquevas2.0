@@ -126,7 +126,8 @@ async function load() {
           <button type="button" class="btn btn-outline chat-quick" data-action="ver_envio" style="padding:8px 12px; font-size:0.85rem;">${YQVIcons.svg('package', { size: 15 })} Ver envío</button>
         </div>
         <div id="chatMessages" style="max-height:280px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding:4px;"></div>
-        <div class="row" style="margin-top:10px; gap:8px;">
+        <p class="muted" style="font-size:0.78rem; margin:8px 0 4px;">${YQVIcons.svg('link', { size: 13 })} Por tu seguridad, paga y comunícate siempre dentro de YaQueVas — nunca compartas datos de pago ni te muevas a WhatsApp u otra app fuera de esta operación.</p>
+        <div class="row" style="margin-top:2px; gap:8px;">
           <input id="chatInput" placeholder="Escribe un mensaje…" style="flex:1;">
           <button class="btn btn-primary" id="chatSendBtn">Enviar</button>
         </div>
@@ -388,6 +389,13 @@ async function load() {
       } catch (err) { /* silencioso, se reintenta en el próximo poll */ }
     }
 
+    // Aviso activo (no bloqueo) si el mensaje parece intentar mover el pago o la conversación
+    // fuera de la plataforma — patrón Wallapop/Vinted que YaQueVas quiere evitar (principio 21).
+    const OFF_PLATFORM_PATTERN = /whatsapp|telegram|bizum|paypal|transferencia|efectivo|en persona sin|fuera de (la app|yaquevas)|\b\d{9}\b/i;
+    function looksLikeOffPlatform(text) {
+      return OFF_PLATFORM_PATTERN.test(text);
+    }
+
     async function sendMessage(text, actionType) {
       try {
         await YQV.api(`/api/bookings/${bookingId}/messages`, { method: 'POST', body: { body: text, action_type: actionType || null } });
@@ -399,6 +407,9 @@ async function load() {
       const input = document.getElementById('chatInput');
       const text = input.value.trim();
       if (!text) return;
+      if (looksLikeOffPlatform(text) && !confirm('Este mensaje parece proponer pagar o hablar fuera de YaQueVas. Por tu seguridad, todo debe quedar dentro de la plataforma. ¿Enviar igualmente?')) {
+        return;
+      }
       input.value = '';
       sendMessage(text, null);
     });

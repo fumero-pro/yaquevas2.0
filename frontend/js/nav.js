@@ -1,14 +1,15 @@
 // Inyecta la barra de navegación, el banner de modo demo y el pie de página
 // en cualquier página que incluya #yqv-nav / #yqv-footer y cargue este script.
 (function () {
-  // Símbolo: ruta que conecta dos puntos (viajero-oportunidad), abstracto a propósito para
-  // funcionar igual de bien con Canarias que con Cuba o cualquier destino futuro.
-  const ROUTE_MARK = '<circle cx="50" cy="50" r="50" fill="{{BLUE}}"/><path d="M30 65 Q50 30 70 35" stroke="{{CORAL}}" stroke-width="6.5" fill="none" stroke-linecap="round"/><circle cx="30" cy="65" r="9" fill="{{CORAL}}"/><circle cx="70" cy="35" r="7" fill="{{YELLOW}}" stroke="{{BLUE}}" stroke-width="2.5"/>';
-  const LOGO_SVG = '<svg width="30" height="30" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' + ROUTE_MARK.replace(/\{\{BLUE\}\}/g, '#1B6FD8').replace(/\{\{CORAL\}\}/g, '#FF6B4A').replace(/\{\{YELLOW\}\}/g, '#FFD23F') + '</svg>';
+  // Símbolo original: las 8 islas Canarias conectadas por una ruta (vuelto a pedir por el
+  // usuario tras probar una alternativa — ver memoria del proyecto, no volver a cambiarlo
+  // sin que lo pida explícitamente de nuevo).
+  const ISLANDS_MARK = '<circle cx="50" cy="50" r="50" fill="{{BLUE}}"/><polyline points="26,69 28,46 34,60 46,50 55,60 66,50 71,31 70,23" stroke="{{YELLOW}}" stroke-width="1.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="26" cy="69" r="5.3" fill="{{YELLOW}}" stroke="{{BLUE}}" stroke-width="1"/><circle cx="28" cy="46" r="5.6" fill="{{YELLOW}}" stroke="{{BLUE}}" stroke-width="1"/><circle cx="34" cy="60" r="5.3" fill="{{YELLOW}}" stroke="{{BLUE}}" stroke-width="1"/><circle cx="46" cy="50" r="7.4" fill="{{YELLOW}}" stroke="{{BLUE}}" stroke-width="1"/><circle cx="55" cy="60" r="6.7" fill="{{YELLOW}}" stroke="{{BLUE}}" stroke-width="1"/><circle cx="66" cy="50" r="6" fill="{{YELLOW}}" stroke="{{BLUE}}" stroke-width="1"/><circle cx="71" cy="31" r="5.3" fill="{{YELLOW}}" stroke="{{BLUE}}" stroke-width="1"/><circle cx="70" cy="23" r="3.9" fill="{{YELLOW}}" stroke="{{BLUE}}" stroke-width="0.8"/>';
+  const LOGO_SVG = '<svg width="30" height="30" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' + ISLANDS_MARK.replace(/\{\{BLUE\}\}/g, '#0A3D8F').replace(/\{\{YELLOW\}\}/g, '#FFC72C') + '</svg>';
 
   function injectFavicon() {
     if (document.getElementById('yqv-favicon')) return;
-    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' + ROUTE_MARK.replace(/\{\{BLUE\}\}/g, '%231B6FD8').replace(/\{\{CORAL\}\}/g, '%23FF6B4A').replace(/\{\{YELLOW\}\}/g, '%23FFD23F') + '</svg>';
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' + ISLANDS_MARK.replace(/\{\{BLUE\}\}/g, '%230A3D8F').replace(/\{\{YELLOW\}\}/g, '%23FFC72C') + '</svg>';
     const link = document.createElement('link');
     link.id = 'yqv-favicon';
     link.rel = 'icon';
