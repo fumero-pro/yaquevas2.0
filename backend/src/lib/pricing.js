@@ -10,37 +10,52 @@
 // que haya en pricing_reference_samples (que el admin puede rellenar a mano),
 // para que el resto del sistema (UI, comisiones, etc.) funcione end-to-end.
 
+const { resolveLocation, distanceCategory: geoDistanceCategory } = require('./geo');
+
 function baseReferenceEstimate({ weightKg, distanceCategory }) {
-  // distanceCategory: 'misma_isla' | 'interinsular_corta' | 'interinsular_larga'
-  const baseByDistance = { misma_isla: 8, interinsular_corta: 15, interinsular_larga: 25 };
+  // distanceCategory: 'misma_zona' | 'interinsular_corta' | 'interinsular_larga' | 'internacional'
+  const baseByDistance = { misma_zona: 8, interinsular_corta: 15, interinsular_larga: 25, internacional: 45 };
   const base = baseByDistance[distanceCategory] ?? 15;
-  const perKg = 1.2;
+  const perKg = distanceCategory === 'internacional' ? 2.5 : 1.2;
   return Math.max(base, base + Math.max(0, weightKg - 5) * perKg);
 }
 
-function distanceCategory(originIsland, destinationIsland) {
-  if (originIsland === destinationIsland) return 'misma_isla';
-  const near = new Set(['Tenerife', 'La Gomera', 'La Palma', 'El Hierro']);
-  if (near.has(originIsland) && near.has(destinationIsland)) return 'interinsular_corta';
-  const chinijo = new Set(['Lanzarote', 'La Graciosa']);
-  if (chinijo.has(originIsland) && chinijo.has(destinationIsland)) return 'interinsular_corta';
-  return 'interinsular_larga';
+// Generaliza la categoría de distancia a cualquier país/ubicación del catálogo geográfico
+// (backend/src/lib/geo.js), en vez de nombres de isla canaria hardcodeados. Acepta tanto el
+// id de ubicación nuevo como el nombre de isla en texto libre que aún envía el frontend.
+function distanceCategory(db, originIsland, destinationIsland) {
+  const origin = resolveLocation(db, originIsland);
+  const destination = resolveLocation(db, destinationIsland);
+  if (!origin || !destination) return 'interinsular_larga';
+  return geoDistanceCategory(db, origin.id, destination.id);
 }
 
 // db: instancia de node:sqlite ya conectada. config: objeto con baremo_discount_pct, min_price, max_price, price_per_kg_extra
-function referenceAverage(db, { originIsland, destinationIsland }) {
+// Solo cuentan las muestras que aplican de verdad a este envío: mismo rango de peso (si la
+// muestra tiene rango declarado) y todavía vigentes (si tiene fecha de caducidad). Una
+// muestra sin rango/vigencia declarados se interpreta como "aplica a cualquier peso, sin
+// caducidad" — compatible con las muestras antiguas sembradas antes de este campo.
+function referenceAverage(db, { originIsland, destinationIsland, weightKg }) {
   const routeKey = `${originIsland}-${destinationIsland}`;
+  const today = new Date().toISOString().slice(0, 10);
   const rows = db
-    .prepare('SELECT price FROM pricing_reference_samples WHERE route_key = ? ORDER BY captured_at DESC LIMIT 20')
-    .all(routeKey);
+    .prepare(
+      `SELECT price FROM pricing_reference_samples
+       WHERE route_key = ?
+         AND (weight_min_kg IS NULL OR ? >= weight_min_kg)
+         AND (weight_max_kg IS NULL OR ? <= weight_max_kg)
+         AND (valid_until IS NULL OR valid_until >= ?)
+       ORDER BY captured_at DESC LIMIT 20`
+    )
+    .all(routeKey, weightKg ?? 0, weightKg ?? 0, today);
   if (rows.length === 0) return null;
   const avg = rows.reduce((sum, r) => sum + r.price, 0) / rows.length;
   return Number(avg.toFixed(2));
 }
 
 function calculateOrientativePrice(db, config, { originIsland, destinationIsland, weightKg, fragile, extraLuggage }) {
-  const cat = distanceCategory(originIsland, destinationIsland);
-  const refFromSamples = referenceAverage(db, { originIsland, destinationIsland });
+  const cat = distanceCategory(db, originIsland, destinationIsland);
+  const refFromSamples = referenceAverage(db, { originIsland, destinationIsland, weightKg });
   const reference = refFromSamples ?? baseReferenceEstimate({ weightKg, distanceCategory: cat });
 
   const discountPct = Number(config.baremo_discount_pct ?? 20);

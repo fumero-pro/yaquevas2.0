@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="pageTitle">Perfil — YaQueVas</title>
+<meta name="description" content="Perfil de confianza en YaQueVas: identidad verificada, valoraciones y operaciones completadas.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="YaQueVas">
+<meta property="og:title" id="ogTitle" content="Perfil en YaQueVas">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div id="yqv-nav"></div>
+
+<section class="section">
+  <div class="container" style="max-width:520px;">
+    <div id="content">
+      <div class="skeleton skeleton-line w-40"></div>
+      <div class="skeleton skeleton-line w-80"></div>
+      <div class="skeleton skeleton-line w-60"></div>
+    </div>
+  </div>
+</section>
+
+<div id="yqv-footer"></div>
+<script src="/js/api.js"></script>
+<script src="/js/icons.js"></script>
+<script src="/js/nav.js"></script>
+<script>
+const userId = new URLSearchParams(window.location.search).get('id') || window.location.pathname.split('/').pop();
+const content = document.getElementById('content');
+
+async function load() {
+  try {
+    const trust = await YQV.api(`/api/users/${userId}/trust`, { auth: false });
+    document.getElementById('pageTitle').textContent = `${trust.name} — YaQueVas`;
+    document.getElementById('ogTitle').setAttribute('content', `${trust.name} en YaQueVas`);
+
+    content.innerHTML = `
+      <div class="card center" style="padding:32px 24px;">
+        <div style="width:64px; height:64px; border-radius:50%; background:var(--mist-100); display:flex; align-items:center; justify-content:center; margin:0 auto 14px; font-family:var(--font-display); font-weight:700; font-size:1.6rem; color:var(--marine-800);">
+          ${YQV.escapeHtml((trust.name || '?').slice(0, 1).toUpperCase())}
+        </div>
+        <h1 style="margin-bottom:4px;">${YQV.escapeHtml(trust.name)}</h1>
+        ${trust.identity_verified ? `<div class="pill ok" style="margin:0 auto 14px; width:fit-content;">${YQVIcons.svg('check', { size: 14 })} Identidad verificada</div>` : `<div class="pill" style="margin:0 auto 14px; width:fit-content;">Identidad no verificada todavía</div>`}
+        <div class="row" style="justify-content:center; gap:24px; margin-top:8px;">
+          <div>
+            <div style="font-family:var(--font-display); font-weight:700; font-size:1.6rem;">${trust.rating_count > 0 ? `★ ${trust.rating_avg}` : '—'}</div>
+            <div class="muted" style="font-size:0.8rem;">${trust.rating_count} valoraciones</div>
+          </div>
+          <div>
+            <div style="font-family:var(--font-display); font-weight:700; font-size:1.6rem;">${trust.completed_operations}</div>
+            <div class="muted" style="font-size:0.8rem;">operaciones completadas</div>
+          </div>
+        </div>
+        <p class="muted" style="margin-top:18px; font-size:0.85rem;">En YaQueVas desde ${YQV.fmtDate(trust.member_since)}.</p>
+        <button type="button" class="btn btn-outline" id="shareBtn" style="margin-top:8px;">${YQVIcons.svg('link', { size: 16 })} Compartir perfil</button>
+      </div>
+    `;
+    document.getElementById('shareBtn').addEventListener('click', () => {
+      YQV.share({ title: `${trust.name} en YaQueVas`, text: `Perfil de confianza de ${trust.name} en YaQueVas.` });
+    });
+  } catch (err) {
+    content.innerHTML = `<div class="alert alert-error">No se ha podido cargar este perfil: ${err.message}</div>`;
+  }
+}
+load();
+</script>
+</body>
+</html>

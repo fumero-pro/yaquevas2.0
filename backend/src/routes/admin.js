@@ -194,15 +194,42 @@ function register(router, db) {
   router.post('/api/admin/pricing-samples', async (req, res, body) => {
     const admin = requireRole(req, res, db, ['superadmin', 'admin']);
     if (!admin) return;
-    const { origin_island, destination_island, source, price } = body;
+    const { origin_island, destination_island, source, price, weight_min_kg, weight_max_kg, valid_until } = body;
     if (!origin_island || !destination_island || !source || price == null) {
       return res.status(400).json({ error: 'Faltan campos: origin_island, destination_island, source, price.' });
     }
+    if (weight_min_kg != null && weight_max_kg != null && Number(weight_min_kg) > Number(weight_max_kg)) {
+      return res.status(400).json({ error: 'El peso mínimo no puede ser mayor que el máximo.' });
+    }
     const id = newId('psample');
-    db.prepare('INSERT INTO pricing_reference_samples (id, route_key, source, price, captured_at) VALUES (?, ?, ?, ?, ?)')
-      .run(id, `${origin_island}-${destination_island}`, source, Number(price), new Date().toISOString());
+    db.prepare(
+      `INSERT INTO pricing_reference_samples (id, route_key, source, price, captured_at, weight_min_kg, weight_max_kg, valid_until)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(
+      id, `${origin_island}-${destination_island}`, source, Number(price), new Date().toISOString(),
+      weight_min_kg != null ? Number(weight_min_kg) : null,
+      weight_max_kg != null ? Number(weight_max_kg) : null,
+      valid_until || null
+    );
     auditLog(db, admin.id, 'anadir_muestra_precio', id, null, `${origin_island}-${destination_island}: ${price}€ (${source})`);
     res.status(201).json({ id });
+  });
+
+  router.get('/api/admin/pricing-samples', async (req, res) => {
+    const admin = requireAdmin(req, res, db);
+    if (!admin) return;
+    const rows = db.prepare('SELECT * FROM pricing_reference_samples ORDER BY captured_at DESC LIMIT 200').all();
+    res.json({ samples: rows });
+  });
+
+  router.delete('/api/admin/pricing-samples/:id', async (req, res, body, params) => {
+    const admin = requireRole(req, res, db, ['superadmin', 'admin']);
+    if (!admin) return;
+    const sample = db.prepare('SELECT * FROM pricing_reference_samples WHERE id = ?').get(params.id);
+    if (!sample) return res.status(404).json({ error: 'Muestra no encontrada.' });
+    db.prepare('DELETE FROM pricing_reference_samples WHERE id = ?').run(params.id);
+    auditLog(db, admin.id, 'borrar_muestra_precio', params.id, `${sample.route_key}: ${sample.price}€`, null);
+    res.json({ ok: true });
   });
 
   // --- Exportación (punto 64) ---

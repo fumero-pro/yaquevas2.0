@@ -2,21 +2,10 @@
 const { requireAuth } = require('../middleware/auth');
 const { newId } = require('../lib/auth');
 const { itemsToUsage } = require('../lib/tetris');
-const { ISLANDS } = require('./trips');
+const { resolveLocation } = require('../lib/geo');
+const { validatePhoto } = require('../lib/photo');
 
 const ITEM_TYPES = ['maleta_grande', 'maleta_pequena', 'sobre', 'caja_mediana'];
-const MAX_PHOTO_CHARS = 1.5 * 1024 * 1024; // ~1.5MB de texto base64 por foto (demo: guardado embebido en SQLite)
-
-function validatePhoto(photo) {
-  if (!photo) return { ok: true, value: null };
-  if (typeof photo !== 'string' || !/^data:image\/(png|jpe?g|webp);base64,/.test(photo)) {
-    return { ok: false, error: 'Formato de foto no válido (debe ser PNG, JPG o WEBP).' };
-  }
-  if (photo.length > MAX_PHOTO_CHARS) {
-    return { ok: false, error: 'La foto es demasiado grande (máximo ~1MB por foto).' };
-  }
-  return { ok: true, value: photo };
-}
 
 function serializeShipment(s, items) {
   return {
@@ -25,8 +14,10 @@ function serializeShipment(s, items) {
     recipient_name: s.recipient_name,
     recipient_phone: s.recipient_phone,
     origin_island: s.origin_island,
+    origin_location_id: s.origin_location_id || null,
     origin_place: s.origin_place,
     destination_island: s.destination_island,
+    destination_location_id: s.destination_location_id || null,
     destination_place: s.destination_place,
     desired_date: s.desired_date,
     category: s.category,
@@ -66,8 +57,10 @@ function register(router, db) {
     if (!recipient_name || !origin_island || !destination_island || !desired_date || !items || !items.length) {
       return res.status(400).json({ error: 'Faltan campos obligatorios: destinatario, origen, destino, fecha y al menos un bulto.' });
     }
-    if (!ISLANDS.includes(origin_island) || !ISLANDS.includes(destination_island)) {
-      return res.status(400).json({ error: 'Isla no reconocida.' });
+    const originLoc = resolveLocation(db, origin_island);
+    const destinationLoc = resolveLocation(db, destination_island);
+    if (!originLoc || !destinationLoc) {
+      return res.status(400).json({ error: 'Origen o destino no reconocido.' });
     }
     if (!truthfulness_accepted) {
       return res.status(400).json({ error: 'Debes aceptar la declaración de veracidad del contenido para publicar el envío.' });
@@ -94,13 +87,13 @@ function register(router, db) {
     const finalCategory = hit && hit.category === 'permitido_aceptacion_expresa' ? 'permitido_aceptacion_expresa' : (category || 'permitido');
 
     db.prepare(
-      `INSERT INTO shipments (id, sender_id, recipient_name, recipient_phone, origin_island, origin_place,
-        destination_island, destination_place, desired_date, category, weight_kg, dimensions, declared_value,
-        fragile, notes, truthfulness_accepted, status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'publicado', ?)`
+      `INSERT INTO shipments (id, sender_id, recipient_name, recipient_phone, origin_island, origin_location_id,
+        origin_place, destination_island, destination_location_id, destination_place, desired_date, category,
+        weight_kg, dimensions, declared_value, fragile, notes, truthfulness_accepted, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'publicado', ?)`
     ).run(
-      id, user.id, recipient_name, recipient_phone || null, origin_island, origin_place || '',
-      destination_island, destination_place || '', desired_date, finalCategory,
+      id, user.id, recipient_name, recipient_phone || null, originLoc.name, originLoc.id, origin_place || '',
+      destinationLoc.name, destinationLoc.id, destination_place || '', desired_date, finalCategory,
       Number(weight_kg || 0), dimensions || '', declared_value != null ? Number(declared_value) : null,
       fragile ? 1 : 0, notes || '', now
     );

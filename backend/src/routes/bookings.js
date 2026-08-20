@@ -6,6 +6,8 @@ const { calculateOrientativePrice } = require('../lib/pricing');
 const { getConfig } = require('../lib/config');
 const { itemsToUsage, addUsage, fitsInTrip } = require('../lib/tetris');
 const { generateQrToken, generateBackupCode, renderQrDataUrl } = require('../lib/qr');
+const { isPaymentsConfigured, createCheckoutSession } = require('../lib/payments');
+const { validatePhoto } = require('../lib/photo');
 const { serializeTrip } = require('./trips');
 const { serializeShipment } = require('./shipments');
 
@@ -27,6 +29,7 @@ function serializeBooking(b) {
     status: b.status,
     qr_used: !!b.qr_used,
     has_backup_code: !!b.backup_code,
+    delivery_photo_url: b.delivery_photo_url || null,
     delivered_at: b.delivered_at,
     created_at: b.created_at,
   };
@@ -37,6 +40,19 @@ function notify(db, userId, type, title, bodyText, relatedId) {
     `INSERT INTO notifications (id, user_id, type, title, body, related_type, related_id, created_at)
      VALUES (?, ?, ?, ?, ?, 'booking', ?, ?)`
   ).run(newId('notif'), userId, type, title, bodyText || '', relatedId || null, new Date().toISOString());
+}
+
+// Compartida entre el pago simulado (modo demo) y el webhook real de Stripe
+// (routes/webhooks.js) para no duplicar la transición de estado ni las notificaciones.
+function markPaymentReceived(db, booking, { provider, providerRef, isDemo }) {
+  const now = new Date().toISOString();
+  db.prepare(
+    `INSERT INTO payments (id, booking_id, type, amount, status, provider, provider_ref, is_demo, created_at)
+     VALUES (?, ?, 'cobro_remitente', ?, 'completado', ?, ?, ?, ?)`
+  ).run(newId('pay'), booking.id, booking.sender_total, provider, providerRef, isDemo ? 1 : 0, now);
+  db.prepare("UPDATE bookings SET status = 'pago_realizado' WHERE id = ?").run(booking.id);
+  db.prepare("UPDATE shipments SET status = 'pago_realizado' WHERE id = ?").run(booking.shipment_id);
+  notify(db, booking.traveler_id, 'pago', 'Pago recibido (retenido hasta la entrega)', 'El remitente ha pagado. El importe se liberará cuando confirmes la entrega.', booking.id);
 }
 
 function register(router, db) {
@@ -172,7 +188,10 @@ function register(router, db) {
     res.json({ ok: true });
   });
 
-  // 3) Pago del remitente (proveedor de pagos externo -> en este entorno, simulado en modo DEMO)
+  // 3) Pago del remitente. Con STRIPE_SECRET_KEY configurada, crea una sesión de Stripe
+  // Checkout real (modo test = sin coste) y el pago se confirma vía webhook cuando Stripe avisa
+  // que se completó — no aquí mismo. Sin esa variable, sigue exactamente el modo simulado de
+  // siempre (instantáneo, etiquetado como demo).
   router.post('/api/bookings/:id/pay', async (req, res, body, params) => {
     const user = requireAuth(req, res, db);
     if (!user) return;
@@ -181,16 +200,16 @@ function register(router, db) {
     if (booking.sender_id !== user.id) return res.status(403).json({ error: 'Solo el remitente puede pagar esta operación.' });
     if (booking.status !== 'aceptado') return res.status(400).json({ error: `No se puede pagar una operación en estado "${booking.status}".` });
 
-    const now = new Date().toISOString();
-    db.prepare(
-      `INSERT INTO payments (id, booking_id, type, amount, status, provider, provider_ref, is_demo, created_at)
-       VALUES (?, ?, 'cobro_remitente', ?, 'completado', 'demo', ?, 1, ?)`
-    ).run(newId('pay'), booking.id, booking.sender_total, `DEMO-${newId('ref')}`, now);
+    if (isPaymentsConfigured()) {
+      const baseUrl = `${req.headers.origin || ''}`;
+      const { checkout_url } = await createCheckoutSession(booking, {
+        successUrl: `${baseUrl}/operacion.html?id=${booking.id}&pago=ok`,
+        cancelUrl: `${baseUrl}/operacion.html?id=${booking.id}&pago=cancelado`,
+      });
+      return res.json({ checkout_url, modo_demo: false });
+    }
 
-    db.prepare("UPDATE bookings SET status = 'pago_realizado' WHERE id = ?").run(booking.id);
-    db.prepare("UPDATE shipments SET status = 'pago_realizado' WHERE id = ?").run(booking.shipment_id);
-    notify(db, booking.traveler_id, 'pago', 'Pago recibido (retenido hasta la entrega)', 'El remitente ha pagado. El importe se liberará cuando confirmes la entrega.', booking.id);
-
+    markPaymentReceived(db, booking, { provider: 'demo', providerRef: `DEMO-${newId('ref')}`, isDemo: true });
     const updated = db.prepare('SELECT * FROM bookings WHERE id = ?').get(booking.id);
     res.json({ booking: serializeBooking(updated), modo_demo: true, aviso: 'Pago simulado (MODO DEMOSTRACIÓN — OPERACIÓN SIMULADA). Pendiente de conectar proveedor de pagos real.' });
   });
@@ -251,15 +270,22 @@ function register(router, db) {
     }
     if (booking.qr_used) return res.status(400).json({ error: 'Este código ya fue utilizado anteriormente.' });
 
-    const { qr_token, backup_code } = body;
+    const { qr_token, backup_code, delivery_photo } = body;
     const validQr = qr_token && qr_token === booking.qr_token;
     const validBackup = backup_code && backup_code === booking.backup_code;
     if (!validQr && !validBackup) {
       return res.status(400).json({ error: 'Código QR o código numérico incorrecto.' });
     }
+    // Prueba de entrega con foto obligatoria (lección de Roadie/GoShare): sin foto no hay
+    // confirmación de entrega, para que quede evidencia visual de en qué estado llegó.
+    const photoCheck = validatePhoto(delivery_photo);
+    if (!photoCheck.ok) return res.status(400).json({ error: photoCheck.error });
+    if (!photoCheck.value) {
+      return res.status(400).json({ error: 'Debes adjuntar una foto del envío entregado para confirmar la entrega.' });
+    }
 
     const now = new Date().toISOString();
-    db.prepare("UPDATE bookings SET status = 'entregado', qr_used = 1, delivered_at = ? WHERE id = ?").run(now, booking.id);
+    db.prepare("UPDATE bookings SET status = 'entregado', qr_used = 1, delivered_at = ?, delivery_photo_url = ? WHERE id = ?").run(now, photoCheck.value, booking.id);
     db.prepare("UPDATE shipments SET status = 'entregado' WHERE id = ?").run(booking.shipment_id);
 
     // Liberación del pago (demo): se registra el payout al viajero y la comisión de la plataforma.
@@ -341,4 +367,4 @@ function register(router, db) {
   });
 }
 
-module.exports = { register, serializeBooking };
+module.exports = { register, serializeBooking, markPaymentReceived };

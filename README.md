@@ -10,8 +10,9 @@ de extremo a extremo antes de conectar los proveedores externos reales (ver `.en
 
 ## Instalación y arranque
 
-Requisitos: **Node.js 22.5 o superior** (usa `node:sqlite`, nativo desde esa versión — no hace
-falta instalar ninguna dependencia con `npm install`).
+Requisitos: **Node.js 22.5 o superior** (usa `node:sqlite`, nativo desde esa versión). El backend
+tiene una única dependencia externa (`qrcode`, para el renderizado visual del QR) — si es la
+primera vez, ejecuta `npm install` dentro de `backend/` antes de arrancar.
 
 ```bash
 cd backend
@@ -52,6 +53,20 @@ publicando uno nuevo desde `/enviar.html` o `/ya-voy.html`.
 7. El pago queda liberado automáticamente y podrás verlo reflejado en `/admin.html` con la cuenta
    `admin@yaquevas.demo`.
 
+## Tests
+
+```bash
+cd backend
+npm test
+```
+
+Usa el test runner nativo de Node (`node --test`, sin dependencias nuevas) sobre la lógica
+pura de `backend/src/lib/` (pricing, comisión, matching, tetris, catálogo geográfico, auth) y
+una base de datos SQLite en memoria — no toca `data/yaquevas.db`. Nota: `node --test test/`
+con la ruta explícita falla en esta versión de Node con "Cannot find module" (intenta
+`require()` el directorio); usa `node --test` sin argumentos, que descubre `**/*.test.js`
+automáticamente — así es como está configurado el script `npm test`.
+
 ## Estructura del proyecto
 
 Ver `docs/ARCHITECTURE.md` para el detalle completo. Resumen:
@@ -77,6 +92,15 @@ proveedor de pagos (tarjeta/Apple Pay/Google Pay), verificación de identidad (K
 email y SMS, WhatsApp Business, notificaciones push, mapas, almacenamiento de fotografías, y el
 renderizado visual del código QR (el token de seguridad sí es real; falta conectar una librería
 de renderizado QR estándar).
+
+## Activar pagos reales (Stripe, modo test gratuito) y verificación de identidad
+
+El cobro al remitente (Stripe Checkout) y la verificación de identidad (Stripe Identity) ya están
+integrados en el código, apagados por defecto — sin configurarlos, todo sigue funcionando en modo
+simulado como siempre. Activarlos requiere una cuenta de Stripe (gratuita, sin tarjeta, en modo
+test) que **tienes que crear tú mismo**: ver `docs/STRIPE_SETUP.md` para el paso a paso completo.
+El payout al viajero (pagarle a él) todavía no está conectado a un proveedor real — sigue siendo
+el siguiente paso pendiente, documentado en ese mismo archivo.
 
 ## Pendiente antes de producción
 

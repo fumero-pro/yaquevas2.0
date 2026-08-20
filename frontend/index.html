@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>YaQueVas — Si ya vas, puedes llevarlo</title>
+<title>YaQueVas — Ya que vas, gana</title>
 <meta name="description" content="YaQueVas conecta viajes que ya se iban a hacer entre las Islas Canarias con envíos legales que necesitan llegar a otra persona.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="YaQueVas">
@@ -21,12 +21,12 @@
 <section class="hero">
   <div class="container">
     <span class="hero-eyebrow">Islas Canarias · crowdshipping entre personas</span>
-    <h1>Si ya vas,<br>puedes llevarlo.</h1>
-    <p class="lead">Conectamos viajes que ya existen con envíos que necesitan llegar. <a href="/como-funciona.html" style="color:white; text-decoration:underline;">¿Cómo funciona?</a></p>
-    <p style="font-family:var(--font-display); font-style:italic; font-size:1.1rem; color:var(--sun); margin-top:-8px;">Ya que vas, llévalo tú, chach@.</p>
+    <h1>Ya que vas,<br>gana.</h1>
+    <p class="lead">El viajero gana por aprovechar un trayecto que ya tenía. El remitente ahorra por no tener que hacerlo él. <a href="/como-funciona.html" style="color:white; text-decoration:underline;">¿Cómo funciona?</a></p>
+    <p style="font-family:var(--font-display); font-style:italic; font-size:1.1rem; color:var(--sun); margin-top:-8px;">Ya que alguien va, ahorra tú.</p>
     <div class="hero-ctas">
-      <a href="/enviar.html" class="btn btn-primary btn-lg">QUIERO ENVIAR ALGO</a>
-      <a href="/ya-voy.html" class="btn btn-lg" style="background:white;color:var(--marine-900);">YA VOY / TENGO ESPACIO</a>
+      <a href="/ya-voy.html" class="btn btn-primary btn-lg">YA QUE VOY — GANA</a>
+      <a href="/enviar.html" class="btn btn-lg" style="background:white;color:var(--marine-900);">YA QUE NECESITO — AHORRA</a>
     </div>
     <button type="button" id="downloadAppBtn" class="btn btn-outline" style="margin-top:18px; border-color:rgba(255,255,255,0.5); color:white;"><span data-yqv-icon="phone" data-yqv-icon-size="16"></span> Descargar app (próximamente)</button>
   </div>
@@ -185,30 +185,50 @@ document.getElementById('downloadAppBtn').addEventListener('click', () => {
 (async () => {
   const tripsBox = document.getElementById('homeTripsBox');
   const shipmentsBox = document.getElementById('homeShipmentsBox');
+  // El "puedes ganar" / "precio orientativo" de cada tarjeta viene del motor real de
+  // matching+pricing del servidor (nunca una cifra inventada en el frontend, principio 1).
   try {
     const data = await YQV.api('/api/trips?status=publicado', { auth: false });
     const trips = data.trips.slice(0, 3);
-    tripsBox.innerHTML = trips.length === 0
-      ? '<p class="muted">Todavía no hay viajes publicados.</p>'
-      : trips.map(t => `
+    if (trips.length === 0) {
+      tripsBox.innerHTML = '<p class="muted">Todavía no hay viajes publicados.</p>';
+    } else {
+      const withEarnings = await Promise.all(trips.map(async (t) => {
+        try {
+          const m = await YQV.api(`/api/matching/for-trip/${t.id}`, { auth: false });
+          return { trip: t, potencial: m.total_potencial || 0 };
+        } catch { return { trip: t, potencial: 0 }; }
+      }));
+      tripsBox.innerHTML = withEarnings.map(({ trip: t, potencial }) => `
         <div class="card">
           <strong>${t.origin_island} → ${t.destination_island}</strong> · ${YQV.fmtDate(t.trip_date)}
           <div class="muted" style="font-size:0.85rem;">${YQV.TRANSPORT_LABELS[t.transport_mode]} · Espacio libre: ${t.status_capacidad.remaining_l} L · ${t.status_capacidad.remaining_kg} kg</div>
+          ${potencial > 0 ? `<div style="margin-top:8px; font-family:var(--font-display); font-weight:700; color:var(--ok);">Puedes ganar +${YQV.fmtEur(potencial)}</div>` : ''}
         </div>
       `).join('');
+    }
   } catch { tripsBox.innerHTML = '<p class="muted">No se pudieron cargar los viajes.</p>'; }
 
   try {
     const data = await YQV.api('/api/shipments?status=publicado', { auth: false });
     const shipments = data.shipments.slice(0, 3);
-    shipmentsBox.innerHTML = shipments.length === 0
-      ? '<p class="muted">Todavía no hay envíos publicados.</p>'
-      : shipments.map(s => `
+    if (shipments.length === 0) {
+      shipmentsBox.innerHTML = '<p class="muted">Todavía no hay envíos publicados.</p>';
+    } else {
+      const withPrice = await Promise.all(shipments.map(async (s) => {
+        try {
+          const m = await YQV.api(`/api/matching/for-shipment/${s.id}`, { auth: false });
+          return { shipment: s, precio: m.precio_orientativo || null };
+        } catch { return { shipment: s, precio: null }; }
+      }));
+      shipmentsBox.innerHTML = withPrice.map(({ shipment: s, precio }) => `
         <div class="card">
           <strong>${s.origin_island} → ${s.destination_island}</strong> · ${YQV.fmtDate(s.desired_date)}
           <div class="muted" style="font-size:0.85rem;">${s.items.length} bulto(s) · ${s.weight_kg} kg · ${s.fragile ? 'Frágil' : 'No frágil'}</div>
+          ${precio ? `<div style="margin-top:8px; font-family:var(--font-display); font-weight:700; color:var(--marine-900);">Precio orientativo: ${YQV.fmtEur(precio.orientative_price)}</div>` : ''}
         </div>
       `).join('');
+    }
   } catch { shipmentsBox.innerHTML = '<p class="muted">No se pudieron cargar los envíos.</p>'; }
 })();
 </script>

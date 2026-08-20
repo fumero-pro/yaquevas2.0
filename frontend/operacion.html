@@ -33,6 +33,12 @@ if (!YQV.requireLoginOrRedirect()) { /* redirige */ }
 const bookingId = new URLSearchParams(window.location.search).get('id');
 const user = YQV.getUser();
 
+// Vuelta desde Stripe Checkout (pago real, no demo): el estado real llega por webhook, así que
+// aquí solo avisamos — load() más abajo ya pinta el estado actual de la operación.
+const pagoParam = new URLSearchParams(window.location.search).get('pago');
+if (pagoParam === 'ok') YQV.toast('Pago completado. Puede tardar unos segundos en reflejarse aquí.', 'ok');
+if (pagoParam === 'cancelado') YQV.toast('Pago cancelado.', 'info');
+
 function statusPill(status) {
   const good = ['pago_liberado', 'finalizado', 'entregado'];
   const bad = ['cancelado', 'rechazado', 'disputa', 'incidencia', 'bloqueado'];
@@ -139,9 +145,13 @@ async function load() {
     html += `
       <div class="card" style="margin-top:16px;">
         <h3>Confirmar entrega</h3>
-        <p>Escanea el QR del destinatario o introduce el código numérico de respaldo de 6 dígitos.</p>
+        <p>Escanea el QR del destinatario o introduce el código numérico de respaldo de 6 dígitos. Necesitas además una foto del envío entregado, como prueba.</p>
         <label class="first">Código numérico de respaldo</label>
         <input id="deliverCode" maxlength="6" placeholder="000000">
+        <label>Foto de entrega (obligatoria)</label>
+        <label class="btn btn-outline" for="deliverPhoto" style="cursor:pointer; display:inline-flex;">${YQVIcons.svg('camera', { size: 16 })} Hacer/adjuntar foto</label>
+        <input id="deliverPhoto" type="file" accept="image/png,image/jpeg,image/webp" capture="environment" style="display:none;">
+        <div id="deliverPhotoPreview" class="muted" style="font-size:0.8rem; margin-top:6px;"></div>
         <button class="btn btn-primary" id="deliverBtn" style="margin-top:12px;">Confirmar entrega</button>
       </div>
     `;
@@ -156,11 +166,17 @@ async function load() {
           : `El pago de ${YQV.fmtEur(booking.traveler_net)} ha quedado liberado a tu cuenta.`}
         ${booking.delivered_at ? `<br><span class="muted">Entregado el ${YQV.fmtDateTime(booking.delivered_at)}.</span>` : ''}
       </div>
+      ${booking.delivery_photo_url ? `
+        <div class="card" style="margin-top:16px;">
+          <h3 style="font-size:0.95rem;">Foto de entrega</h3>
+          <img src="${booking.delivery_photo_url}" alt="Foto de la entrega confirmada" style="max-width:100%; border-radius:var(--radius-md); display:block;">
+        </div>
+      ` : ''}
     `;
     if (!isSender) {
       html += `
         <div class="card" style="margin-top:16px; text-align:center; background:var(--marine-900); color:white;">
-          <p style="color:#C9DCE2; margin-bottom:4px;">Con un viaje que ya ibas a hacer</p>
+          <p style="color:#D7E7FA; margin-bottom:4px;">Con un viaje que ya ibas a hacer</p>
           <div class="big-number" style="color:white;">+${YQV.fmtEur(booking.traveler_net)}</div>
           <button type="button" class="btn btn-primary" id="shareEarningsBtn" style="margin-top:12px;">${YQVIcons.svg('link', { size: 16 })} Compartir</button>
         </div>
@@ -239,6 +255,12 @@ async function load() {
   if (payBtn) payBtn.addEventListener('click', async () => {
     try {
       const res = await YQV.api(`/api/bookings/${bookingId}/pay`, { method: 'POST' });
+      if (res.checkout_url) {
+        // Pago real (Stripe configurado): el pago se confirma fuera de esta pestaña, vía
+        // webhook, cuando Stripe avisa de que se completó — no en esta respuesta.
+        window.location.href = res.checkout_url;
+        return;
+      }
       YQV.toast(res.aviso, 'ok');
       load();
     } catch (err) { YQV.toast(err.message, 'error'); }
@@ -256,11 +278,36 @@ async function load() {
     catch (err) { YQV.toast(err.message, 'error'); }
   });
 
+  const deliverPhotoInput = document.getElementById('deliverPhoto');
+  if (deliverPhotoInput) deliverPhotoInput.addEventListener('change', () => {
+    const file = deliverPhotoInput.files[0];
+    const preview = document.getElementById('deliverPhotoPreview');
+    if (!file) { preview.textContent = ''; return; }
+    if (file.size > 1.2 * 1024 * 1024) {
+      preview.textContent = 'La foto es demasiado grande (máximo ~1MB).';
+      deliverPhotoInput.value = '';
+      return;
+    }
+    preview.textContent = `Foto lista: ${file.name}`;
+  });
+
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
   const deliverBtn = document.getElementById('deliverBtn');
   if (deliverBtn) deliverBtn.addEventListener('click', async () => {
     const code = document.getElementById('deliverCode').value.trim();
+    const photoFile = deliverPhotoInput.files[0];
+    if (!photoFile) { YQV.toast('Adjunta una foto del envío entregado para confirmar.', 'error'); return; }
     try {
-      await YQV.api(`/api/bookings/${bookingId}/deliver`, { method: 'POST', body: { backup_code: code } });
+      const delivery_photo = await readFileAsDataUrl(photoFile);
+      await YQV.api(`/api/bookings/${bookingId}/deliver`, { method: 'POST', body: { backup_code: code, delivery_photo } });
       YQV.toast('Entrega confirmada. Pago liberado.', 'ok');
       load();
     } catch (err) { YQV.toast(err.message, 'error'); }

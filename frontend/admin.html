@@ -27,6 +27,7 @@
         <button class="admin-tab active" data-tab="dashboard">Panel general</button>
         <button class="admin-tab" data-tab="config">Configuración</button>
         <button class="admin-tab" data-tab="prohibited">Objetos prohibidos</button>
+        <button class="admin-tab" data-tab="pricing">Tarifas</button>
         <button class="admin-tab" data-tab="operations">Operaciones</button>
         <button class="admin-tab" data-tab="disputes">Incidencias</button>
         <button class="admin-tab" data-tab="audit">Auditoría</button>
@@ -36,6 +37,7 @@
       <div class="admin-panel active" id="panel-dashboard"></div>
       <div class="admin-panel" id="panel-config"></div>
       <div class="admin-panel" id="panel-prohibited"></div>
+      <div class="admin-panel" id="panel-pricing"></div>
       <div class="admin-panel" id="panel-operations"></div>
       <div class="admin-panel" id="panel-disputes"></div>
       <div class="admin-panel" id="panel-audit"></div>
@@ -73,6 +75,7 @@ async function init() {
   await loadDashboard();
   await loadConfig();
   await loadProhibited();
+  await loadPricing();
   await loadOperations();
   await loadDisputes();
   await loadAudit();
@@ -178,6 +181,60 @@ async function loadProhibited() {
         YQV.toast('Objeto añadido.', 'ok'); loadProhibited();
       } catch (err) { YQV.toast(err.message, 'error'); }
     });
+  } catch (err) { panel.innerHTML = `<div class="alert alert-error">${err.message}</div>`; }
+}
+
+async function loadPricing() {
+  const panel = document.getElementById('panel-pricing');
+  try {
+    const { samples } = await YQV.api('/api/admin/pricing-samples');
+    panel.innerHTML = `
+      <div class="alert alert-info">Las tarifas externas son una referencia de mercado, nunca la tarifa de YaQueVas. Añade solo precios que puedas verificar tú mismo (ver <code>docs/BENCHMARK_RESEARCH.md</code>).</div>
+      <div class="card">
+        <h3>Añadir muestra de precio</h3>
+        <div class="field-row cols-3">
+          <div><label class="first">Isla/ubicación de origen</label><input id="ps_origin" placeholder="Ej. Tenerife"></div>
+          <div><label class="first">Isla/ubicación de destino</label><input id="ps_destination" placeholder="Ej. Gran Canaria"></div>
+          <div><label class="first">Fuente</label><input id="ps_source" placeholder="Ej. Correos Z6 2025"></div>
+        </div>
+        <div class="field-row cols-3">
+          <div><label class="first">Precio (€)</label><input id="ps_price" type="number" step="0.01"></div>
+          <div><label class="first">Peso mín. (kg, opcional)</label><input id="ps_weight_min" type="number" step="0.1"></div>
+          <div><label class="first">Peso máx. (kg, opcional)</label><input id="ps_weight_max" type="number" step="0.1"></div>
+        </div>
+        <label>Válida hasta (opcional — vacío = sin caducidad)</label>
+        <input id="ps_valid_until" type="date">
+        <button class="btn btn-primary" id="addPricingBtn" style="margin-top:12px;">Añadir muestra</button>
+      </div>
+      <div class="table-wrap" style="margin-top:16px;"><table>
+        <tr><th>Ruta</th><th>Fuente</th><th>Precio</th><th>Rango de peso</th><th>Válida hasta</th><th>Capturada</th><th></th></tr>
+        ${samples.map(s => `<tr>
+          <td>${s.route_key}</td><td>${s.source}</td><td>${s.price.toFixed(2)} €</td>
+          <td>${s.weight_min_kg != null || s.weight_max_kg != null ? `${s.weight_min_kg ?? '0'}–${s.weight_max_kg ?? '∞'} kg` : 'Cualquier peso'}</td>
+          <td>${s.valid_until || 'Sin caducidad'}</td>
+          <td class="muted">${YQV.fmtDate(s.captured_at)}</td>
+          <td><button class="btn btn-outline" data-del="${s.id}" style="padding:4px 10px; font-size:0.8rem;">Borrar</button></td>
+        </tr>`).join('')}
+      </table></div>
+    `;
+    document.getElementById('addPricingBtn').addEventListener('click', async () => {
+      try {
+        await YQV.api('/api/admin/pricing-samples', { method: 'POST', body: {
+          origin_island: document.getElementById('ps_origin').value,
+          destination_island: document.getElementById('ps_destination').value,
+          source: document.getElementById('ps_source').value,
+          price: document.getElementById('ps_price').value,
+          weight_min_kg: document.getElementById('ps_weight_min').value || null,
+          weight_max_kg: document.getElementById('ps_weight_max').value || null,
+          valid_until: document.getElementById('ps_valid_until').value || null,
+        }});
+        YQV.toast('Muestra añadida.', 'ok'); loadPricing();
+      } catch (err) { YQV.toast(err.message, 'error'); }
+    });
+    panel.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', async () => {
+      try { await YQV.api(`/api/admin/pricing-samples/${btn.dataset.del}`, { method: 'DELETE' }); loadPricing(); }
+      catch (err) { YQV.toast(err.message, 'error'); }
+    }));
   } catch (err) { panel.innerHTML = `<div class="alert alert-error">${err.message}</div>`; }
 }
 

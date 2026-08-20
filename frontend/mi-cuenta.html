@@ -14,6 +14,7 @@
     <h1 id="greeting">Mi cuenta</h1>
 
     <div id="notifBox" style="margin-bottom:24px;"></div>
+    <div id="identityBox" style="margin-bottom:24px;"></div>
 
     <h2>Mis operaciones</h2>
     <p class="muted">Envíos y viajes ya emparejados: aquí sigues el estado, aceptas, pagas y entregas.</p>
@@ -44,6 +45,32 @@ if (!YQV.requireLoginOrRedirect()) { /* redirige */ }
 async function load() {
   const user = YQV.getUser();
   document.getElementById('greeting').textContent = `Hola, ${user.name}`;
+
+  try {
+    const me = await YQV.api('/api/me');
+    const identityBox = document.getElementById('identityBox');
+    if (me.user.identity_verified) {
+      identityBox.innerHTML = `<div class="pill ok">${YQVIcons.svg('check', { size: 14 })} Identidad verificada</div>`;
+    } else {
+      identityBox.innerHTML = `
+        <div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+          <div>
+            <h3 style="margin-bottom:4px;">Verifica tu identidad</h3>
+            <p class="muted" style="margin:0;">Necesaria para publicar envíos o aceptar transportar uno. Solo se pide una vez.</p>
+          </div>
+          <button class="btn btn-primary" id="verifyIdentityBtn">Verificar ahora</button>
+        </div>
+      `;
+      document.getElementById('verifyIdentityBtn').addEventListener('click', async () => {
+        try {
+          const res = await YQV.api('/api/me/identity/start', { method: 'POST' });
+          if (res.verification_url) { window.location.href = res.verification_url; return; }
+          YQV.toast(res.aviso || 'Identidad verificada.', 'ok');
+          load();
+        } catch (err) { YQV.toast(err.message, 'error'); }
+      });
+    }
+  } catch { /* si falla, no bloquea el resto de la página */ }
 
   try {
     const notifs = await YQV.api('/api/notifications');

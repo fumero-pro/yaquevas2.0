@@ -5,8 +5,8 @@
 - [ ] Frontend servido con HTTPS (certificado válido) y dominio propio.
 - [ ] `SESSION_SECRET` cambiado por un valor aleatorio largo y secreto (no el de `.env.example`).
 - [ ] Base de datos con backups automáticos y probados (restauración real, no solo "se genera el fichero").
-- [ ] Proveedor de pagos real conectado (cobro, retención, payout automático, comisión automática, reembolsos, webhooks verificados).
-- [ ] Proveedor de KYC real conectado; dejar de usar `identity_verified = 1` automático del seed.
+- [~] Proveedor de pagos real: **cobro al remitente conectado** (Stripe Checkout + webhook verificado, ver `docs/STRIPE_SETUP.md` — no probado contra cuenta real por falta de credenciales en el entorno de desarrollo, pendiente de que el usuario lo valide con sus propias claves de test). Payout automático al viajero **todavía no** (requiere Stripe Connect, no implementado). Reembolsos siguen siendo manuales/simulados.
+- [~] Proveedor de KYC: **Stripe Identity conectado** (`POST /api/me/identity/start`, ver `docs/STRIPE_SETUP.md`), mismo aviso de no probado contra cuenta real. Sin la clave configurada, sigue simulando `identity_verified = 1` al instante (ya no solo en el seed — cualquier usuario puede "verificarse" en modo demo).
 - [ ] Proveedor de email transaccional conectado (verificación de cuenta, notificaciones).
 - [ ] Proveedor SMS conectado (verificación de teléfono).
 - [ ] WhatsApp Business/API oficial conectado (o mantener el enlace `wa.me` como alternativa básica).
@@ -15,9 +15,11 @@
 - [ ] Proveedor de mapas conectado para mostrar zonas aproximadas de recogida/entrega.
 - [ ] Almacenamiento en la nube conectado para las fotografías de los envíos (ahora mismo el campo `photo_url` existe pero no hay subida de ficheros implementada).
 - [ ] MFA activado para todas las cuentas de rol `admin` y `superadmin`.
-- [ ] Rate limiting en endpoints públicos (`/api/auth/login`, `/api/auth/register`) para mitigar fuerza bruta.
+- [x] Rate limiting en endpoints públicos (`/api/auth/login`, `/api/auth/register`) para mitigar fuerza bruta — `backend/src/lib/rateLimit.js`, 10 intentos / 5 min por IP. En memoria de un solo proceso: si se despliega con más de una instancia, sustituir por un almacén compartido.
 - [ ] Logs centralizados y alertas de error.
-- [ ] Revisión de seguridad (dependencias, cabeceras HTTP, CORS si el frontend se sirve desde otro dominio).
+- [x] Cabeceras de seguridad HTTP (`X-Content-Type-Options`, `X-Frame-Options`, `Content-Security-Policy`, `Referrer-Policy`) — `backend/src/server.js`. CSP permite `'unsafe-inline'` en script/style porque el frontend usa `<script>`/`style=""` inline sin build; migrar a nonces es una mejora futura pendiente.
+- [ ] Revisión de seguridad de dependencias y CORS si el frontend se sirve desde otro dominio (hoy comparten origen, no aplica).
+- [x] `SESSION_SECRET`: si no está seteado, el servidor ya no usa un valor por defecto inseguro y conocido — genera uno aleatorio nuevo en cada arranque y avisa en los logs. **Sigue pendiente ponerlo de verdad** en las variables de entorno del hosting (Render u otro) para que las sesiones no se invaliden en cada reinicio del proceso.
 - [ ] Apps nativas de Android/iPhone (esta primera versión es la web responsive + API; la arquitectura backend ya está lista para servir a apps nativas o React Native/Flutter sin cambios).
 
 ## LEGAL

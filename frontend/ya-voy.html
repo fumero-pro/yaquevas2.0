@@ -79,11 +79,13 @@
 <script src="/js/icons.js"></script>
 <script src="/js/nav.js"></script>
 <script>
-function renderIslandOptions() {
-  for (const sel of [document.getElementById('origin_island'), document.getElementById('destination_island')]) {
-    sel.innerHTML = YQV.ISLANDS.map(i => `<option value="${i}">${i}</option>`).join('');
-  }
-  document.getElementById('destination_island').value = YQV.ISLANDS[1];
+async function renderIslandOptions() {
+  const origin = document.getElementById('origin_island');
+  const destination = document.getElementById('destination_island');
+  const groups = await YQV.populateLocationSelects([origin, destination]);
+  const canarias = groups.find(g => g.country.id === 'ES');
+  if (canarias && canarias.locations[0]) origin.value = canarias.locations[0].name;
+  if (canarias && canarias.locations[1]) destination.value = canarias.locations[1].name;
 }
 renderIslandOptions();
 {
@@ -159,8 +161,8 @@ async function showMatches(tripId) {
     }
     let html = `
       <div class="card" style="background:var(--marine-900); color:white; text-align:center;">
-        <p style="color:#C9DCE2; margin-bottom:4px;">HEMOS ENCONTRADO ${data.matches.length} OPORTUNIDAD${data.matches.length === 1 ? '' : 'ES'}</p>
-        <p class="muted" style="color:#C9DCE2; margin-bottom:0;">Total potencial</p>
+        <p style="color:#D7E7FA; margin-bottom:4px;">HEMOS ENCONTRADO ${data.matches.length} OPORTUNIDAD${data.matches.length === 1 ? '' : 'ES'}</p>
+        <p class="muted" style="color:#D7E7FA; margin-bottom:0;">Total potencial</p>
         <div class="big-number" style="color:white;">+${YQV.fmtEur(data.total_potencial)}</div>
       </div>
       <h3 style="margin-top:20px;">Envíos compatibles</h3><div class="stack">`;

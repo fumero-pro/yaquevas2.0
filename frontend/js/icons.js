@@ -28,6 +28,7 @@ const YQVIcons = (() => {
     bell: '<path d="M6 17h12l-1.6-2.3V10a4.4 4.4 0 0 0-8.8 0v4.7Z"/><path d="M10 19.5a2 2 0 0 0 4 0"/>',
     menu: '<line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/>',
     sparkle: '<path d="M12 4v3M12 17v3M4 12h3M17 12h3M6.5 6.5l2 2M15.5 15.5l2 2M17.5 6.5l-2 2M8.5 15.5l-2 2"/>',
+    check: '<path d="M5 12.5 9.5 17 19 6.5"/>',
   };
 
   function svg(name, { size = 20, strokeWidth = 1.8, className = '' } = {}) {

@@ -103,11 +103,13 @@
 <script>
 let items = [];
 
-function renderIslandOptions() {
-  for (const sel of [document.getElementById('origin_island'), document.getElementById('destination_island')]) {
-    sel.innerHTML = YQV.ISLANDS.map(i => `<option value="${i}">${i}</option>`).join('');
-  }
-  document.getElementById('destination_island').value = YQV.ISLANDS[1];
+async function renderIslandOptions() {
+  const origin = document.getElementById('origin_island');
+  const destination = document.getElementById('destination_island');
+  const groups = await YQV.populateLocationSelects([origin, destination]);
+  const canarias = groups.find(g => g.country.id === 'ES');
+  if (canarias && canarias.locations[0]) origin.value = canarias.locations[0].name;
+  if (canarias && canarias.locations[1]) destination.value = canarias.locations[1].name;
 }
 
 function renderItems() {
@@ -223,9 +225,9 @@ async function showMatches(shipmentId) {
       <div class="card" style="background:var(--marine-900); color:white;">
         <h3 style="color:white;">Precio orientativo YaQueVas</h3>
         <div class="big-number" style="color:white;" id="priceDisplay">${YQV.fmtEur(price.orientative_price)}</div>
-        <p style="color:#C9DCE2;">Basado en una media de referencia de ${YQV.fmtEur(price.reference_price)} con un ${price.discount_pct}% de descuento orientativo. Este precio es orientativo: puedes ajustarlo antes de solicitar.</p>
+        <p style="color:#D7E7FA;">Basado en una media de referencia de ${YQV.fmtEur(price.reference_price)} con un ${price.discount_pct}% de descuento orientativo. Este precio es orientativo: puedes ajustarlo antes de solicitar.</p>
         <input type="range" id="priceSlider" min="${minPrice}" max="${maxPrice}" step="0.5" value="${price.orientative_price}" style="width:100%; margin-top:8px;">
-        <div class="row between" style="color:#C9DCE2; font-size:0.8rem;">
+        <div class="row between" style="color:#D7E7FA; font-size:0.8rem;">
           <span>${YQV.fmtEur(minPrice)}</span>
           <span>${YQV.fmtEur(maxPrice)}</span>
         </div>

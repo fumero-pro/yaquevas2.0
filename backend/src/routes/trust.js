@@ -1,6 +1,7 @@
 'use strict';
 const { requireAuth } = require('../middleware/auth');
 const { newId } = require('../lib/auth');
+const { getVisibleRatingSummary } = require('../lib/trust');
 
 const TERMINAL_STATUSES = ['entregado', 'pago_liberado', 'finalizado'];
 
@@ -10,7 +11,7 @@ function register(router, db) {
     const user = db.prepare('SELECT id, name, identity_verified, created_at FROM users WHERE id = ?').get(params.id);
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado.' });
 
-    const ratingRow = db.prepare('SELECT AVG(rating) avg, COUNT(*) c FROM reviews WHERE reviewee_id = ?').get(params.id);
+    const { rating_avg, rating_count } = getVisibleRatingSummary(db, params.id);
     const opsCount = db.prepare(
       `SELECT COUNT(*) c FROM bookings WHERE (sender_id = ? OR traveler_id = ?) AND status IN ('entregado','pago_liberado','finalizado')`
     ).get(params.id, params.id).c;
@@ -19,8 +20,8 @@ function register(router, db) {
       id: user.id,
       name: user.name,
       identity_verified: !!user.identity_verified,
-      rating_avg: ratingRow.c > 0 ? Math.round(ratingRow.avg * 10) / 10 : null,
-      rating_count: ratingRow.c,
+      rating_avg,
+      rating_count,
       completed_operations: opsCount,
       member_since: user.created_at,
     });

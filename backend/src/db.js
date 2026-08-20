@@ -16,17 +16,17 @@ const isNew = !fs.existsSync(DB_PATH);
 const db = new DatabaseSync(DB_PATH);
 db.exec('PRAGMA foreign_keys = ON;');
 
-// Ejecutar migración inicial siempre (usa CREATE TABLE IF NOT EXISTS, es idempotente)
-const migrationSql = fs.readFileSync(path.join(__dirname, 'migrations', '001_init.sql'), 'utf8');
-db.exec(migrationSql);
+// Ejecutar migraciones siempre, en orden (usan CREATE TABLE IF NOT EXISTS, son idempotentes)
+for (const file of ['001_init.sql', '002_geo.sql']) {
+  const migrationSql = fs.readFileSync(path.join(__dirname, 'migrations', file), 'utf8');
+  db.exec(migrationSql);
+}
 
 // Añade columnas nuevas a bases de datos ya existentes (CREATE TABLE IF NOT EXISTS no las
-// crea retroactivamente). Cada ALTER se intenta por separado y se ignora si ya existe.
-for (const stmt of [
-  "ALTER TABLE notifications ADD COLUMN related_type TEXT",
-  "ALTER TABLE notifications ADD COLUMN related_id TEXT",
-]) {
-  try { db.exec(stmt); } catch (e) { if (!/duplicate column/i.test(e.message)) throw e; }
-}
+// crea retroactivamente). Lista compartida con test/helpers/testDb.js — ver migrations/alters.js.
+require('./migrations/alters').applyAlters(db);
+
+// Catálogo de países/ubicaciones (Canarias + provincias de Cuba). Idempotente (INSERT OR IGNORE).
+require('./lib/geo').seedGeo(db);
 
 module.exports = { db, isNew, DB_PATH };

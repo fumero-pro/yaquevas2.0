@@ -1,6 +1,13 @@
 'use strict';
 const { hashPassword, verifyPassword, signToken, newId } = require('../lib/auth');
 const { requireAuth } = require('../middleware/auth');
+const { rateLimiter } = require('../lib/rateLimit');
+const { isIdentityConfigured, createVerificationSession } = require('../lib/identity');
+
+// Mitiga fuerza bruta de credenciales (LAUNCH_CHECKLIST.md): 10 intentos de login o registro
+// por IP cada 5 minutos. No distingue email correcto/incorrecto para no filtrar qué cuentas existen.
+const loginLimiter = rateLimiter({ windowMs: 5 * 60_000, max: 10, keyPrefix: 'login' });
+const registerLimiter = rateLimiter({ windowMs: 5 * 60_000, max: 10, keyPrefix: 'register' });
 
 function publicUser(u) {
   return {
@@ -20,6 +27,9 @@ function publicUser(u) {
 
 function register(router, db) {
   router.post('/api/auth/register', async (req, res, body) => {
+    if (!registerLimiter(req)) {
+      return res.status(429).json({ error: 'Demasiados intentos de registro. Inténtalo de nuevo en unos minutos.' });
+    }
     const { name, surname, email, phone, password, country, accepted_terms } = body;
     if (!name || !surname || !email || !password) {
       return res.status(400).json({ error: 'Faltan campos obligatorios: nombre, apellidos, email, contraseña.' });
@@ -54,6 +64,9 @@ function register(router, db) {
   });
 
   router.post('/api/auth/login', async (req, res, body) => {
+    if (!loginLimiter(req)) {
+      return res.status(429).json({ error: 'Demasiados intentos de acceso. Inténtalo de nuevo en unos minutos.' });
+    }
     const { email, password } = body;
     if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos.' });
     const user = db.prepare('SELECT * FROM users WHERE email = ?').get(String(email).toLowerCase());
@@ -69,6 +82,26 @@ function register(router, db) {
     const user = requireAuth(req, res, db);
     if (!user) return;
     res.json({ user: publicUser(user) });
+  });
+
+  // Verificación de identidad (DNI/pasaporte + biometría). Con STRIPE_SECRET_KEY configurada
+  // crea una sesión real de Stripe Identity (modo test = sin coste) y devuelve la URL alojada
+  // por Stripe donde el usuario sube su documento; el estado se confirma por webhook, nunca
+  // aquí mismo. Sin esa variable, sigue el modo simulado de siempre: verificación instantánea,
+  // etiquetada como demo, tal y como ya hacía el seed de datos de ejemplo.
+  router.post('/api/me/identity/start', async (req, res, body) => {
+    const user = requireAuth(req, res, db);
+    if (!user) return;
+    if (user.identity_verified) return res.json({ ya_verificado: true });
+
+    if (isIdentityConfigured()) {
+      const baseUrl = `${req.headers.origin || ''}`;
+      const { url } = await createVerificationSession(user, { returnUrl: `${baseUrl}/mi-cuenta.html?verificacion=completada` });
+      return res.json({ modo_demo: false, verification_url: url });
+    }
+
+    db.prepare("UPDATE users SET identity_verified = 1, identity_provider_ref = ? WHERE id = ?").run(`DEMO-${newId('kyc')}`, user.id);
+    res.json({ modo_demo: true, ya_verificado: true, aviso: 'Verificación simulada (MODO DEMOSTRACIÓN). Pendiente de conectar proveedor real.' });
   });
 
   router.put('/api/me/notifications', async (req, res, body) => {

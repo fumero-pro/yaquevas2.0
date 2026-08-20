@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="pageTitle">Viaje — YaQueVas</title>
+<meta name="description" content="Un viaje ya planeado en YaQueVas. Si necesitas enviar algo en esta ruta, aprovecha que alguien ya va.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="YaQueVas">
+<meta property="og:title" id="ogTitle" content="Viaje en YaQueVas">
+<meta property="og:description" content="Alguien ya va. Aprovecha para enviar lo que necesites.">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div id="yqv-nav"></div>
+
+<section class="section">
+  <div class="container" style="max-width:640px;">
+    <div id="content">
+      <div class="skeleton skeleton-line w-40"></div>
+      <div class="skeleton skeleton-line w-80"></div>
+      <div class="skeleton skeleton-line w-60"></div>
+    </div>
+  </div>
+</section>
+
+<div id="yqv-footer"></div>
+<script src="/js/api.js"></script>
+<script src="/js/icons.js"></script>
+<script src="/js/nav.js"></script>
+<script>
+const tripId = new URLSearchParams(window.location.search).get('id') || window.location.pathname.split('/').pop();
+const content = document.getElementById('content');
+
+async function load() {
+  try {
+    const { trip } = await YQV.api(`/api/trips/${tripId}`, { auth: false });
+    const routeTitle = `${trip.origin_island} → ${trip.destination_island}`;
+    document.getElementById('pageTitle').textContent = `${routeTitle} — YaQueVas`;
+    document.getElementById('ogTitle').setAttribute('content', `Viaje ${routeTitle} — YaQueVas`);
+
+    let trust = null;
+    try { trust = await YQV.api(`/api/users/${trip.user_id}/trust`, { auth: false }); } catch {}
+
+    content.innerHTML = `
+      <span class="hero-eyebrow" style="color:var(--marine-800);">Viaje publicado en YaQueVas</span>
+      <h1>${routeTitle}</h1>
+      <div class="card-grid cols-2" style="margin-top:8px;">
+        <div class="card">
+          <div class="muted" style="font-size:0.85rem;">Fecha</div>
+          <div style="font-weight:700; font-size:1.1rem;">${YQV.fmtDate(trip.trip_date)}</div>
+        </div>
+        <div class="card">
+          <div class="muted" style="font-size:0.85rem;">Medio de transporte</div>
+          <div style="font-weight:700; font-size:1.1rem;">${YQV.TRANSPORT_LABELS[trip.transport_mode] || trip.transport_mode}</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:18px;">
+        <div class="muted" style="font-size:0.85rem;">Espacio libre</div>
+        <div style="font-weight:700; font-size:1.3rem;">${trip.status_capacidad.remaining_l} L · ${trip.status_capacidad.remaining_kg} kg</div>
+        <p class="muted" style="margin-top:8px; font-size:0.85rem;">${trip.accepts_fragile ? 'Acepta objetos frágiles.' : 'No acepta objetos frágiles.'} ${trip.accepts_detours ? 'Acepta pequeños desvíos.' : ''}</p>
+      </div>
+      ${trust ? `
+        <a href="/perfil.html?id=${trip.user_id}" class="card" style="margin-top:18px; display:flex; align-items:center; justify-content:space-between; text-decoration:none;">
+          <div>
+            <strong>${YQV.escapeHtml(trust.name)}</strong>
+            ${trust.identity_verified ? `<span class="pill ok" style="margin-left:6px;">✓ Verificado</span>` : ''}
+          </div>
+          <div class="muted">${trust.rating_count > 0 ? `★ ${trust.rating_avg} (${trust.rating_count})` : 'Sin valoraciones todavía'} · ${trust.completed_operations} operaciones</div>
+        </a>
+      ` : ''}
+      <div class="row" style="margin-top:24px; gap:12px; flex-wrap:wrap;">
+        <a href="/enviar.html" class="btn btn-primary btn-lg">¿Necesitas enviar algo en esta ruta?</a>
+        <button type="button" class="btn btn-outline" id="shareBtn">${YQVIcons.svg('link', { size: 16 })} Compartir</button>
+      </div>
+      ${trip.status !== 'publicado' ? `<div class="alert alert-info" style="margin-top:16px;">Este viaje ya no está disponible para nuevas solicitudes.</div>` : ''}
+    `;
+    document.getElementById('shareBtn').addEventListener('click', () => {
+      YQV.share({ title: `Viaje ${routeTitle} en YaQueVas`, text: `Alguien ya va: ${routeTitle}. Ya que va, aprovecha para llevar tu envío.` });
+    });
+  } catch (err) {
+    content.innerHTML = `<div class="alert alert-error">No se ha podido cargar este viaje: ${err.message}</div>`;
+  }
+}
+load();
+</script>
+</body>
+</html>

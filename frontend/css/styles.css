@@ -1,38 +1,45 @@
 /* =========================================================
-   YaQueVas — Sistema de diseño
-   Paleta basada en la bandera de Canarias: azul, blanco y
-   amarillo, con bruma costera y ceniza volcánica de fondo.
+   YaQueVas — Sistema de diseño "Tropical maximalista"
+   Atlántico + volcán: azul océano, coral volcánico, amarillo
+   plátano y teal, sobre crema cálido. Formas más redondeadas,
+   tipografía con personalidad — pensado para que una captura
+   de pantalla se reconozca al instante en redes.
    ========================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap');
 
 :root {
-  --marine-900: #0A3D8F;
-  --marine-800: #0D4CAE;
-  --marine-700: #1B63C7;
-  --mist-100: #EDF3F2;
-  --mist-50: #F7FAF9;
-  --ash-600: #4B5B60;
-  --ash-400: #7C8C90;
-  --line: #D7E1DF;
-  --coral: #FFC72C;
-  --coral-dark: #C79400;
-  --teal: #1B998B;
-  --teal-dark: #147A70;
-  --sun: #F5C84C;
-  --danger: #C6432B;
-  --ok: #1B8A5A;
+  --marine-900: #14335A;
+  --marine-800: #1B6FD8;
+  --marine-700: #3D8BEA;
+  --mist-100: #FBEEDA;
+  --mist-50: #FFF6EA;
+  --ash-600: #4B5568;
+  --ash-400: #8A93A8;
+  --line: #EADFCB;
+  --coral: #FF6B4A;
+  --coral-dark: #E2502F;
+  --teal: #1FBFA3;
+  --teal-dark: #148F79;
+  --sun: #FFD23F;
+  --danger: #E14B33;
+  --ok: #1FA66B;
 
-  --font-display: 'Fraunces', Georgia, serif;
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'Baloo 2', 'Nunito', system-ui, sans-serif;
+  --font-body: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 22px;
-  --shadow-1: 0 1px 2px rgba(10,61,143,0.07), 0 1px 1px rgba(10,61,143,0.05);
-  --shadow-2: 0 10px 28px -4px rgba(10,61,143,0.14), 0 2px 8px rgba(10,61,143,0.06);
-  --shadow-3: 0 24px 60px -12px rgba(7,26,51,0.28), 0 4px 14px rgba(10,61,143,0.08);
+  --radius-sm: 10px;
+  --radius-md: 18px;
+  --radius-lg: 30px;
+  --shadow-1: 0 1px 2px rgba(20,51,90,0.08), 0 1px 1px rgba(20,51,90,0.05);
+  --shadow-2: 0 10px 28px -4px rgba(20,51,90,0.16), 0 2px 8px rgba(20,51,90,0.07);
+  --shadow-3: 0 24px 60px -12px rgba(14,35,62,0.3), 0 4px 14px rgba(20,51,90,0.1);
   --container: 1080px;
+
+  /* El sitio está pensado solo para tema claro; sin esto, un sistema en modo oscuro puede
+     pintar controles nativos (selects, date pickers) en oscuro con nuestro texto oscuro
+     encima, dejándolo invisible. */
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -49,14 +56,14 @@ body {
 
 h1, h2, h3, .display {
   font-family: var(--font-display);
-  font-weight: 600;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.01em;
   margin: 0 0 0.4em;
   color: var(--marine-900);
   text-wrap: balance;
 }
-h1 { font-size: clamp(2rem, 5vw + 1rem, 3.4rem); font-weight: 700; letter-spacing: -0.03em; }
+h1 { font-size: clamp(2rem, 5vw + 1rem, 3.4rem); font-weight: 800; letter-spacing: -0.02em; }
 h2 { font-size: clamp(1.5rem, 2.6vw + 1rem, 2.2rem); }
 h3 { font-size: 1.2rem; letter-spacing: -0.01em; }
 p { margin: 0 0 1em; color: var(--ash-600); }
@@ -76,7 +83,7 @@ strong { color: var(--marine-900); }
 .empty-state p { margin: 0 0 12px; color: var(--ash-600); font-size: 0.92rem; }
 
 .skeleton {
-  background: linear-gradient(100deg, var(--mist-100) 30%, #F3F7F6 50%, var(--mist-100) 70%);
+  background: linear-gradient(100deg, var(--mist-100) 30%, #F5E9D6 50%, var(--mist-100) 70%);
   background-size: 200% 100%; animation: skeletonWave 1.5s ease-in-out infinite;
   border-radius: var(--radius-sm);
 }
@@ -97,7 +104,7 @@ strong { color: var(--marine-900); }
 /* ---------- Barra superior ---------- */
 .topbar {
   position: sticky; top: 0; z-index: 40;
-  background: rgba(247,250,249,0.92);
+  background: rgba(255,246,234,0.92);
   backdrop-filter: saturate(160%) blur(8px);
   border-bottom: 1px solid var(--line);
 }
@@ -177,7 +184,7 @@ strong { color: var(--marine-900); }
 .btn:hover { text-decoration: none; transform: translateY(-2px); box-shadow: var(--shadow-2); }
 .btn:active { transform: scale(0.98); }
 .btn-primary { background: var(--coral); color: var(--marine-900); box-shadow: var(--shadow-2); }
-.btn-primary:hover { background: var(--coral-dark); box-shadow: 0 12px 28px rgba(10,61,143,0.18); }
+.btn-primary:hover { background: var(--coral-dark); box-shadow: 0 12px 28px rgba(20,51,90,0.2); }
 .btn-secondary { background: var(--marine-900); color: white; }
 .btn-secondary:hover { background: var(--marine-800); }
 .btn-outline { background: transparent; color: var(--marine-900); border: 1.5px solid var(--marine-900); }
@@ -190,22 +197,22 @@ strong { color: var(--marine-900); }
 
 /* ---------- Hero (inicio) ---------- */
 .hero {
-  background: radial-gradient(1200px 500px at 15% -10%, #1E56B0 0%, var(--marine-900) 55%, #041B4D 100%);
+  background: radial-gradient(1200px 500px at 15% -10%, #2D7FD9 0%, var(--marine-900) 55%, #0A2140 100%);
   color: white; padding: 64px 0 88px; position: relative; overflow: hidden;
 }
 .hero::after {
   content: ''; position: absolute; right: -80px; bottom: -120px; width: 420px; height: 420px;
-  border-radius: 50%; background: radial-gradient(circle, rgba(255,199,44,0.28), transparent 70%);
+  border-radius: 50%; background: radial-gradient(circle, rgba(255,107,74,0.32), transparent 70%);
 }
 .canary-map-section {
-  background: radial-gradient(1200px 400px at 85% 110%, #1E56B0 0%, var(--marine-900) 60%, #041B4D 100%);
+  background: radial-gradient(1200px 400px at 85% 110%, #2D7FD9 0%, var(--marine-900) 60%, #0A2140 100%);
 }
 .map-route {
   stroke: var(--coral); stroke-width: 2; opacity: 0.55; fill: none;
   stroke-dasharray: 6 6; animation: mapFlow 2.4s linear infinite;
 }
 @keyframes mapFlow { to { stroke-dashoffset: -24; } }
-.map-dot { fill: var(--coral); }
+.map-dot { fill: var(--sun); }
 .map-dot-big {
   animation: mapPulse 2.6s ease-in-out infinite;
   transform-box: fill-box; transform-origin: center;
@@ -215,7 +222,7 @@ strong { color: var(--marine-900); }
   50% { transform: scale(1.35); opacity: 0.7; }
 }
 .map-label {
-  fill: #C9DCE2; font-family: Inter, sans-serif; font-size: 12px; text-anchor: middle;
+  fill: #D7E7FA; font-family: 'Nunito', sans-serif; font-size: 12px; text-anchor: middle;
 }
 .map-label-big { fill: white; font-weight: 700; font-size: 13px; }
 @media (prefers-reduced-motion: reduce) {
@@ -226,7 +233,7 @@ strong { color: var(--marine-900); }
   color: var(--sun); font-weight: 700; margin-bottom: 14px;
 }
 .hero h1 { color: white; max-width: 780px; }
-.hero .lead { color: #C9DCE2; font-size: 1.15rem; max-width: 560px; }
+.hero .lead { color: #D7E7FA; font-size: 1.15rem; max-width: 560px; }
 .hero-ctas { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 28px; }
 .hero-ctas .btn { min-width: 240px; }
 
@@ -237,7 +244,7 @@ strong { color: var(--marine-900); }
   padding: 24px; box-shadow: var(--shadow-1);
   transition: transform .3s cubic-bezier(.2,.8,.2,1), box-shadow .3s cubic-bezier(.2,.8,.2,1), border-color .3s ease;
 }
-.card:hover { transform: translateY(-3px); box-shadow: var(--shadow-2); border-color: rgba(10,61,143,0.16); }
+.card:hover { transform: translateY(-3px); box-shadow: var(--shadow-2); border-color: rgba(20,51,90,0.18); }
 .card-grid { display: grid; gap: 18px; }
 @media (min-width: 640px) { .card-grid.cols-3 { grid-template-columns: repeat(3, 1fr); } }
 @media (min-width: 640px) { .card-grid.cols-2 { grid-template-columns: repeat(2, 1fr); } }
@@ -247,7 +254,7 @@ strong { color: var(--marine-900); }
 .pill {
   display: inline-flex; align-items: center; gap: 6px; padding: 5px 13px; border-radius: 999px;
   background: var(--mist-100); color: var(--marine-800); font-size: 0.82rem; font-weight: 600;
-  border: 1px solid rgba(10,61,143,0.06);
+  border: 1px solid rgba(20,51,90,0.08);
 }
 .pill.demo { background: #FFF6DC; color: var(--coral-dark); }
 .pill.ok { background: #E6F5EC; color: var(--ok); }
@@ -260,6 +267,11 @@ label.first { margin-top: 0; }
 input, select, textarea {
   width: 100%; padding: 12px 14px; border-radius: var(--radius-sm); border: 1.5px solid var(--line);
   font-family: var(--font-body); font-size: 0.98rem; background: white; color: var(--marine-900);
+  color-scheme: light; /* evita que el navegador pinte el desplegable nativo en oscuro (modo oscuro del SO) con nuestro texto oscuro encima, invisible */
+}
+select option {
+  background: white;
+  color: var(--marine-900);
 }
 input:focus, select:focus, textarea:focus {
   outline: 2px solid var(--teal); outline-offset: 1px; border-color: var(--teal);
@@ -325,6 +337,15 @@ footer a { color: var(--ash-600); }
   display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px;
   border-radius: 50%; background: var(--marine-900); color: white; font-weight: 700; font-size: 0.9rem; flex: none;
 }
+
+.legal-doc h2 { font-size: 1.25rem; margin-top: 1.6em; }
+.legal-doc h2:first-child { margin-top: 0; }
+.legal-doc h3 { font-size: 1.02rem; margin-top: 1.3em; color: var(--marine-800); }
+.legal-doc p, .legal-doc li { color: var(--ash-600); line-height: 1.65; }
+.legal-doc ul, .legal-doc ol { padding-left: 1.3em; margin: 0 0 1em; }
+.legal-doc li { margin-bottom: 0.4em; }
+.legal-doc strong { color: var(--marine-900); }
+.legal-doc .pending { color: var(--coral-dark); font-weight: 700; }
 
 .badge-demo-banner {
   background: var(--sun); color: var(--marine-900); text-align: center; padding: 8px 16px;

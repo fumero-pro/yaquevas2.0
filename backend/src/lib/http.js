@@ -66,6 +66,22 @@ function readJsonBody(req) {
   });
 }
 
+// Cuerpo SIN parsear, para endpoints que necesitan los bytes exactos (verificación de firma
+// de webhooks de Stripe: constructEvent recalcula el HMAC sobre el body tal cual llegó).
+function readRawBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let size = 0;
+    req.on('data', (chunk) => {
+      size += chunk.length;
+      if (size > 5 * 1024 * 1024) { req.destroy(); reject(new Error('Cuerpo de webhook demasiado grande')); return; }
+      chunks.push(chunk);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+}
+
 function attachHelpers(res) {
   res.status = function (code) {
     res.statusCode = code;
@@ -79,4 +95,4 @@ function attachHelpers(res) {
   return res;
 }
 
-module.exports = { createRouter, readJsonBody, attachHelpers };
+module.exports = { createRouter, readJsonBody, readRawBody, attachHelpers };

@@ -2,6 +2,7 @@
 const { db } = require('./db');
 const { hashPassword, newId } = require('./lib/auth');
 const { setConfigValue } = require('./lib/config');
+const legalDocs = require('./legalDocsContent');
 
 function upsertUser({ name, surname, email, phone, password, role }) {
   const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
@@ -56,17 +57,23 @@ function seed() {
   db.prepare("UPDATE prohibited_items SET category = 'prohibido', note = ? WHERE name = 'Animales vivos' AND category != 'prohibido'")
     .run('No se pueden transportar mascotas a través de YaQueVas: aerolíneas y navieras exigen que sea el propietario quien viaje con el animal y su documentación (cartilla sanitaria, vacuna antirrábica vigente). Si necesitas viajar con tu mascota, contacta directamente con la compañía.');
 
-  // Documentos legales v1 (marcados como borrador inicial, pendientes de revisión legal -> punto 53)
-  const existingLegal = db.prepare("SELECT COUNT(*) c FROM legal_documents WHERE doc_type = 'terminos'").get().c;
-  if (existingLegal === 0) {
-    const docs = [
-      ['terminos', 'v1', 'Condiciones generales de uso de YaQueVas. [PENDIENTE DE VALIDACIÓN LEGAL — borrador inicial generado automáticamente, debe ser revisado por un abogado antes de producción.]'],
-      ['privacidad', 'v1', 'Política de privacidad de YaQueVas conforme a RGPD y LOPDGDD. [PENDIENTE DE VALIDACIÓN LEGAL.]'],
-      ['cookies', 'v1', 'Política de cookies de YaQueVas. [PENDIENTE DE VALIDACIÓN LEGAL.]'],
-      ['aviso_legal', 'v1', 'Aviso legal (LSSI): identificación de la empresa, contacto y condiciones de uso del sitio. [PENDIENTE DE VALIDACIÓN LEGAL.]'],
-      ['condiciones_operativas', 'condiciones-operativas-v1', 'Condiciones bajo las que el viajero acepta transportar un envío. El viajero declara haber revisado contenido, peso, dimensiones, fotografías, valor declarado, fragilidad y observaciones antes de aceptar. [PENDIENTE DE VALIDACIÓN LEGAL.]'],
-    ];
-    for (const [doc_type, version, content] of docs) {
+  // Documentos legales "v1" (borrador legible pendiente de revisión legal, ver
+  // docs/REVISION_LEGAL_PARA_ABOGADO.md). Se mantienen sincronizados con
+  // backend/src/legalDocsContent.js en cada seed: si ya existe una fila "v1" se actualiza su
+  // contenido (útil mientras el borrador sigue en desarrollo); cualquier versión posterior
+  // publicada desde el panel de administración (v2, v3...) nunca se toca aquí.
+  const docs = [
+    ['terminos', 'v1', legalDocs.terminos],
+    ['privacidad', 'v1', legalDocs.privacidad],
+    ['cookies', 'v1', legalDocs.cookies],
+    ['aviso_legal', 'v1', legalDocs.avisoLegal],
+    ['condiciones_operativas', 'condiciones-operativas-v1', legalDocs.condicionesOperativas],
+  ];
+  for (const [doc_type, version, content] of docs) {
+    const existing = db.prepare('SELECT id FROM legal_documents WHERE doc_type = ? AND version = ?').get(doc_type, version);
+    if (existing) {
+      db.prepare('UPDATE legal_documents SET content = ? WHERE id = ?').run(content, existing.id);
+    } else {
       db.prepare('INSERT INTO legal_documents (id, doc_type, version, content, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?)')
         .run(newId('legal'), doc_type, version, content, ownerId, new Date().toISOString());
     }

@@ -12,7 +12,7 @@
   <div class="container" style="max-width:720px;">
     <h1 id="docTitle">Documento legal</h1>
     <div class="alert alert-info">Este documento es un borrador inicial generado automáticamente para la versión de demostración. <strong>Pendiente de validación legal</strong> antes de cualquier uso en producción.</div>
-    <div id="docContent" class="card"><div class="skeleton skeleton-line w-40"></div><div class="skeleton skeleton-line w-80"></div><div class="skeleton skeleton-line w-60"></div></div>
+    <div id="docContent" class="card legal-doc"><div class="skeleton skeleton-line w-40"></div><div class="skeleton skeleton-line w-80"></div><div class="skeleton skeleton-line w-60"></div></div>
   </div>
 </section>
 <div id="yqv-footer"></div>
@@ -25,8 +25,8 @@ const docType = new URLSearchParams(window.location.search).get('doc') || 'termi
 document.getElementById('docTitle').textContent = TITLES[docType] || 'Documento legal';
 YQV.api(`/api/legal/${docType}`, { auth: false }).then(data => {
   document.getElementById('docContent').innerHTML = `
-    <p>${data.document.content}</p>
-    <p class="muted" style="font-size:0.8rem;">Versión ${data.document.version} · publicado ${YQV.fmtDate(data.document.created_at)}</p>
+    ${data.document.content}
+    <p class="muted" style="font-size:0.8rem; margin-top:24px;">Versión ${data.document.version} · publicado ${YQV.fmtDate(data.document.created_at)}</p>
   `;
 }).catch(err => {
   document.getElementById('docContent').innerHTML = `<div class="alert alert-error">${err.message}</div>`;

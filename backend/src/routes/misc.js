@@ -2,8 +2,19 @@
 const { requireAuth } = require('../middleware/auth');
 const { newId } = require('../lib/auth');
 const { getConfig } = require('../lib/config');
+const { listCountries, listSelectableLocations } = require('../lib/geo');
 
 function register(router, db) {
+  // Catálogo geográfico público (países + ubicaciones seleccionables como origen/destino).
+  // Sustituye el array de islas hardcodeado que antes vivía en el frontend (js/api.js).
+  router.get('/api/geo/countries', async (req, res) => {
+    res.json({ countries: listCountries(db) });
+  });
+
+  router.get('/api/geo/locations', async (req, res, body, params, query) => {
+    res.json({ locations: listSelectableLocations(db, query.country_id || null) });
+  });
+
   router.get('/api/notifications', async (req, res) => {
     const user = requireAuth(req, res, db);
     if (!user) return;

@@ -14,7 +14,27 @@ function verifyPassword(password, hash, salt) {
 }
 
 // Tokens de sesión firmados tipo JWT simplificado (HMAC-SHA256), sin librerías externas.
-const SECRET = process.env.SESSION_SECRET || 'DEV_SECRET_CAMBIAR_EN_PRODUCCION';
+// Un SESSION_SECRET fijo y conocido (como tenía este archivo antes) permitiría forjar tokens
+// de cualquier usuario, incluido superadmin. La solución no puede ser "fallar el arranque si
+// falta la variable": en un despliegue real (p.ej. Render) eso tumbaría la web entera hasta
+// que alguien la configure a mano. En vez de eso: si falta, se genera un secreto aleatorio
+// nuevo en cada arranque (nunca predecible) y se avisa alto y claro en los logs. La única
+// pega de este modo intermedio: como el secreto cambia en cada reinicio del proceso, todas
+// las sesiones activas se invalidan cada vez que el servidor se reinicia — pon la variable de
+// verdad en cuanto puedas para que las sesiones sobrevivan a los reinicios.
+function resolveSecret() {
+  if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
+  const generated = crypto.randomBytes(48).toString('hex');
+  if (process.env.NODE_ENV === 'production') {
+    console.warn(
+      '\n⚠️  SESSION_SECRET no está configurado. Usando un secreto aleatorio generado solo ' +
+      'para este arranque (seguro, pero cambia en cada reinicio y invalida todas las ' +
+      'sesiones activas). Configura SESSION_SECRET como variable de entorno cuanto antes.\n'
+    );
+  }
+  return generated;
+}
+const SECRET = resolveSecret();
 
 function signToken(payload, expiresInSeconds = 60 * 60 * 24 * 7) {
   const body = { ...payload, exp: Math.floor(Date.now() / 1000) + expiresInSeconds };

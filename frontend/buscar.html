@@ -42,10 +42,11 @@
 <script src="/js/icons.js"></script>
 <script src="/js/nav.js"></script>
 <script>
-function renderIslandOptions() {
-  for (const sel of [document.getElementById('f_origin'), document.getElementById('f_destination')]) {
-    sel.innerHTML += YQV.ISLANDS.map(i => `<option value="${i}">${i}</option>`).join('');
-  }
+async function renderIslandOptions() {
+  await YQV.populateLocationSelects(
+    [document.getElementById('f_origin'), document.getElementById('f_destination')],
+    { append: true }
+  );
 }
 renderIslandOptions();
 

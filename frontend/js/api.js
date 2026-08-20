@@ -51,7 +51,43 @@ const YQV = (() => {
     return data;
   }
 
+  // Conservado por compatibilidad de código antiguo; los formularios ya no usan este array
+  // fijo, consumen el catálogo real del backend (ver fetchLocationGroups/populateLocationSelects)
+  // para que Cuba (y cualquier país futuro) aparezca sin tocar el frontend.
   const ISLANDS = ['Tenerife', 'Gran Canaria', 'La Palma', 'La Gomera', 'El Hierro', 'Fuerteventura', 'Lanzarote', 'La Graciosa'];
+
+  let _locationGroupsCache = null;
+  async function fetchLocationGroups() {
+    if (_locationGroupsCache) return _locationGroupsCache;
+    const [countriesRes, locationsRes] = await Promise.all([
+      api('/api/geo/countries', { auth: false }),
+      api('/api/geo/locations', { auth: false }),
+    ]);
+    const byCountry = {};
+    for (const loc of locationsRes.locations) {
+      (byCountry[loc.country_id] = byCountry[loc.country_id] || []).push(loc);
+    }
+    _locationGroupsCache = countriesRes.countries
+      .filter((c) => byCountry[c.id] && byCountry[c.id].length)
+      .map((c) => ({ country: c, locations: byCountry[c.id] }));
+    return _locationGroupsCache;
+  }
+
+  function locationOptionsHtml(groups) {
+    return groups.map((g) => `<optgroup label="${escapeHtml(g.country.name)}">${
+      g.locations.map((l) => `<option value="${escapeHtml(l.name)}">${escapeHtml(l.name)}</option>`).join('')
+    }</optgroup>`).join('');
+  }
+
+  // Rellena uno o varios <select> con el catálogo real (islas de Canarias + provincias de
+  // Cuba, agrupadas por país). append=true conserva las <option> ya presentes en el HTML
+  // (p.ej. un "Todas" inicial en los filtros de búsqueda).
+  async function populateLocationSelects(selects, { append = false } = {}) {
+    const groups = await fetchLocationGroups();
+    const html = locationOptionsHtml(groups);
+    selects.forEach((sel) => { sel.innerHTML = append ? sel.innerHTML + html : html; });
+    return groups;
+  }
   const TRANSPORT_LABELS = {
     get avion() { return `${YQVIcons.svg('plane', { size: 15 })} Avión`; },
     get barco() { return `${YQVIcons.svg('ship', { size: 15 })} Barco`; },
@@ -111,7 +147,7 @@ const YQV = (() => {
       box.style.cssText = 'position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:8px;align-items:center;';
       document.body.appendChild(box);
     }
-    const colors = { info: '#0D4CAE', error: '#C6432B', ok: '#1B8A5A' };
+    const colors = { info: '#1B6FD8', error: '#E14B33', ok: '#1FA66B' };
     const item = document.createElement('div');
     item.textContent = msg;
     item.style.cssText = `background:${colors[type] || colors.info};color:white;padding:12px 18px;border-radius:10px;font-family:Inter,sans-serif;font-size:0.9rem;box-shadow:0 6px 18px rgba(0,0,0,0.2);max-width:90vw;`;
@@ -143,6 +179,6 @@ const YQV = (() => {
   return {
     api, getToken, getUser, setSession, clearSession, isLoggedIn, isAdmin,
     ISLANDS, TRANSPORT_LABELS, STATUS_LABELS, fmtEur, fmtDate, fmtDateTime, el, toast, share, escapeHtml,
-    requireLoginOrRedirect,
+    requireLoginOrRedirect, fetchLocationGroups, locationOptionsHtml, populateLocationSelects,
   };
 })();

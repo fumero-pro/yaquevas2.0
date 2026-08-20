@@ -2,7 +2,10 @@
 const { requireAuth } = require('../middleware/auth');
 const { newId } = require('../lib/auth');
 const { capacityStatus } = require('../lib/tetris');
+const { resolveLocation } = require('../lib/geo');
 
+// Mantenido por compatibilidad (algún admin/export histórico puede referenciarlo), pero ya no
+// es la fuente de verdad de la validación: ver backend/src/lib/geo.js y la tabla `locations`.
 const ISLANDS = ['Tenerife', 'Gran Canaria', 'La Palma', 'La Gomera', 'El Hierro', 'Fuerteventura', 'Lanzarote', 'La Graciosa'];
 const TRANSPORT_MODES = ['avion', 'barco', 'coche'];
 
@@ -13,8 +16,10 @@ function serializeTrip(t) {
     id: t.id,
     user_id: t.user_id,
     origin_island: t.origin_island,
+    origin_location_id: t.origin_location_id || null,
     origin_place: t.origin_place,
     destination_island: t.destination_island,
+    destination_location_id: t.destination_location_id || null,
     destination_place: t.destination_place,
     trip_date: t.trip_date,
     departure_time: t.departure_time,
@@ -44,8 +49,12 @@ function register(router, db) {
     if (!origin_island || !destination_island || !trip_date || !transport_mode) {
       return res.status(400).json({ error: 'Faltan campos obligatorios del viaje (origen, destino, fecha, medio de transporte).' });
     }
-    if (!ISLANDS.includes(origin_island) || !ISLANDS.includes(destination_island)) {
-      return res.status(400).json({ error: 'Isla no reconocida.' });
+    // Acepta el id de ubicación nuevo (loc_xxx) o, por compatibilidad con el frontend actual,
+    // el nombre exacto de una ubicación seleccionable (isla canaria o provincia cubana).
+    const originLoc = resolveLocation(db, origin_island);
+    const destinationLoc = resolveLocation(db, destination_island);
+    if (!originLoc || !destinationLoc) {
+      return res.status(400).json({ error: 'Origen o destino no reconocido.' });
     }
     if (!TRANSPORT_MODES.includes(transport_mode)) {
       return res.status(400).json({ error: 'Medio de transporte no válido (avion, barco o coche).' });
@@ -61,12 +70,14 @@ function register(router, db) {
     const id = newId('trip');
     const now = new Date().toISOString();
     db.prepare(
-      `INSERT INTO trips (id, user_id, origin_island, origin_place, destination_island, destination_place,
+      `INSERT INTO trips (id, user_id, origin_island, origin_location_id, origin_place,
+        destination_island, destination_location_id, destination_place,
         trip_date, departure_time, arrival_time, transport_mode, capacity_json, used_json,
         accepts_fragile, accepts_detours, notes, status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'publicado', ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'publicado', ?)`
     ).run(
-      id, user.id, origin_island, origin_place || '', destination_island, destination_place || '',
+      id, user.id, originLoc.name, originLoc.id, origin_place || '',
+      destinationLoc.name, destinationLoc.id, destination_place || '',
       trip_date, departure_time || null, arrival_time || null, transport_mode,
       JSON.stringify(cap), JSON.stringify({ maletas_grandes: 0, maletas_pequenas: 0, sobres: 0, cajas_medianas: 0, kg: 0 }),
       accepts_fragile === false ? 0 : 1, accepts_detours ? 1 : 0, notes || '', now
@@ -109,3 +120,5 @@ function register(router, db) {
 }
 
 module.exports = { register, serializeTrip, ISLANDS, TRANSPORT_MODES };
+// (ISLANDS se conserva por compatibilidad de import en otros módulos; la validación real
+// de origen/destino vive en backend/src/lib/geo.js desde la migración 002_geo.sql)

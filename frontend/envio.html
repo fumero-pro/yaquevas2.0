@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="pageTitle">Envío — YaQueVas</title>
+<meta name="description" content="Un envío que busca viajero en YaQueVas. Si vas a esta ruta, puedes ganar llevándolo.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="YaQueVas">
+<meta property="og:title" id="ogTitle" content="Envío en YaQueVas">
+<meta property="og:description" content="Alguien necesita enviar esto. Si ya vas, gana llevándolo.">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div id="yqv-nav"></div>
+
+<section class="section">
+  <div class="container" style="max-width:640px;">
+    <div id="content">
+      <div class="skeleton skeleton-line w-40"></div>
+      <div class="skeleton skeleton-line w-80"></div>
+      <div class="skeleton skeleton-line w-60"></div>
+    </div>
+  </div>
+</section>
+
+<div id="yqv-footer"></div>
+<script src="/js/api.js"></script>
+<script src="/js/icons.js"></script>
+<script src="/js/nav.js"></script>
+<script>
+const shipId = new URLSearchParams(window.location.search).get('id') || window.location.pathname.split('/').pop();
+const content = document.getElementById('content');
+const ITEM_LABELS = { sobre: 'Sobre', maleta_pequena: 'Maleta pequeña', maleta_grande: 'Maleta grande', caja_mediana: 'Caja mediana' };
+
+async function load() {
+  try {
+    const { shipment } = await YQV.api(`/api/shipments/${shipId}`, { auth: false });
+    const routeTitle = `${shipment.origin_island} → ${shipment.destination_island}`;
+    document.getElementById('pageTitle').textContent = `Envío ${routeTitle} — YaQueVas`;
+    document.getElementById('ogTitle').setAttribute('content', `Envío ${routeTitle} — YaQueVas`);
+
+    let trust = null;
+    try { trust = await YQV.api(`/api/users/${shipment.sender_id}/trust`, { auth: false }); } catch {}
+
+    content.innerHTML = `
+      <span class="hero-eyebrow" style="color:var(--marine-800);">Envío buscando viajero</span>
+      <h1>${routeTitle}</h1>
+      <div class="card-grid cols-2" style="margin-top:8px;">
+        <div class="card">
+          <div class="muted" style="font-size:0.85rem;">Fecha deseada</div>
+          <div style="font-weight:700; font-size:1.1rem;">${YQV.fmtDate(shipment.desired_date)}</div>
+        </div>
+        <div class="card">
+          <div class="muted" style="font-size:0.85rem;">Peso</div>
+          <div style="font-weight:700; font-size:1.1rem;">${shipment.weight_kg} kg ${shipment.fragile ? '· Frágil' : ''}</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:18px;">
+        <div class="muted" style="font-size:0.85rem;">Contenido</div>
+        <div class="stack" style="margin-top:8px;">
+          ${shipment.items.map(i => `<div>${YQV.escapeHtml(ITEM_LABELS[i.item_type] || i.item_type)} — ${YQV.escapeHtml(i.description || 'sin descripción')}</div>`).join('')}
+        </div>
+      </div>
+      ${trust ? `
+        <a href="/perfil.html?id=${shipment.sender_id}" class="card" style="margin-top:18px; display:flex; align-items:center; justify-content:space-between; text-decoration:none;">
+          <div>
+            <strong>${YQV.escapeHtml(trust.name)}</strong>
+            ${trust.identity_verified ? `<span class="pill ok" style="margin-left:6px;">✓ Verificado</span>` : ''}
+          </div>
+          <div class="muted">${trust.rating_count > 0 ? `★ ${trust.rating_avg} (${trust.rating_count})` : 'Sin valoraciones todavía'} · ${trust.completed_operations} operaciones</div>
+        </a>
+      ` : ''}
+      <div class="row" style="margin-top:24px; gap:12px; flex-wrap:wrap;">
+        <a href="/ya-voy.html" class="btn btn-primary btn-lg">¿Vas a esta ruta? Puedes ganar</a>
+        <button type="button" class="btn btn-outline" id="shareBtn">${YQVIcons.svg('link', { size: 16 })} Compartir</button>
+      </div>
+      ${shipment.status !== 'publicado' ? `<div class="alert alert-info" style="margin-top:16px;">Este envío ya no está disponible para nuevas solicitudes.</div>` : ''}
+    `;
+    document.getElementById('shareBtn').addEventListener('click', () => {
+      YQV.share({ title: `Envío ${routeTitle} en YaQueVas`, text: `Necesito enviar algo: ${routeTitle}. Si ya vas, puedes ganar llevándolo.` });
+    });
+  } catch (err) {
+    content.innerHTML = `<div class="alert alert-error">No se ha podido cargar este envío: ${err.message}</div>`;
+  }
+}
+load();
+</script>
+</body>
+</html>

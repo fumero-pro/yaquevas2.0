@@ -39,3 +39,18 @@ Verificación KYC real, pagos reales, apps nativas: se añaden cuando aporten va
 
 ## 12. Todo lo simulado se etiqueta como tal
 Ningún dato, pago o verificación falsa se presenta como real. La confianza a largo plazo vale más que una conversión puntual.
+
+## 13. Cuba funciona como cualquier otro destino
+Ninguna regla de negocio, validación ni pantalla debe asumir "isla canaria" como única unidad geográfica posible. Si añadir un país o una provincia exige tocar lógica en varios archivos en vez de añadir filas a una tabla, el modelo de datos está mal.
+
+## 14. Verificar una vez, no volver a pedir
+La identidad se verifica una sola vez y se reutiliza. Nunca se piden documentos sensibles por chat, ni siquiera en una disputa — es el error más citado de Grabr (ver `BENCHMARK_COMPETENCIA.md`).
+
+## 15. Sin subasta: reserva directa a precio transparente
+El trayecto del viajero ya existe; el remitente no negocia una oferta, reserva a una tarifa visible desde el principio. La comisión se muestra desglosada siempre, nunca como sorpresa al pagar.
+
+## 16. Cada pantalla relevante puede convertirse en marketing
+Una oportunidad, un viaje, un ahorro o un destino deben poder compartirse tal cual, sin rediseñar nada para publicarlo.
+
+## 17. La repetición es el objetivo, no la operación suelta
+El producto se diseña para que volver a mirar YaQueVas (antes de viajar, antes de enviar) sea el hábito, no una operación aislada. Ninguna mecánica de fidelización debe generar ansiedad — con red de seguridad ante imprevistos reales (viaje cancelado, retraso), no penalización ciega.
