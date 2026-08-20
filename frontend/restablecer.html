@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elegir nueva contraseña — YaQueVas</title>
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div id="yqv-nav"></div>
+
+<section class="section" style="max-width:440px; margin:0 auto;">
+  <div class="container">
+    <h1>Elige tu nueva contraseña</h1>
+    <div class="card">
+      <div id="resultBox"></div>
+      <form id="resetForm">
+        <label class="first" for="password">Contraseña nueva</label>
+        <input id="password" type="password" required minlength="8" autocomplete="new-password">
+        <p class="field-hint">Mínimo 8 caracteres.</p>
+        <button class="btn btn-primary btn-block" style="margin-top:18px;" type="submit">Guardar contraseña</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<div id="yqv-footer"></div>
+<script src="/js/api.js"></script>
+<script src="/js/icons.js"></script>
+<script src="/js/nav.js"></script>
+<script>
+const token = new URLSearchParams(window.location.search).get('token');
+const form = document.getElementById('resetForm');
+const resultBox = document.getElementById('resultBox');
+if (!token) {
+  resultBox.innerHTML = '<div class="alert alert-error">Este enlace no es válido. Pide uno nuevo desde <a href="/recuperar.html">recuperar contraseña</a>.</div>';
+  form.style.display = 'none';
+}
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = e.target.querySelector('button');
+  btn.disabled = true;
+  try {
+    const data = await YQV.api('/api/auth/reset-password', { method: 'POST', body: { token, password: document.getElementById('password').value }, auth: false });
+    resultBox.innerHTML = `<div class="alert alert-ok">${data.mensaje}</div>`;
+    form.style.display = 'none';
+    setTimeout(() => { window.location.href = '/login.html'; }, 2000);
+  } catch (err) {
+    resultBox.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

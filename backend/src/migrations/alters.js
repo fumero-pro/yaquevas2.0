@@ -33,6 +33,17 @@ const ALTERS = [
     created_at TEXT NOT NULL,
     UNIQUE(referred_id)
   )`,
+  // Recuperación de contraseña (ver docs — bloqueador real de soporte identificado en la
+  // auditoría nocturna: no existía ningún flujo de "olvidé mi contraseña"). token_hash guarda
+  // solo el hash SHA-256, nunca el token real (ver lib/passwordReset.js).
+  `CREATE TABLE IF NOT EXISTS password_resets (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id),
+    token_hash TEXT NOT NULL UNIQUE,
+    expires_at TEXT NOT NULL,
+    used INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+  )`,
 ];
 
 function applyAlters(db) {

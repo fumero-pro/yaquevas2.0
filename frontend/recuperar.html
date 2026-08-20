@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recuperar contraseña — YaQueVas</title>
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div id="yqv-nav"></div>
+
+<section class="section" style="max-width:440px; margin:0 auto;">
+  <div class="container">
+    <h1>Recuperar contraseña</h1>
+    <div class="card">
+      <div id="resultBox"></div>
+      <form id="recoverForm">
+        <label class="first" for="email">Email de tu cuenta</label>
+        <input id="email" type="email" required autocomplete="email">
+        <button class="btn btn-primary btn-block" style="margin-top:18px;" type="submit">Enviar enlace</button>
+      </form>
+    </div>
+    <p class="center" style="margin-top:16px;"><a href="/login.html">Volver a acceder</a></p>
+  </div>
+</section>
+
+<div id="yqv-footer"></div>
+<script src="/js/api.js"></script>
+<script src="/js/icons.js"></script>
+<script src="/js/nav.js"></script>
+<script>
+document.getElementById('recoverForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const resultBox = document.getElementById('resultBox');
+  const email = document.getElementById('email').value.trim();
+  const btn = e.target.querySelector('button');
+  btn.disabled = true;
+  try {
+    const data = await YQV.api('/api/auth/forgot-password', { method: 'POST', body: { email }, auth: false });
+    resultBox.innerHTML = `<div class="alert alert-ok">${data.mensaje}</div>`;
+    e.target.style.display = 'none';
+  } catch (err) {
+    resultBox.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

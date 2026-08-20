@@ -54,9 +54,9 @@ en que llegan emails reales a usuarios de verdad.
 
 ## Lo que falta (no cubierto todavía)
 
-Solo se envía el email de bienvenida al registrarse. Pendiente, por prioridad, si se quiere
-ampliar: email cuando se acepta/paga/entrega una operación (ya existen como notificación interna
-en `notify()`, solo falta enviarlas también por email si `notif_prefs.email` del usuario está
-activo), verificación de email con enlace de confirmación (`users.email_verified` existe en la
-base de datos pero no se usa activamente todavía), y email de recuperación de contraseña (no
-existe flujo de "olvidé mi contraseña" en absoluto, ni frontend ni backend).
+Se envían dos emails reales: bienvenida al registrarse, y recuperación de contraseña
+(`/recuperar.html` → `/restablecer.html`, ya implementado y probado). Pendiente, por prioridad, si
+se quiere ampliar: email cuando se acepta/paga/entrega una operación (ya existen como notificación
+interna en `notify()`, solo falta enviarlas también por email si `notif_prefs.email` del usuario
+está activo), y verificación de email con enlace de confirmación (`users.email_verified` existe en
+la base de datos pero no se usa activamente todavía).

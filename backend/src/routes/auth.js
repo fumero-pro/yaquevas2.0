@@ -6,6 +6,7 @@ const { isIdentityConfigured, createVerificationSession } = require('../lib/iden
 const { generateReferralCode, resolveReferrer } = require('../lib/referral');
 const { getConfigValue } = require('../lib/config');
 const { sendEmail, welcomeEmailHtml } = require('../lib/email');
+const { createResetToken, findValidResetToken, consumeResetToken } = require('../lib/passwordReset');
 
 // Mitiga fuerza bruta de credenciales (LAUNCH_CHECKLIST.md): 10 intentos de login o registro
 // por IP cada 5 minutos. No distingue email correcto/incorrecto para no filtrar qué cuentas existen.
@@ -15,6 +16,7 @@ const registerLimiter = rateLimiter({ windowMs: 5 * 60_000, max: 10, keyPrefix: 
 // generar sesiones en bucle. 5 cada 10 min es de sobra para un uso legítimo (se corta en cuanto
 // identity_verified pasa a 1, así que esto solo protege el rato antes de verificarse).
 const identityLimiter = rateLimiter({ windowMs: 10 * 60_000, max: 5, keyPrefix: 'identity' });
+const forgotPasswordLimiter = rateLimiter({ windowMs: 15 * 60_000, max: 5, keyPrefix: 'forgot_password' });
 
 function publicUser(u) {
   return {
@@ -131,6 +133,53 @@ function register(router, db) {
         recompensa_eur: r.amount_eur || null,
       })),
     });
+  });
+
+  // Recuperación de contraseña. Respuesta genérica siempre (exista o no la cuenta) para no
+  // filtrar qué emails están registrados — mismo criterio que login/register.
+  router.post('/api/auth/forgot-password', async (req, res, body) => {
+    if (!forgotPasswordLimiter(req)) {
+      return res.status(429).json({ error: 'Demasiados intentos. Inténtalo de nuevo en unos minutos.' });
+    }
+    const { email } = body;
+    const generic = { ok: true, mensaje: 'Si existe una cuenta con ese email, hemos enviado un enlace para restablecer la contraseña.' };
+    if (!email) return res.status(400).json({ error: 'Email requerido.' });
+
+    const user = db.prepare('SELECT * FROM users WHERE email = ? AND active = 1').get(String(email).toLowerCase());
+    if (!user) return res.json(generic); // misma respuesta exista o no, a propósito
+
+    const rawToken = createResetToken(db, user.id);
+    const resetUrl = `${process.env.PUBLIC_APP_URL || req.headers.origin || ''}/restablecer.html?token=${rawToken}`;
+    sendEmail({
+      to: user.email,
+      subject: 'Restablece tu contraseña de YaQueVas',
+      html: `
+        <div style="font-family:sans-serif; max-width:480px; margin:0 auto; color:#14181F;">
+          <h1 style="color:#0B5FFF;">Restablece tu contraseña</h1>
+          <p>Hola ${user.name},</p>
+          <p>Pulsa el botón de abajo para elegir una contraseña nueva. El enlace caduca en 1 hora
+          y solo se puede usar una vez.</p>
+          <p style="margin-top:24px;"><a href="${resetUrl}" style="background:#FF6B4A;color:#14181F;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:700;">Elegir nueva contraseña</a></p>
+          <p style="margin-top:24px; color:#5B6472; font-size:0.85rem;">Si no has pedido esto, ignora este email — tu contraseña actual sigue funcionando igual.</p>
+        </div>
+      `,
+    }).catch((err) => console.error('No se pudo enviar el email de recuperación:', err.message));
+
+    res.json(generic);
+  });
+
+  router.post('/api/auth/reset-password', async (req, res, body) => {
+    const { token, password } = body;
+    if (!token || !password) return res.status(400).json({ error: 'Faltan datos.' });
+    if (password.length < 8) return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });
+
+    const reset = findValidResetToken(db, token);
+    if (!reset) return res.status(400).json({ error: 'Este enlace no es válido o ha caducado. Pide uno nuevo.' });
+
+    const { hash, salt } = hashPassword(password);
+    db.prepare('UPDATE users SET password_hash = ?, password_salt = ? WHERE id = ?').run(hash, salt, reset.user_id);
+    consumeResetToken(db, reset.id);
+    res.json({ ok: true, mensaje: 'Contraseña actualizada. Ya puedes iniciar sesión con la nueva.' });
   });
 
   // Verificación de identidad (DNI/pasaporte + biometría). Con STRIPE_SECRET_KEY configurada
