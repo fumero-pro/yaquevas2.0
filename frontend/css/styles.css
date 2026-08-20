@@ -425,14 +425,20 @@ footer a { color: var(--ash-600); }
 .photo-feature-text h2 { margin-bottom: 0.5em; }
 
 .photo-duo { display: grid; gap: 16px; margin-top: 28px; }
-@media (min-width: 640px) { .photo-duo { grid-template-columns: 1fr 1.3fr; } }
-.photo-duo img {
-  /* Altura fija e IGUAL en las dos fotos (no solo min-height): con alturas distintas, dos fotos
-     de proporciones diferentes apiladas en móvil quedan descuadradas y se ve poco cuidado. */
-  width: 100%; height: 240px; object-fit: cover;
-  border-radius: var(--radius-lg); box-shadow: var(--shadow-3); display: block;
+@media (min-width: 640px) { .photo-duo { grid-template-columns: 1fr 1fr; } }
+.photo-duo-item {
+  /* Mismo tamaño exacto en las dos fotos (ancho Y alto) — antes las columnas eran 1fr/1.3fr y
+     una salía más grande que la otra. El borde de la foto se difumina hacia este contenedor
+     (blanco), así no se siente "pegada" encima de la página, se funde un poco con el fondo. */
+  width: 100%; height: 240px; border-radius: var(--radius-lg); box-shadow: var(--shadow-3);
+  overflow: hidden; background: var(--mist-50);
 }
-@media (min-width: 640px) { .photo-duo img { height: 300px; } }
+@media (min-width: 640px) { .photo-duo-item { height: 300px; } }
+.photo-duo-item img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  -webkit-mask-image: radial-gradient(ellipse at center, black 68%, transparent 100%);
+  mask-image: radial-gradient(ellipse at center, black 68%, transparent 100%);
+}
 
 /* Carrusel de fotos de las 8 islas (rota sola, ver frontend/js/islandGallery.js) */
 .island-gallery {
