@@ -425,6 +425,11 @@ footer a { color: var(--ash-600); }
 }
 @media (min-width: 860px) { .photo-feature-media img { height: 360px; } }
 .photo-feature-text h2 { margin-bottom: 0.5em; }
+.feature-kicker {
+  display: flex; align-items: center; gap: 7px; color: var(--coral-dark);
+  font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
 
 .photo-duo { display: grid; gap: 16px; margin-top: 28px; }
 @media (min-width: 640px) { .photo-duo { grid-template-columns: 1fr 1fr; } }
