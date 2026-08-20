@@ -427,9 +427,12 @@ footer a { color: var(--ash-600); }
 .photo-duo { display: grid; gap: 16px; margin-top: 28px; }
 @media (min-width: 640px) { .photo-duo { grid-template-columns: 1fr 1.3fr; } }
 .photo-duo img {
-  width: 100%; height: 100%; min-height: 220px; object-fit: cover;
+  /* Altura fija e IGUAL en las dos fotos (no solo min-height): con alturas distintas, dos fotos
+     de proporciones diferentes apiladas en móvil quedan descuadradas y se ve poco cuidado. */
+  width: 100%; height: 240px; object-fit: cover;
   border-radius: var(--radius-lg); box-shadow: var(--shadow-3); display: block;
 }
+@media (min-width: 640px) { .photo-duo img { height: 300px; } }
 
 /* Carrusel de fotos de las 8 islas (rota sola, ver frontend/js/islandGallery.js) */
 .island-gallery {
