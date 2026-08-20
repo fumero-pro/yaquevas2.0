@@ -1,0 +1,19 @@
+[
+  { "isla": "Tenerife", "file": "tenerife-1.jpg", "alt": "Vista aérea de la Playa de Las Teresitas en Tenerife, arena dorada junto al mar con montañas al fondo" },
+  { "isla": "Tenerife", "file": "tenerife-2.jpg", "alt": "Paisaje volcánico árido del Teide en Tenerife bajo un cielo azul despejado" },
+  { "isla": "Tenerife", "file": "tenerife-3.jpg", "alt": "El Teide nevado asomando entre las nubes, visto desde el aire" },
+  { "isla": "Gran Canaria", "file": "gran-canaria-1.jpg", "alt": "Vista aérea de la Playa de Amadores, de arena dorada y aguas turquesas, en Gran Canaria" },
+  { "isla": "Gran Canaria", "file": "gran-canaria-2.jpg", "alt": "Roque Nublo, el icónico monolito volcánico de Gran Canaria, con el Teide asomando al fondo" },
+  { "isla": "Lanzarote", "file": "lanzarote-1.jpg", "alt": "Vista aérea de la Playa de Papagayo en Lanzarote, aguas cristalinas y acantilados escarpados" },
+  { "isla": "Lanzarote", "file": "lanzarote-2.jpg", "alt": "Terreno volcánico yermo del Parque Nacional de Timanfaya en Lanzarote bajo un cielo azul intenso" },
+  { "isla": "Fuerteventura", "file": "fuerteventura-1.jpg", "alt": "Vista aérea de la playa y el mar turquesa de El Cotillo, en Fuerteventura" },
+  { "isla": "Fuerteventura", "file": "fuerteventura-2.jpg", "alt": "Paisaje desértico de Montaña Roja junto al océano Atlántico en Fuerteventura" },
+  { "isla": "La Palma", "file": "la-palma-1.jpg", "alt": "Piscinas naturales y costa rocosa volcánica de La Palma" },
+  { "isla": "La Palma", "file": "la-palma-2.jpg", "alt": "Cráter volcánico en La Palma rodeado de un frondoso bosque" },
+  { "isla": "La Gomera", "file": "la-gomera-1.jpg", "alt": "Playa de arena negra volcánica en Valle Gran Rey, La Gomera, en un día de verano" },
+  { "isla": "La Gomera", "file": "la-gomera-2.jpg", "alt": "Bosque de laurisilva en el Parque Nacional de Garajonay, La Gomera" },
+  { "isla": "El Hierro", "file": "el-hierro-1.jpg", "alt": "Faro de Punta Orchilla en El Hierro, sobre acantilados de fondo volcánico" },
+  { "isla": "El Hierro", "file": "el-hierro-2.jpg", "alt": "Terreno volcánico rocoso característico de las Islas Canarias bajo un cielo despejado (imagen representativa; Pexels no dispone de fotografías de paisaje verificadas específicamente de El Hierro)" },
+  { "isla": "La Graciosa", "file": "la-graciosa-1.jpg", "alt": "Vista aérea de la costa volcánica de La Graciosa donde el terreno árido se encuentra con el mar" },
+  { "isla": "La Graciosa", "file": "la-graciosa-2.jpg", "alt": "Vista aérea del paisaje volcánico del interior de la isla de La Graciosa" }
+]

@@ -5,7 +5,7 @@
   // usuario tras probar una alternativa — ver memoria del proyecto, no volver a cambiarlo
   // sin que lo pida explícitamente de nuevo).
   const ISLANDS_MARK = '<circle cx="50" cy="50" r="50" fill="{{BLUE}}"/><polyline points="26,69 28,46 34,60 46,50 55,60 66,50 71,31 70,23" stroke="{{YELLOW}}" stroke-width="1.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="26" cy="69" r="5.3" fill="{{YELLOW}}" stroke="{{BLUE}}" stroke-width="1"/><circle cx="28" cy="46" r="5.6" fill="{{YELLOW}}" stroke="{{BLUE}}" stroke-width="1"/><circle cx="34" cy="60" r="5.3" fill="{{YELLOW}}" stroke="{{BLUE}}" stroke-width="1"/><circle cx="46" cy="50" r="7.4" fill="{{YELLOW}}" stroke="{{BLUE}}" stroke-width="1"/><circle cx="55" cy="60" r="6.7" fill="{{YELLOW}}" stroke="{{BLUE}}" stroke-width="1"/><circle cx="66" cy="50" r="6" fill="{{YELLOW}}" stroke="{{BLUE}}" stroke-width="1"/><circle cx="71" cy="31" r="5.3" fill="{{YELLOW}}" stroke="{{BLUE}}" stroke-width="1"/><circle cx="70" cy="23" r="3.9" fill="{{YELLOW}}" stroke="{{BLUE}}" stroke-width="0.8"/>';
-  const LOGO_SVG = '<svg width="30" height="30" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' + ISLANDS_MARK.replace(/\{\{BLUE\}\}/g, '#0A3D8F').replace(/\{\{YELLOW\}\}/g, '#FFC72C') + '</svg>';
+  const LOGO_SVG = '<span class="logo-mark"><svg width="30" height="30" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' + ISLANDS_MARK.replace(/\{\{BLUE\}\}/g, '#0A3D8F').replace(/\{\{YELLOW\}\}/g, '#FFC72C') + '</svg></span>';
 
   function injectFavicon() {
     if (document.getElementById('yqv-favicon')) return;
@@ -128,7 +128,7 @@
         <div class="container footer-grid">
           <div>
             <div class="logo" style="margin-bottom:10px;">${LOGO_SVG}Ya<span class="dot">Que</span>Vas</div>
-            <p>Si ya vas, puedes llevarlo. YaQueVas conecta viajes que ya se iban a hacer con envíos legales entre las Islas Canarias, con una compensación justa para quien viaja.</p>
+            <p>Ya que vas, gana. Ya que alguien va, ahorra. YaQueVas conecta viajes que ya se iban a hacer con envíos legales entre las Islas Canarias, con una compensación justa para quien viaja.</p>
             <p class="muted">YaQueVas no es una empresa de transporte ni de paquetería: facilita la conexión, el pago y la entrega entre particulares que ya viajaban.</p>
           </div>
           <div>
@@ -154,7 +154,7 @@
 
   function initScrollReveal() {
     if (!('IntersectionObserver' in window)) return; // sin soporte: el contenido ya es visible por defecto, no se pierde nada
-    const targets = document.querySelectorAll('.card');
+    const targets = document.querySelectorAll('.card, .section > .container > h2, .photo-feature');
     if (!targets.length) return;
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
@@ -170,9 +170,40 @@
     });
   }
 
+  // Cifras grandes (home: +30%, 12%, 8 islas...) cuentan desde 0 al entrar en pantalla, en vez
+  // de aparecer estáticas — patrón "stat card" que confirma la investigación de Sherpa/Apple.
+  function initCountUp() {
+    const targets = document.querySelectorAll('[data-count-to]');
+    if (!targets.length) return;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const setFinal = (el) => { el.textContent = (el.dataset.prefix || '') + el.dataset.countTo + (el.dataset.suffix || ''); };
+    if (reduceMotion || !('IntersectionObserver' in window)) { targets.forEach(setFinal); return; }
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const el = entry.target;
+        observer.unobserve(el);
+        const to = parseFloat(el.dataset.countTo);
+        const prefix = el.dataset.prefix || '';
+        const suffix = el.dataset.suffix || '';
+        const duration = 900;
+        const start = performance.now();
+        function tick(now) {
+          const p = Math.min(1, (now - start) / duration);
+          const eased = 1 - Math.pow(1 - p, 3);
+          el.textContent = prefix + Math.round(to * eased) + suffix;
+          if (p < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      });
+    }, { threshold: 0.5 });
+    targets.forEach((el) => observer.observe(el));
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     renderNav();
     renderFooter();
     initScrollReveal();
+    initCountUp();
   });
 })();

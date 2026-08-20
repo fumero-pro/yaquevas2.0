@@ -22,17 +22,17 @@
   <div class="container">
     <span class="hero-eyebrow">Islas Canarias · crowdshipping entre personas</span>
     <h1>Ya que vas,<br>gana.</h1>
-    <p class="lead">El viajero gana por aprovechar un trayecto que ya tenía. El remitente ahorra por no tener que hacerlo él. <a href="/como-funciona.html" style="color:white; text-decoration:underline;">¿Cómo funciona?</a></p>
-    <p style="font-family:var(--font-display); font-style:italic; font-size:1.1rem; color:var(--sun); margin-top:-8px;">Ya que alguien va, ahorra tú.</p>
+    <p class="lead">El viajero gana por aprovechar un trayecto que ya tenía. El remitente ahorra por no tener que hacerlo él. <a href="/como-funciona.html" class="link-on-dark">¿Cómo funciona?</a></p>
+    <p class="hero-sublead">Ya que alguien va, ahorra tú.</p>
     <div class="hero-ctas">
       <a href="/ya-voy.html" class="btn btn-primary btn-lg">YA QUE VOY — GANA</a>
-      <a href="/enviar.html" class="btn btn-lg" style="background:white;color:var(--marine-900);">YA QUE NECESITO — AHORRA</a>
+      <a href="/enviar.html" class="btn btn-lg btn-on-dark">YA QUE NECESITO — AHORRA</a>
     </div>
-    <button type="button" id="downloadAppBtn" class="btn btn-outline" style="margin-top:18px; border-color:rgba(255,255,255,0.5); color:white;"><span data-yqv-icon="phone" data-yqv-icon-size="16"></span> Descargar app (próximamente)</button>
+    <button type="button" id="downloadAppBtn" class="btn btn-outline btn-download"><span data-yqv-icon="phone" data-yqv-icon-size="16"></span> Descargar app (próximamente)</button>
   </div>
 </section>
 
-<section class="section canary-map-section" style="padding-top:28px; padding-bottom:40px;">
+<section class="section canary-map-section section-map">
   <div class="container">
     <svg viewBox="0 0 680 300" width="100%" role="img" aria-label="Mapa de las Islas Canarias conectadas">
       <line class="map-route" x1="130" y1="225" x2="170" y2="140" />
@@ -57,21 +57,35 @@
 
 <section class="section">
   <div class="container">
+    <div class="photo-feature">
+      <div class="photo-feature-media">
+        <div class="island-gallery" id="islandGallery"></div>
+      </div>
+      <div class="photo-feature-text">
+        <h2>Empieza en Canarias, no se queda en Canarias</h2>
+        <p>Ocho islas ya conectadas entre sí — y una ruta directa a Cuba que ninguna paquetería tradicional cubre con esta cercanía. El mismo motor de rutas funciona igual para un salto entre islas que para un vuelo internacional.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
     <h2>Tan sencillo como parece</h2>
     <div class="card-grid cols-3">
       <div class="card">
         <div class="step-num">1</div>
-        <h3 style="margin-top:12px;">Publica</h3>
+        <h3>Publica</h3>
         <p>El remitente publica qué necesita enviar, o el viajero publica un viaje que ya tenía pensado hacer.</p>
       </div>
       <div class="card">
         <div class="step-num">2</div>
-        <h3 style="margin-top:12px;">Encaja</h3>
+        <h3>Encaja</h3>
         <p>YaQueVas calcula automáticamente qué envíos caben en cada viaje, con un % de compatibilidad y un precio orientativo.</p>
       </div>
       <div class="card">
         <div class="step-num">3</div>
-        <h3 style="margin-top:12px;">Entrega y cobro</h3>
+        <h3>Entrega y cobro</h3>
         <p>El viajero acepta con conocimiento total del contenido, cobra su compensación y el pago se libera al confirmar la entrega con QR o código.</p>
       </div>
     </div>
@@ -81,19 +95,33 @@
   </div>
 </section>
 
-<section class="section" style="background:var(--mist-100);">
+<section class="section">
+  <div class="container">
+    <div class="photo-feature reverse">
+      <div class="photo-feature-media">
+        <img src="/images/ventanilla-avion.jpg" alt="Vista desde la ventanilla de un avión al atardecer, sobrevolando Tenerife" loading="lazy" width="900" height="1440">
+      </div>
+      <div class="photo-feature-text">
+        <h2>El espacio que te sobra ya vale dinero</h2>
+        <p>Esa maleta que ibas a facturar medio vacía puede llevar el envío de otra persona. Tú decides qué aceptas, ves el contenido antes de confirmar, y cobras en cuanto se entrega.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-tinted">
   <div class="container">
     <h2>Ahora mismo en YaQueVas</h2>
-    <p class="lead" style="font-size:1rem;">Viajes y envíos publicados de verdad, en directo.</p>
-    <div class="card-grid cols-2" style="margin-top:20px;">
+    <p class="lead section-lead">Viajes y envíos publicados de verdad, en directo.</p>
+    <div class="card-grid cols-2 home-list-grid">
       <div>
-        <h3 style="font-size:1.05rem; display:flex; align-items:center; gap:8px;"><span data-yqv-icon="plane"></span> Viajes disponibles</h3>
+        <h3 class="list-heading"><span data-yqv-icon="plane"></span> Viajes disponibles</h3>
         <div id="homeTripsBox" class="stack">
           <div class="skeleton-card"><div class="skeleton skeleton-line w-60"></div><div class="skeleton skeleton-line w-40"></div></div>
         </div>
       </div>
       <div>
-        <h3 style="font-size:1.05rem; display:flex; align-items:center; gap:8px;"><span data-yqv-icon="package"></span> Envíos buscando viajero</h3>
+        <h3 class="list-heading"><span data-yqv-icon="package"></span> Envíos buscando viajero</h3>
         <div id="homeShipmentsBox" class="stack">
           <div class="skeleton-card"><div class="skeleton skeleton-line w-60"></div><div class="skeleton skeleton-line w-40"></div></div>
         </div>
@@ -108,39 +136,39 @@
 <section class="section">
   <div class="container">
     <h2>¿Qué suele viajar entre islas?</h2>
-    <p class="lead" style="font-size:1rem;">Lo de siempre: lo que se te olvida, lo que solo se encuentra en tu isla, o lo que le quieres hacer llegar a la familia.</p>
-    <div class="row" style="gap:10px; flex-wrap:wrap; margin-top:20px;">
-      <span class="pill" style="background:white; box-shadow:var(--shadow-1);"><span data-yqv-icon="shirt" data-yqv-icon-size="15"></span> Ropa</span>
-      <span class="pill" style="background:white; box-shadow:var(--shadow-1);"><span data-yqv-icon="pill" data-yqv-icon-size="15"></span> Medicamentos</span>
-      <span class="pill" style="background:white; box-shadow:var(--shadow-1);"><span data-yqv-icon="plug" data-yqv-icon-size="15"></span> Cargadores y electrónica</span>
-      <span class="pill" style="background:white; box-shadow:var(--shadow-1);"><span data-yqv-icon="document" data-yqv-icon-size="15"></span> Documentos</span>
-      <span class="pill" style="background:white; box-shadow:var(--shadow-1);"><span data-yqv-icon="gift" data-yqv-icon-size="15"></span> Regalos y recados de familia</span>
-      <span class="pill" style="background:white; box-shadow:var(--shadow-1);"><span data-yqv-icon="key" data-yqv-icon-size="15"></span> Llaves</span>
-      <span class="pill" style="background:white; box-shadow:var(--shadow-1);"><span data-yqv-icon="wrench" data-yqv-icon-size="15"></span> Herramientas</span>
-      <span class="pill" style="background:white; box-shadow:var(--shadow-1);"><span data-yqv-icon="wave" data-yqv-icon-size="15"></span> Equipo de surf o buceo</span>
-      <span class="pill" style="background:white; box-shadow:var(--shadow-1);"><span data-yqv-icon="book" data-yqv-icon-size="15"></span> Libros</span>
-      <span class="pill" style="background:white; box-shadow:var(--shadow-1);"><span data-yqv-icon="shoe" data-yqv-icon-size="15"></span> Calzado</span>
+    <p class="lead section-lead">Lo de siempre: lo que se te olvida, lo que solo se encuentra en tu isla, o lo que le quieres hacer llegar a la familia.</p>
+    <div class="row item-tags">
+      <span class="pill item-pill"><span data-yqv-icon="shirt" data-yqv-icon-size="15"></span> Ropa</span>
+      <span class="pill item-pill"><span data-yqv-icon="pill" data-yqv-icon-size="15"></span> Medicamentos</span>
+      <span class="pill item-pill"><span data-yqv-icon="plug" data-yqv-icon-size="15"></span> Cargadores y electrónica</span>
+      <span class="pill item-pill"><span data-yqv-icon="document" data-yqv-icon-size="15"></span> Documentos</span>
+      <span class="pill item-pill"><span data-yqv-icon="gift" data-yqv-icon-size="15"></span> Regalos y recados de familia</span>
+      <span class="pill item-pill"><span data-yqv-icon="key" data-yqv-icon-size="15"></span> Llaves</span>
+      <span class="pill item-pill"><span data-yqv-icon="wrench" data-yqv-icon-size="15"></span> Herramientas</span>
+      <span class="pill item-pill"><span data-yqv-icon="wave" data-yqv-icon-size="15"></span> Equipo de surf o buceo</span>
+      <span class="pill item-pill"><span data-yqv-icon="book" data-yqv-icon-size="15"></span> Libros</span>
+      <span class="pill item-pill"><span data-yqv-icon="shoe" data-yqv-icon-size="15"></span> Calzado</span>
     </div>
   </div>
 </section>
 
-<section class="section" style="background:var(--mist-100);">
+<section class="section section-tinted">
   <div class="container">
     <div class="card-grid cols-4">
-      <div class="card" style="text-align:center; border-top:4px solid var(--coral);">
-        <div class="big-number" style="font-size:3rem;">+30%</div>
-        <p>De ahorro mínimo frente a la tarifa oficial de paquetería para envíos interinsulares. <a href="#comparativa" style="font-size:0.85rem;">Ver comparativa ↓</a></p>
+      <div class="card stat-card stat-card-coral">
+        <div class="big-number" data-count-to="30" data-prefix="+" data-suffix="%">0%</div>
+        <p>De ahorro mínimo frente a la tarifa oficial de paquetería para envíos interinsulares. <a href="#comparativa" class="stat-link">Ver comparativa ↓</a></p>
       </div>
-      <div class="card" style="text-align:center; border-top:4px solid var(--marine-900);">
-        <div class="big-number" style="font-size:3rem;">12%</div>
+      <div class="card stat-card stat-card-marine">
+        <div class="big-number" data-count-to="12" data-suffix="%">0%</div>
         <p>Comisión total de YaQueVas: 6% al remitente y 6% al viajero. Siempre visible, nunca oculta.</p>
       </div>
-      <div class="card" style="text-align:center; border-top:4px solid var(--teal);">
-        <div class="big-number" style="font-size:3rem;">40%</div>
+      <div class="card stat-card stat-card-teal">
+        <div class="big-number" data-count-to="40" data-suffix="%">0%</div>
         <p>De los vehículos de carga circulan sin mercancía (estudios de logística). YaQueVas aprovecha ese espacio que ya existía — cero trayectos nuevos generados por tu envío.</p>
       </div>
-      <div class="card" style="text-align:center; border-top:4px solid var(--sun);">
-        <div class="big-number" style="font-size:3rem;">8</div>
+      <div class="card stat-card stat-card-sun">
+        <div class="big-number" data-count-to="8">0</div>
         <p>Islas conectadas entre sí. La compensación se la queda quien viaja: se queda entre canarios, no se va fuera.</p>
       </div>
     </div>
@@ -150,26 +178,26 @@
 <section class="section" id="comparativa">
   <div class="container">
     <h2>¿Cuánto te ahorras frente a una paquetería?</h2>
-    <p class="lead" style="font-size:1rem;">Comparado con la tarifa oficial de Correos para envíos interinsulares en Canarias (zona Z6, 2025) — el mismo dato que puedes comprobar tú mismo en su web.</p>
+    <p class="lead section-lead">Comparado con la tarifa oficial de Correos para envíos interinsulares en Canarias (zona Z6, 2025) — el mismo dato que puedes comprobar tú mismo en su web.</p>
     <div class="table-wrap" style="margin-top:20px;">
       <table>
         <thead>
           <tr><th>Tipo de envío</th><th>Correos (tarifa oficial)</th><th>YaQueVas (orientativo)</th><th>Ahorras</th></tr>
         </thead>
         <tbody>
-          <tr><td>Sobre / documentos (hasta 2 kg)</td><td>5,41 €</td><td>≈ 3,79 €</td><td><strong style="color:var(--ok);">+30%</strong></td></tr>
-          <tr><td>Paquete pequeño (2–5 kg)</td><td>6,21 €</td><td>≈ 4,35 €</td><td><strong style="color:var(--ok);">+30%</strong></td></tr>
+          <tr><td>Sobre / documentos (hasta 2 kg)</td><td>5,41 €</td><td>≈ 3,79 €</td><td><strong class="savings-highlight">+30%</strong></td></tr>
+          <tr><td>Paquete pequeño (2–5 kg)</td><td>6,21 €</td><td>≈ 4,35 €</td><td><strong class="savings-highlight">+30%</strong></td></tr>
         </tbody>
       </table>
     </div>
-    <p class="muted" style="font-size:0.8rem; margin-top:10px;">Precios orientativos, no vinculantes. Fuente: tarifas oficiales de Correos para Canarias (Z6) 2025. El precio final de cada envío se calcula al publicarlo, según peso, ruta y disponibilidad.</p>
+    <p class="muted section-note">Precios orientativos, no vinculantes. Fuente: tarifas oficiales de Correos para Canarias (Z6) 2025. El precio final de cada envío se calcula al publicarlo, según peso, ruta y disponibilidad.</p>
   </div>
 </section>
 
 <section class="section">
   <div class="container">
     <h2>Importante: no somos una empresa de transporte</h2>
-    <p style="max-width:640px;">El viajero no hace el viaje para llevar tu envío: ya iba a hacerlo. YaQueVas solo facilita que aproveche el espacio que le sobra, a cambio de una compensación por las molestias. El viajero siempre tiene la última palabra y decide qué acepta llevar tras ver el contenido declarado, peso, dimensiones y fotografías.</p>
+    <p class="section-narrow">El viajero no hace el viaje para llevar tu envío: ya iba a hacerlo. YaQueVas solo facilita que aproveche el espacio que le sobra, a cambio de una compensación por las molestias. El viajero siempre tiene la última palabra y decide qué acepta llevar tras ver el contenido declarado, peso, dimensiones y fotografías.</p>
   </div>
 </section>
 
@@ -177,6 +205,7 @@
 <script src="/js/api.js"></script>
 <script src="/js/icons.js"></script>
 <script src="/js/nav.js"></script>
+<script src="/js/islandGallery.js"></script>
 <script>
 document.getElementById('downloadAppBtn').addEventListener('click', () => {
   YQV.toast('La app para Android e iPhone está en desarrollo. De momento, usa la web — funciona igual de bien en el móvil.', 'info');
@@ -199,13 +228,19 @@ document.getElementById('downloadAppBtn').addEventListener('click', () => {
           return { trip: t, potencial: m.total_potencial || 0 };
         } catch { return { trip: t, potencial: 0 }; }
       }));
-      tripsBox.innerHTML = withEarnings.map(({ trip: t, potencial }) => `
+      tripsBox.innerHTML = withEarnings.map(({ trip: t, potencial }) => {
+        const kgLeft = t.status_capacidad.remaining_kg;
+        const isLow = kgLeft > 0 && kgLeft <= 5;
+        return `
         <div class="card">
-          <strong>${t.origin_island} → ${t.destination_island}</strong> · ${YQV.fmtDate(t.trip_date)}
-          <div class="muted" style="font-size:0.85rem;">${YQV.TRANSPORT_LABELS[t.transport_mode]} · Espacio libre: ${t.status_capacidad.remaining_l} L · ${t.status_capacidad.remaining_kg} kg</div>
-          ${potencial > 0 ? `<div style="margin-top:8px; font-family:var(--font-display); font-weight:700; color:var(--ok);">Puedes ganar +${YQV.fmtEur(potencial)}</div>` : ''}
+          ${potencial > 0 ? `<div class="trip-card-earn">Puedes ganar +${YQV.fmtEur(potencial)}</div>` : ''}
+          <div class="trip-card-route"><strong>${t.origin_island} → ${t.destination_island}</strong> · ${YQV.fmtDate(t.trip_date)}</div>
+          ${YQV.routeMini(t.transport_mode)}
+          <div class="muted trip-card-meta">${YQV.TRANSPORT_LABELS[t.transport_mode]} · Espacio libre: ${t.status_capacidad.remaining_l} L · ${kgLeft} kg</div>
+          ${isLow ? `<div class="trip-card-scarcity">Quedan solo ${kgLeft} kg libres en este viaje</div>` : ''}
         </div>
-      `).join('');
+      `;
+      }).join('');
     }
   } catch { tripsBox.innerHTML = '<p class="muted">No se pudieron cargar los viajes.</p>'; }
 
@@ -223,9 +258,10 @@ document.getElementById('downloadAppBtn').addEventListener('click', () => {
       }));
       shipmentsBox.innerHTML = withPrice.map(({ shipment: s, precio }) => `
         <div class="card">
-          <strong>${s.origin_island} → ${s.destination_island}</strong> · ${YQV.fmtDate(s.desired_date)}
-          <div class="muted" style="font-size:0.85rem;">${s.items.length} bulto(s) · ${s.weight_kg} kg · ${s.fragile ? 'Frágil' : 'No frágil'}</div>
-          ${precio ? `<div style="margin-top:8px; font-family:var(--font-display); font-weight:700; color:var(--marine-900);">Precio orientativo: ${YQV.fmtEur(precio.orientative_price)}</div>` : ''}
+          ${precio ? `<div class="trip-card-price">Precio orientativo: ${YQV.fmtEur(precio.orientative_price)}</div>` : ''}
+          <div class="trip-card-route"><strong>${s.origin_island} → ${s.destination_island}</strong> · ${YQV.fmtDate(s.desired_date)}</div>
+          ${YQV.routeMini(null)}
+          <div class="muted trip-card-meta">${s.items.length} bulto(s) · ${s.weight_kg} kg · ${s.fragile ? 'Frágil' : 'No frágil'}</div>
         </div>
       `).join('');
     }

@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title id="pageTitle">Envío — YaQueVas</title>
-<meta name="description" content="Un envío que busca viajero en YaQueVas. Si vas a esta ruta, puedes ganar llevándolo.">
+<meta name="description" content="Un envío que busca viajero en YaQueVas. Ya que vas a esta ruta, gana llevándolo.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="YaQueVas">
 <meta property="og:title" id="ogTitle" content="Envío en YaQueVas">
-<meta property="og:description" content="Alguien necesita enviar esto. Si ya vas, gana llevándolo.">
+<meta property="og:description" content="Alguien necesita enviar esto. Ya que vas, gana.">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="/css/styles.css">
 </head>
@@ -79,7 +79,7 @@ async function load() {
       ${shipment.status !== 'publicado' ? `<div class="alert alert-info" style="margin-top:16px;">Este envío ya no está disponible para nuevas solicitudes.</div>` : ''}
     `;
     document.getElementById('shareBtn').addEventListener('click', () => {
-      YQV.share({ title: `Envío ${routeTitle} en YaQueVas`, text: `Necesito enviar algo: ${routeTitle}. Si ya vas, puedes ganar llevándolo.` });
+      YQV.share({ title: `Envío ${routeTitle} en YaQueVas`, text: `Necesito enviar algo: ${routeTitle}. Ya que vas, gana llevándolo.` });
     });
   } catch (err) {
     content.innerHTML = `<div class="alert alert-error">No se ha podido cargar este envío: ${err.message}</div>`;

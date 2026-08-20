@@ -1,4 +1,4 @@
-# YaQueVas — "Si ya vas, puedes llevarlo"
+# YaQueVas — "Ya que vas, gana. Ya que alguien va, ahorra."
 
 Primera versión funcional (frontend + backend + base de datos + panel de administración) de
 YaQueVas: una plataforma que conecta viajes ya planeados entre las Islas Canarias con envíos

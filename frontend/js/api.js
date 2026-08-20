@@ -168,6 +168,21 @@ const YQV = (() => {
     }
   }
 
+  // Mini visual de ruta: dos puntos unidos por un trazo animado, con el icono de transporte
+  // en el centro (o sin icono si el modo aún no se conoce, p.ej. un envío sin viajero asignado).
+  function routeMini(mode) {
+    const iconName = mode === 'barco' ? 'ship' : mode === 'coche' ? 'car' : mode === 'avion' ? 'plane' : null;
+    const icon = (iconName && typeof YQVIcons !== 'undefined') ? YQVIcons.svg(iconName, { size: 13 }) : '';
+    return `<span class="route-mini" aria-hidden="true">
+      <svg viewBox="0 0 100 16" class="route-mini-svg">
+        <circle class="route-mini-dot" cx="6" cy="8" r="3"/>
+        <line class="route-mini-line" x1="6" y1="8" x2="94" y2="8"/>
+        <circle class="route-mini-dot end" cx="94" cy="8" r="3"/>
+      </svg>
+      ${icon ? `<span class="route-mini-icon">${icon}</span>` : ''}
+    </span>`;
+  }
+
   function requireLoginOrRedirect() {
     if (!isLoggedIn()) {
       window.location.href = `/login.html?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
@@ -179,6 +194,6 @@ const YQV = (() => {
   return {
     api, getToken, getUser, setSession, clearSession, isLoggedIn, isAdmin,
     ISLANDS, TRANSPORT_LABELS, STATUS_LABELS, fmtEur, fmtDate, fmtDateTime, el, toast, share, escapeHtml,
-    requireLoginOrRedirect, fetchLocationGroups, locationOptionsHtml, populateLocationSelects,
+    requireLoginOrRedirect, fetchLocationGroups, locationOptionsHtml, populateLocationSelects, routeMini,
   };
 })();

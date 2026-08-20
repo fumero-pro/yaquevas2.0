@@ -7,7 +7,7 @@
    nunca fondo saturado ni texto de color sobre fondo de color.
    ========================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:ital,wght@0,500;0,600;0,700;0,900;1,500;1,600&display=swap');
 
 :root {
   --marine-900: #14181F;
@@ -26,7 +26,7 @@
   --danger: #DC3545;
   --ok: #16A34A;
 
-  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
   --radius-sm: 8px;
@@ -105,8 +105,11 @@ strong { color: var(--marine-900); }
 /* ---------- Barra superior ---------- */
 .topbar {
   position: sticky; top: 0; z-index: 40;
-  background: rgba(255,255,255,0.85);
-  backdrop-filter: saturate(160%) blur(8px);
+  /* Fondo sólido, sin backdrop-filter: blur/backdrop-filter en un ancestor convierte esa caja
+     en el "contenedor" de cualquier descendiente position:fixed (aquí, el menú móvil
+     .nav-links), encogiéndolo a la altura de la barra en vez de cubrir la pantalla — bug real
+     de contraste/legibilidad reportado por el usuario, no tocar sin verificar esto de nuevo. */
+  background: var(--mist-50);
   border-bottom: 1px solid var(--line);
 }
 .topbar-inner {
@@ -114,10 +117,22 @@ strong { color: var(--marine-900); }
   padding: 12px 20px; max-width: var(--container); margin: 0 auto;
 }
 .logo {
-  font-family: var(--font-display); font-weight: 700; font-size: 1.3rem;
-  color: var(--marine-900); display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-display); font-weight: 700; font-size: 1.45rem; letter-spacing: -0.01em;
+  color: var(--marine-900); display: flex; align-items: center; gap: 10px;
 }
 .logo .dot { color: var(--coral); }
+/* El símbolo de marca necesita presencia propia, no solo texto al lado — más sombra/tamaño y
+   un pequeño gesto al hover, sin tocar la forma ni el color histórico del icono (ver memoria:
+   no volver a cambiar el logo salvo petición explícita — esto es solo presentación). */
+.logo-mark {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; flex: none;
+  filter: drop-shadow(0 3px 8px rgba(10, 61, 143, 0.35));
+  transition: transform .3s cubic-bezier(.2, .8, .2, 1);
+}
+.logo-mark svg { width: 100%; height: 100%; display: block; }
+.logo:hover .logo-mark { transform: rotate(-6deg) scale(1.08); }
+@media (prefers-reduced-motion: reduce) { .logo:hover .logo-mark { transform: none; } }
 .nav-links { display: flex; gap: 20px; align-items: center; }
 .nav-links a { color: var(--marine-800); font-weight: 500; font-size: 0.95rem; }
 .nav-links a:hover { text-decoration: none; color: var(--coral-dark); }
@@ -164,11 +179,20 @@ strong { color: var(--marine-900); }
 @media (max-width: 780px) {
   .nav-links {
     position: fixed; inset: 56px 0 0 0; background: var(--mist-50);
-    flex-direction: column; padding: 24px 20px; gap: 18px; align-items: flex-start;
+    flex-direction: column; padding: 8px 20px 28px; gap: 0; align-items: stretch;
     transform: translateY(-8px); opacity: 0; pointer-events: none; transition: all .18s ease;
+    overflow-y: auto;
   }
   .nav-links.open { transform: translateY(0); opacity: 1; pointer-events: auto; }
   .nav-toggle { display: inline-flex; }
+  /* Filas grandes, cómodas al pulgar, con separador — antes eran enlaces sueltos apretados */
+  .nav-links > a {
+    padding: 16px 4px; font-size: 1.05rem; font-weight: 600; color: var(--marine-900);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav-links > a:hover { color: var(--coral-dark); text-decoration: none; }
+  .nav-links > a.btn { border-bottom: none; margin-top: 14px; text-align: center; }
+  .nav-links > div { border-bottom: 1px solid var(--line); }
 }
 
 /* ---------- Botones ---------- */
@@ -338,12 +362,85 @@ footer a { color: var(--ash-600); }
   display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px;
   border-radius: 50%; background: var(--marine-900); color: white; font-weight: 700; font-size: 0.9rem; flex: none;
 }
+.step-num + h3 { margin-top: 12px; }
 
 .legal-doc h2 { font-size: 1.25rem; margin-top: 1.6em; }
 .legal-doc h2:first-child { margin-top: 0; }
 .legal-doc h3 { font-size: 1.02rem; margin-top: 1.3em; color: var(--marine-800); }
 .legal-doc p, .legal-doc li { color: var(--ash-600); line-height: 1.65; }
 .legal-doc ul, .legal-doc ol { padding-left: 1.3em; margin: 0 0 1em; }
+
+/* ---------- Home ---------- */
+.hero-sublead { font-family: var(--font-display); font-style: italic; font-size: 1.1rem; color: var(--sun); margin: -8px 0 0; }
+.link-on-dark { color: white; text-decoration: underline; }
+.btn-on-dark { background: white; color: var(--marine-900); }
+.btn-download { margin-top: 18px; border-color: rgba(255,255,255,0.5); color: white; }
+.section-map { padding-top: 28px; padding-bottom: 40px; }
+.section-tinted { background: var(--mist-100); }
+.section-lead { font-size: 1rem; }
+.list-heading { font-size: 1.05rem; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.item-tags { gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+.item-pill { background: white; box-shadow: var(--shadow-1); }
+.stat-card { text-align: center; }
+.stat-card .big-number { font-size: 3rem; }
+.stat-card-coral { border-top: 4px solid var(--coral); }
+.stat-card-marine { border-top: 4px solid var(--marine-900); }
+.stat-card-teal { border-top: 4px solid var(--teal); }
+.stat-card-sun { border-top: 4px solid var(--sun); }
+.stat-link { font-size: 0.85rem; }
+.savings-highlight { color: var(--ok); }
+.section-note { font-size: 0.8rem; margin-top: 10px; }
+.section-narrow { max-width: 640px; }
+
+/* Mini visual de ruta (icono + trazo animado entre dos puntos) — usado en tarjetas de
+   viaje/envío. Ningún competidor P2P investigado trata la ruta como elemento visual propio
+   (ver docs/DAFO_COMPETENCIA_DIRECTA_DISENO.md), diferenciador barato de mantener. */
+.route-mini { position: relative; display: block; width: 100%; max-width: 170px; margin: 8px 0; }
+.route-mini-svg { display: block; width: 100%; height: 16px; }
+.route-mini-dot { fill: var(--marine-900); }
+.route-mini-dot.end { fill: var(--coral); }
+.route-mini-line { stroke: var(--coral); stroke-width: 2; stroke-dasharray: 5 5; opacity: 0.6; animation: mapFlow 1.8s linear infinite; }
+.route-mini-icon {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: var(--mist-50); color: var(--coral); display: flex; padding: 1px; border-radius: 50%;
+}
+@media (prefers-reduced-motion: reduce) { .route-mini-line { animation: none; } }
+
+.trip-card-earn { font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; color: var(--ok); }
+.trip-card-price { font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; color: var(--marine-900); }
+.trip-card-route { margin-top: 6px; }
+.trip-card-meta { font-size: 0.85rem; }
+.trip-card-scarcity { margin-top: 6px; font-size: 0.82rem; color: var(--coral-dark); font-weight: 600; }
+
+/* Fotografía real (banco libre de derechos, Pexels License — ver docs/ATRIBUCIONES_IMAGENES.md)
+   emparejada con texto, patrón BlaBlaCar/Apple: una idea, una imagen, sin saturar de tarjetas. */
+.photo-feature { display: grid; gap: 28px; align-items: center; }
+@media (min-width: 860px) { .photo-feature { grid-template-columns: 1fr 1fr; gap: 48px; } }
+.photo-feature.reverse .photo-feature-media { order: 2; }
+.photo-feature-media img {
+  width: 100%; height: 280px; object-fit: cover; border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-3); display: block;
+}
+@media (min-width: 860px) { .photo-feature-media img { height: 360px; } }
+.photo-feature-text h2 { margin-bottom: 0.5em; }
+
+/* Carrusel de fotos de las 8 islas (rota sola, ver frontend/js/islandGallery.js) */
+.island-gallery {
+  position: relative; width: 100%; height: 280px; border-radius: var(--radius-lg);
+  overflow: hidden; box-shadow: var(--shadow-3); background: var(--mist-100);
+}
+@media (min-width: 860px) { .island-gallery { height: 360px; } }
+.island-gallery-img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  opacity: 0; transition: opacity 1.2s ease;
+}
+.island-gallery-img.active { opacity: 1; }
+.island-gallery-caption {
+  position: absolute; left: 18px; bottom: 16px; z-index: 2;
+  font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; color: white;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.45); padding: 4px 12px; border-radius: 999px;
+  background: rgba(20,24,31,0.32); backdrop-filter: blur(2px);
+}
 .legal-doc li { margin-bottom: 0.4em; }
 .legal-doc strong { color: var(--marine-900); }
 .legal-doc .pending { color: var(--coral-dark); font-weight: 700; }
