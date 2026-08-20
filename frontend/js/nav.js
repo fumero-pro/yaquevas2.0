@@ -29,7 +29,7 @@
       <div class="badge-demo-banner">MODO DEMOSTRACIÓN — datos, pagos y verificación simulados. Ninguna operación es real.</div>
       <div class="topbar">
         <div class="topbar-inner">
-          <a class="logo" href="/index.html">${LOGO_SVG}Ya<span class="dot">Que</span>Vas</a>
+          <a class="logo" href="/index.html">${LOGO_SVG}<span class="logo-text"><span class="hash">#</span>Ya<span class="dot">Que</span>Vas</span></a>
           <button class="btn btn-outline nav-toggle" id="navToggleBtn" aria-label="Abrir menú">${YQVIcons.svg('menu', { size: 18 })}</button>
           <nav class="nav-links" id="navLinks">
             <a href="/como-funciona.html">Cómo funciona</a>
@@ -127,7 +127,7 @@
       <footer>
         <div class="container footer-grid">
           <div>
-            <div class="logo" style="margin-bottom:10px;">${LOGO_SVG}Ya<span class="dot">Que</span>Vas</div>
+            <div class="logo" style="margin-bottom:10px;">${LOGO_SVG}<span class="logo-text"><span class="hash">#</span>Ya<span class="dot">Que</span>Vas</span></div>
             <p>Ya que vas, gana. Ya que alguien va, ahorra. YaQueVas conecta viajes que ya se iban a hacer con envíos legales entre las Islas Canarias, con una compensación justa para quien viaja.</p>
             <p class="muted">YaQueVas no es una empresa de transporte ni de paquetería: facilita la conexión, el pago y la entrega entre particulares que ya viajaban.</p>
           </div>

@@ -120,7 +120,9 @@ strong { color: var(--marine-900); }
   font-family: var(--font-display); font-weight: 900; font-size: 1.65rem; letter-spacing: -0.03em;
   color: var(--marine-900); display: flex; align-items: center; gap: 9px;
 }
+.logo-text { display: inline-block; white-space: nowrap; }
 .logo .dot { color: var(--coral); }
+.logo .hash { color: var(--coral); font-weight: 700; }
 /* El símbolo de marca necesita presencia propia, no solo texto al lado — más sombra/tamaño y
    un pequeño gesto al hover, sin tocar la forma ni el color histórico del icono (ver memoria:
    no volver a cambiar el logo salvo petición explícita — esto es solo presentación). */
