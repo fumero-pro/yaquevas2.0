@@ -9,7 +9,14 @@ conexiones lentas — relevante en el tramo Cuba, ver `DAFO_COMPETENCIA_DIRECTA_
 ## `frontend/images/`
 | Archivo | Fuente | Usado en |
 |---|---|---|
-| `ventanilla-avion.jpg` | Pexels, foto 6793722 | Home, sección "El espacio que te sobra ya vale dinero" |
+| `avion-ventana.jpg` | Pexels, foto 3374249 | Home, sección "Por aire o por mar, tú eliges" |
+| `ferry-canarias.jpg` | Pexels, foto 13037257 | Home, sección "Por aire o por mar, tú eliges" |
+
+**Nota sobre marcas de terceros**: se descartaron a propósito dos fotos que mostraban de forma
+muy prominente el logo/rotulación de una aerolínea o naviera concreta (Binter Canarias, Naviera
+Armas) — mostrarlas en primer plano podría sugerir una asociación o patrocinio que no existe.
+`ferry-canarias.jpg` es una foto de puerto amplia donde un ferry real es solo un elemento más de
+la escena (uso editorial/incidental, no un plano de producto de esa naviera).
 
 ## `frontend/images/islands/` — carrusel de las 8 islas
 17 fotos (2-3 por isla: playa/costa + monte/paisaje), listadas con su URL original de Pexels y

@@ -117,8 +117,8 @@ strong { color: var(--marine-900); }
   padding: 12px 20px; max-width: var(--container); margin: 0 auto;
 }
 .logo {
-  font-family: var(--font-display); font-weight: 700; font-size: 1.45rem; letter-spacing: -0.01em;
-  color: var(--marine-900); display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-display); font-weight: 900; font-size: 1.65rem; letter-spacing: -0.03em;
+  color: var(--marine-900); display: flex; align-items: center; gap: 9px;
 }
 .logo .dot { color: var(--coral); }
 /* El símbolo de marca necesita presencia propia, no solo texto al lado — más sombra/tamaño y
@@ -423,6 +423,13 @@ footer a { color: var(--ash-600); }
 }
 @media (min-width: 860px) { .photo-feature-media img { height: 360px; } }
 .photo-feature-text h2 { margin-bottom: 0.5em; }
+
+.photo-duo { display: grid; gap: 16px; margin-top: 28px; }
+@media (min-width: 640px) { .photo-duo { grid-template-columns: 1fr 1.3fr; } }
+.photo-duo img {
+  width: 100%; height: 100%; min-height: 220px; object-fit: cover;
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-3); display: block;
+}
 
 /* Carrusel de fotos de las 8 islas (rota sola, ver frontend/js/islandGallery.js) */
 .island-gallery {
