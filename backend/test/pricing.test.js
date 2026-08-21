@@ -12,7 +12,7 @@ test('sin muestras reales, usa la estimación demo y lo marca como tal', () => {
     originIsland: 'Tenerife', destinationIsland: 'Gran Canaria', weightKg: 3, fragile: false, extraLuggage: false,
   });
   assert.equal(price.reference_source, 'estimacion_demo_pendiente_de_datos_reales');
-  assert.equal(price.breakdown.distancia, 'interinsular_larga');
+  assert.equal(price.breakdown.distancia, 'interinsular');
 });
 
 test('ruta Canarias-Cuba se categoriza como internacional y tiene base más alta', () => {

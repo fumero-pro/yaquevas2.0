@@ -105,16 +105,19 @@ function resolveLocation(db, value) {
 
 // Categoría de distancia entre dos ubicaciones, para el motor de precios. Generaliza el
 // cálculo anterior (limitado a nombres de isla canaria) a cualquier país/ubicación:
-// misma ubicación -> misma_zona; mismo país y misma zona de distancia -> corta;
-// mismo país, distinta zona -> larga; distinto país (p.ej. Canarias <-> Cuba) -> internacional.
+// misma ubicación -> misma_zona; mismo país -> interinsular (un solo precio base, sin
+// distinguir corta/larga — petición explícita del usuario: "no me gusta que hagas distinción
+// de precios entre islas de interinsular larga o corto, haz la media de los precios y listo");
+// distinto país (p.ej. Canarias <-> Cuba) -> internacional. `distance_zone` en `locations` ya
+// no se usa para bifurcar el precio, se deja en el esquema por si sirve para otra cosa a futuro
+// (agrupar islas cercanas en el mapa, por ejemplo), pero el pricing ya no depende de él.
 function distanceCategory(db, originId, destinationId) {
   if (originId === destinationId) return 'misma_zona';
   const a = getLocation(db, originId);
   const b = getLocation(db, destinationId);
-  if (!a || !b) return 'interinsular_larga';
+  if (!a || !b) return 'interinsular';
   if (a.country_id !== b.country_id) return 'internacional';
-  if (a.distance_zone && b.distance_zone && a.distance_zone === b.distance_zone) return 'interinsular_corta';
-  return 'interinsular_larga';
+  return 'interinsular';
 }
 
 module.exports = {

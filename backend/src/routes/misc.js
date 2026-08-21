@@ -5,11 +5,17 @@ const { getConfig } = require('../lib/config');
 const { listCountries, listSelectableLocations } = require('../lib/geo');
 const { UNIT_VOLUME_L, UNIT_WEIGHT_KG_TYPICAL } = require('../lib/tetris');
 
+// Letra de talla al estilo Sherpa (S/M/L/XL — ver docs/PRECIO_INTERINSULAR.md), añadida como
+// prefijo claro sobre los 4 tipos de bulto reales que ya usa el motor "tetris" de capacidad.
+// Orden por volumen real (UNIT_VOLUME_L), no por el nombre: por eso "maleta pequeña" (45L) es
+// más grande que "caja mediana" (30L) pese al nombre. No hay tallas XXL/XXXL todavía — eso
+// requeriría ampliar el motor de capacidad con tipos de bulto nuevos, no solo relabeling; se
+// deja como pendiente si se quiere ese rango completo en el futuro.
 const PACKAGE_LABELS = {
-  sobre: 'Sobre / documentos',
-  maleta_pequena: 'Maleta pequeña',
-  maleta_grande: 'Maleta grande',
-  caja_mediana: 'Caja mediana',
+  sobre: 'S — Sobre / documentos',
+  caja_mediana: 'M — Caja mediana',
+  maleta_pequena: 'L — Maleta pequeña',
+  maleta_grande: 'XL — Maleta grande',
 };
 
 function register(router, db) {

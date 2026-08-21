@@ -13,9 +13,15 @@
 const { resolveLocation, distanceCategory: geoDistanceCategory } = require('./geo');
 
 function baseReferenceEstimate({ weightKg, distanceCategory }) {
-  // distanceCategory: 'misma_zona' | 'interinsular_corta' | 'interinsular_larga' | 'internacional'
-  const baseByDistance = { misma_zona: 8, interinsular_corta: 15, interinsular_larga: 25, internacional: 45 };
-  const base = baseByDistance[distanceCategory] ?? 15;
+  // distanceCategory: 'misma_zona' | 'interinsular' | 'internacional'
+  // Precio único interinsular (ya no distingue "corta"/"larga" — petición explícita del
+  // usuario). 12€ para el envío de referencia (2-5kg) fundamentado con datos reales de mercado
+  // en docs/PRECIO_INTERINSULAR.md: ~15% más barato que la tarifa oficial de Correos 2026
+  // (14,13€ para 1-5kg, verificada en el PDF oficial) y dentro de la banda "M" de Sherpa
+  // (8-15€, verificada en su web) — competitivo frente a paquetería tradicional Y frente al
+  // crowdshipping de referencia en España, sin inventar la cifra.
+  const baseByDistance = { misma_zona: 8, interinsular: 12, internacional: 45 };
+  const base = baseByDistance[distanceCategory] ?? 20;
   const perKg = distanceCategory === 'internacional' ? 2.5 : 1.2;
   return Math.max(base, base + Math.max(0, weightKg - 5) * perKg);
 }
@@ -26,7 +32,7 @@ function baseReferenceEstimate({ weightKg, distanceCategory }) {
 function distanceCategory(db, originIsland, destinationIsland) {
   const origin = resolveLocation(db, originIsland);
   const destination = resolveLocation(db, destinationIsland);
-  if (!origin || !destination) return 'interinsular_larga';
+  if (!origin || !destination) return 'interinsular';
   return geoDistanceCategory(db, origin.id, destination.id);
 }
 

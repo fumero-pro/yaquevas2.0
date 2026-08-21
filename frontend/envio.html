@@ -32,7 +32,7 @@
 <script>
 const shipId = new URLSearchParams(window.location.search).get('id') || window.location.pathname.split('/').pop();
 const content = document.getElementById('content');
-const ITEM_LABELS = { sobre: 'Sobre', maleta_pequena: 'Maleta pequeña', maleta_grande: 'Maleta grande', caja_mediana: 'Caja mediana' };
+const ITEM_LABELS = { sobre: 'S — Sobre', caja_mediana: 'M — Caja mediana', maleta_pequena: 'L — Maleta pequeña', maleta_grande: 'XL — Maleta grande' };
 
 async function load() {
   try {

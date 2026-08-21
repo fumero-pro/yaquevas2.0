@@ -33,18 +33,16 @@ test('distanceCategory: misma ubicación es misma_zona', () => {
   assert.equal(distanceCategory(db, t.id, t.id), 'misma_zona');
 });
 
-test('distanceCategory: islas del mismo grupo occidental es corta', () => {
+test('distanceCategory: dos islas canarias distintas son interinsular, sin distinguir grupo/distancia', () => {
+  // Antes distinguía "corta" (mismo grupo, p.ej. Tenerife-La Gomera) de "larga" (grupos
+  // distintos, p.ej. Tenerife-Gran Canaria) — petición explícita del usuario de unificar en un
+  // solo precio interinsular, ver docs/PLAN_RENTABILIDAD.md.
   const db = createTestDb();
   const tenerife = resolveLocation(db, 'Tenerife');
   const gomera = resolveLocation(db, 'La Gomera');
-  assert.equal(distanceCategory(db, tenerife.id, gomera.id), 'interinsular_corta');
-});
-
-test('distanceCategory: islas de grupos distintos es larga', () => {
-  const db = createTestDb();
-  const tenerife = resolveLocation(db, 'Tenerife');
   const granCanaria = resolveLocation(db, 'Gran Canaria');
-  assert.equal(distanceCategory(db, tenerife.id, granCanaria.id), 'interinsular_larga');
+  assert.equal(distanceCategory(db, tenerife.id, gomera.id), 'interinsular');
+  assert.equal(distanceCategory(db, tenerife.id, granCanaria.id), 'interinsular');
 });
 
 test('distanceCategory: Canarias <-> Cuba es internacional', () => {

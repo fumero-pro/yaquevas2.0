@@ -57,10 +57,10 @@
         <div id="itemsList" class="stack"></div>
         <div class="row" style="margin-top:10px;">
           <select id="newItemType">
-            <option value="sobre">Sobre</option>
-            <option value="maleta_pequena">Maleta pequeña</option>
-            <option value="maleta_grande">Maleta grande</option>
-            <option value="caja_mediana">Caja mediana</option>
+            <option value="sobre">S — Sobre</option>
+            <option value="caja_mediana">M — Caja mediana</option>
+            <option value="maleta_pequena">L — Maleta pequeña</option>
+            <option value="maleta_grande">XL — Maleta grande</option>
           </select>
           <input id="newItemDesc" placeholder="Descripción (ej. cargador, ropa, documentos)" style="flex:1; min-width:180px;">
           <label class="btn btn-outline" for="newItemPhoto" style="cursor:pointer; margin:0;"><span data-yqv-icon="camera" data-yqv-icon-size="16"></span> Foto (opcional)</label>
@@ -120,7 +120,7 @@ function renderItems() {
     box.innerHTML = '<p class="muted">Todavía no has añadido ningún bulto.</p>';
     return;
   }
-  const labels = { sobre: 'Sobre', maleta_pequena: 'Maleta pequeña', maleta_grande: 'Maleta grande', caja_mediana: 'Caja mediana' };
+  const labels = { sobre: 'S — Sobre', caja_mediana: 'M — Caja mediana', maleta_pequena: 'L — Maleta pequeña', maleta_grande: 'XL — Maleta grande' };
   box.innerHTML = items.map((it, idx) => `
     <div class="row between" style="background:var(--mist-100); padding:10px 14px; border-radius:8px;">
       <span class="row" style="gap:10px;">

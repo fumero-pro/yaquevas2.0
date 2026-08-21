@@ -86,17 +86,21 @@ function seed() {
   setConfigValue(db, 'demo_mode', 'true', ownerId);
   setConfigValue(db, 'company_name', 'YaQueVas', ownerId);
 
-  // Muestras de precio de referencia, basadas en la tarifa oficial de Correos para envíos
-  // interinsulares en Canarias (zona Z6, tarifas 2025): 5,41 € hasta 2 kg, 6,21 € de 2 a 5 kg.
-  // Sustituye a las muestras demo antiguas (importes inventados, no reales -> punto 85).
+  // Muestras de precio de referencia, basadas en la tarifa oficial "Paq Estándar" de Correos
+  // para envíos interinsulares en Canarias (zona Z6, PDF oficial 2026, leído directamente —
+  // ver docs/PRECIO_INTERINSULAR.md): 11,28 € hasta 1 kg, 14,13 € de 1 a 5 kg. Las cifras
+  // anteriores (5,41 €/6,21 €, tarifas 2025) se comprobaron desactualizadas/incorrectas al
+  // verificar el PDF real de 2026 — no se puede confiar en un snippet de buscador para un dato
+  // que afecta al precio mostrado a usuarios reales, hay que leer la fuente primaria.
   db.prepare("DELETE FROM pricing_reference_samples WHERE source LIKE '%(demo)%'").run();
-  const existingRealSamples = db.prepare("SELECT COUNT(*) c FROM pricing_reference_samples WHERE source LIKE 'Correos%'").get().c;
+  db.prepare("DELETE FROM pricing_reference_samples WHERE source LIKE 'Correos%2025%'").run();
+  const existingRealSamples = db.prepare("SELECT COUNT(*) c FROM pricing_reference_samples WHERE source LIKE 'Correos%2026%'").get().c;
   if (existingRealSamples === 0) {
     const samples = [
-      ['Tenerife', 'Gran Canaria', 'Correos - tarifa oficial interinsular Z6 2025 (hasta 2kg)', 5.41],
-      ['Tenerife', 'Gran Canaria', 'Correos - tarifa oficial interinsular Z6 2025 (2-5kg)', 6.21],
-      ['Gran Canaria', 'Tenerife', 'Correos - tarifa oficial interinsular Z6 2025 (hasta 2kg)', 5.41],
-      ['Tenerife', 'La Palma', 'Correos - tarifa oficial interinsular Z6 2025 (hasta 2kg)', 5.41],
+      ['Tenerife', 'Gran Canaria', 'Correos - tarifa oficial Paq Estándar Z6 2026 (hasta 1kg)', 11.28],
+      ['Tenerife', 'Gran Canaria', 'Correos - tarifa oficial Paq Estándar Z6 2026 (1-5kg)', 14.13],
+      ['Gran Canaria', 'Tenerife', 'Correos - tarifa oficial Paq Estándar Z6 2026 (1-5kg)', 14.13],
+      ['Tenerife', 'La Palma', 'Correos - tarifa oficial Paq Estándar Z6 2026 (1-5kg)', 14.13],
     ];
     for (const [o, d, source, price] of samples) {
       db.prepare('INSERT INTO pricing_reference_samples (id, route_key, source, price, captured_at) VALUES (?, ?, ?, ?, ?)')

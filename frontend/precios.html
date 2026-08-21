@@ -37,9 +37,12 @@
 <script src="/js/icons.js"></script>
 <script src="/js/nav.js"></script>
 <script>
+// Un solo precio interinsular (ya no distingue "corta"/"larga" — el motor de precios ya
+// no hace esa distinción, ver backend/src/lib/pricing.js). Dos rutas de ejemplo reales para
+// que se vea que el precio es el mismo tramo con tramo, no que varía por casualidad.
 const ROUTES = [
-  { label: 'Interinsular corta', origin: 'Tenerife', destination: 'La Gomera' },
-  { label: 'Interinsular larga', origin: 'Tenerife', destination: 'Gran Canaria' },
+  { label: 'Tenerife → La Gomera', origin: 'Tenerife', destination: 'La Gomera' },
+  { label: 'Tenerife → Gran Canaria', origin: 'Tenerife', destination: 'Gran Canaria' },
 ];
 
 async function load() {
@@ -83,7 +86,7 @@ async function load() {
             <p class="muted" style="font-size:0.85rem; margin-bottom:14px;">~${pt.typical_volume_l} L de volumen · ~${pt.typical_weight_kg} kg de peso típico</p>
             ${pricesByType[pt.key].map(({ route, precio }) => `
               <div class="row between" style="padding:8px 0; border-top:1px solid var(--line);">
-                <span class="muted" style="font-size:0.85rem;">${route.label} <span style="opacity:0.7;">(${route.origin}→${route.destination})</span></span>
+                <span class="muted" style="font-size:0.85rem;">${route.label}</span>
                 <strong>${YQV.fmtEur(precio.orientative_price)}</strong>
               </div>
             `).join('')}

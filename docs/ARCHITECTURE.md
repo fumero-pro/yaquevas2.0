@@ -59,9 +59,11 @@ un array de islas hardcodeado en el código. Dos tablas nuevas:
 - `locations`: árbol auto-referenciado (`parent_id`) con un campo `level` libre
   (`region | province | island | municipality | city`) — así Canarias usa "isla" como unidad
   de ruta y Cuba usa "provincia" sin que el esquema tenga que fijar de antemano cuántos
-  niveles tiene cada país. Cada ubicación seleccionable tiene un `distance_zone` que agrupa
-  las cercanas entre sí para el cálculo de categoría de distancia del motor de precios
-  (`misma_zona | interinsular_corta | interinsular_larga | internacional`).
+  niveles tiene cada país. Cada ubicación seleccionable tiene un `distance_zone` (ya no se usa
+  para el precio, ver más abajo, se deja por si sirve para agrupar islas en el mapa a futuro).
+  Categoría de distancia del motor de precios: `misma_zona | interinsular | internacional` — un
+  solo precio interinsular, sin distinguir corta/larga (petición explícita del usuario
+  2026-08-21, ver `docs/PRECIO_INTERINSULAR.md`).
 
 `backend/src/lib/geo.js` siembra el catálogo (Canarias + las 16 provincias de Cuba) de forma
 idempotente en cada arranque y expone `resolveLocation()`, que acepta tanto el `id` nuevo
