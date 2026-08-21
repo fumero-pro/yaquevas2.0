@@ -74,7 +74,7 @@ async function load() {
         <tr><td>Comisión remitente (+${booking.sender_commission_pct}%)</td><td>${YQV.fmtEur(booking.sender_total - booking.base_price)}</td></tr>
         <tr><td>Comisión viajero (-${booking.traveler_commission_pct}%)</td><td>${YQV.fmtEur(booking.base_price - booking.traveler_net)}</td></tr>
         <tr><td><strong>${isSender ? 'Total a pagar' : 'Total a cobrar'}</strong></td><td><strong>${YQV.fmtEur(isSender ? booking.sender_total : booking.traveler_net)}</strong></td></tr>
-        <tr><td>Comisión total YaQueVas (12%)</td><td>${YQV.fmtEur(booking.platform_commission)}</td></tr>
+        <tr><td>Comisión total YaQueVas (${Number(booking.sender_commission_pct) + Number(booking.traveler_commission_pct)}%)</td><td>${YQV.fmtEur(booking.platform_commission)}</td></tr>
       </table>
     </div>
   `;

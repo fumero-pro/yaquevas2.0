@@ -496,3 +496,30 @@ footer a { color: var(--ash-600); }
   background: var(--sun); color: var(--marine-900); text-align: center; padding: 8px 16px;
   font-weight: 700; font-size: 0.85rem; letter-spacing: 0.02em;
 }
+
+/* Buscador de direcciones reales (calle+número -> lat/lon vía Nominatim), pensado sobre todo
+   para envíos en coche dentro de la misma isla, donde el precio pasa a calcularse por distancia
+   real en vez de un ancla plana (ver docs/PRECIO_INTERINSULAR.md). */
+.address-search { position: relative; }
+.address-search-input {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  font: inherit; margin-top: 4px;
+}
+.address-search-results {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 30;
+  background: white; border: 1px solid var(--line); border-radius: var(--radius-md);
+  box-shadow: var(--shadow-2); max-height: 220px; overflow-y: auto; display: none;
+}
+.address-search-results.open { display: block; }
+.address-search-result {
+  display: block; width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+  padding: 10px 12px; border-bottom: 1px solid var(--line); font: inherit; font-size: 0.85rem;
+  color: var(--marine-900);
+}
+.address-search-result:last-child { border-bottom: none; }
+.address-search-result:hover { background: var(--mist-100); }
+.address-search-picked { display: flex; align-items: center; gap: 8px; }
+.address-search-picked button {
+  background: none; border: none; color: var(--ash-600); cursor: pointer; font-size: 0.78rem;
+  text-decoration: underline; padding: 0;
+}

@@ -3,6 +3,7 @@ const { requireAuth } = require('../middleware/auth');
 const { newId } = require('../lib/auth');
 const { getConfig } = require('../lib/config');
 const { listCountries, listSelectableLocations } = require('../lib/geo');
+const { searchAddress } = require('../lib/geocode');
 const { UNIT_VOLUME_L, UNIT_WEIGHT_KG_TYPICAL } = require('../lib/tetris');
 
 // Letra de talla al estilo Sherpa (S/M/L/XL/XXL/XXXL — ver docs/PRECIO_INTERINSULAR.md), sobre
@@ -41,6 +42,19 @@ function register(router, db) {
 
   router.get('/api/geo/locations', async (req, res, body, params, query) => {
     res.json({ locations: await listSelectableLocations(db, query.country_id || null) });
+  });
+
+  // Búsqueda de direcciones reales (calle + número -> lat/lon), para fijar un punto de recogida/
+  // entrega exacto en vez de solo "Aeropuerto/Puerto/Acordar directamente" — petición explícita
+  // del usuario ("como si se compartiera ubicación en WhatsApp"). Vía Nominatim/OpenStreetMap,
+  // gratis, sin cuenta que crear (ver lib/geocode.js). Resultados con atribución obligatoria.
+  router.get('/api/geo/search-address', async (req, res, body, params, query) => {
+    try {
+      const results = await searchAddress(query.q || '');
+      res.json({ results, attribution: '© OpenStreetMap contributors' });
+    } catch (err) {
+      res.status(502).json({ error: 'No se ha podido buscar la dirección ahora mismo. Puedes elegir un punto de encuentro genérico en su lugar.' });
+    }
   });
 
   router.get('/api/notifications', async (req, res) => {

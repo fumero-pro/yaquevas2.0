@@ -77,6 +77,16 @@ const ALTERS = [
   'ALTER TABLE referral_rewards ADD COLUMN referred_redeemed INTEGER NOT NULL DEFAULT 0',
   'ALTER TABLE referral_rewards ADD COLUMN referrer_redeemed_booking_id TEXT',
   'ALTER TABLE referral_rewards ADD COLUMN referred_redeemed_booking_id TEXT',
+  // Dirección exacta de recogida/entrega (calle + número, buscada vía Nominatim/OpenStreetMap —
+  // ver lib/geocode.js), petición explícita del usuario ("como si se compartiera ubicación en
+  // WhatsApp"). Nullable: un envío sigue siendo válido solo con el punto de encuentro genérico
+  // (Aeropuerto/Puerto/Acordar directamente) si el remitente no busca una dirección exacta. Con
+  // ambas coordenadas presentes y origen/destino en la misma isla, el precio de un trayecto en
+  // coche se calcula por distancia real (ver backend/src/lib/pricing.js), no solo por talla.
+  'ALTER TABLE shipments ADD COLUMN origin_lat REAL',
+  'ALTER TABLE shipments ADD COLUMN origin_lon REAL',
+  'ALTER TABLE shipments ADD COLUMN destination_lat REAL',
+  'ALTER TABLE shipments ADD COLUMN destination_lon REAL',
 ];
 
 async function applyAlters(db) {

@@ -55,6 +55,49 @@ patterns, cero gamificación de dinero real — `PRINCIPIOS_DE_DISENO.md`).
    respaldo serio (Lanzadera/Juan Roig), sin presencia internacional todavía. Si se expande a rutas
    internacionales, sería el rival más peligroso por partir del mismo modelo ya probado.
 
+## Actualización 2026-08-21: comisión subida a 20% + objetivo de 1,5M€/año
+
+Petición explícita del usuario: subir la comisión ("10%y10%" en vez de 6%/6%) y/o precios más
+altos, "debe ser rentable", con un objetivo de facturación de referencia de **1,5M€/año**.
+Aplicado: comisión subida a 10%/10% (20% total) y precio por talla recalculado sobre el extremo
+superior de las bandas de Sherpa (ver `docs/PRECIO_INTERINSULAR.md`).
+
+**¿Es 20% razonable frente al sector?** Investigación real (WebSearch, cifras publicadas):
+
+| Empresa | Comisión/take rate real | Fuente |
+|---|---|---|
+| Sherpa | 12% (6%+6%) | ya verificado, ver arriba |
+| **YaQueVas (nuevo)** | **20% (10%+10%)** | — |
+| Uber | 20-28% (take rate global, informes 10-K) | prensa financiera especializada |
+| Glovo | 20-30% de comisión a restaurantes | guías de gestión de restaurantes 2026 |
+| Deliveroo (Reino Unido) | 25-35% de comisión a restaurantes | guías de gestión de restaurantes 2026 |
+
+YaQueVas al 20% queda en el extremo **bajo** del rango que el sector de plataformas (reparto y
+movilidad) ya cobra de verdad — Uber y Glovo empiezan justo donde YaQueVas termina. Esto da
+margen razonado para subir más si el objetivo de 1,5M€/año lo exige, sin salirse del rango que
+el mercado ya acepta pagar. Nota de honestidad: los rangos de Glovo/Deliveroo son anchos porque
+varían por país/restaurante/volumen — tratados como orientativos, no como una cifra única y exacta.
+
+**Volumen necesario para 1,5M€/año**, con el nuevo precio por talla y comisión al 20% (cálculo
+completo con el desglose por talla en el análisis financiero — ver artefacto de rentabilidad):
+"facturación" es ambiguo en un marketplace, así que se calculan las dos lecturas posibles.
+
+| Escenario | Ticket medio | Comisión/envío | Envíos/año si "facturación" = comisión neta | Envíos/año si "facturación" = GMV |
+|---|---|---|---|---|
+| Base (mezcla de hoy: 80% interinsular, mayoría S-L) | 29,28 € | 5,86 € | ~256.000 (~702/día) | ~51.200 (~140/día) |
+| Madurez (30% Cuba, más peso XL-XXXL) | 75,56 € | 15,11 € | ~99.300 (~272/día) | ~19.850 (~54/día) |
+
+**Conclusión honesta**: ni la comisión ni el precio por sí solos resuelven el objetivo de 1,5M€ a
+corto plazo — el escenario "base" exige un volumen que un marketplace de dos islas no alcanza
+pronto. La palanca real es la **mezcla**: empujar hacia la ruta Cuba (ticket medio ~3× mayor) y
+hacia los tamaños grandes (XL-XXXL, que son exactamente los que más comisión dejan tras la subida
+de precio de hoy) recorta el volumen necesario a una cuarta parte. Competir solo por sobres y
+cajas pequeñas en Canarias nunca llega a 1,5M€ con un volumen realista.
+
+**Pendiente real, no resuelto todavía**: la base de datos de producción en Turso ya tenía sembrada
+la comisión antigua (6%/6%) de forma explícita — el cambio de código no la actualiza sola, hay
+que subirla desde el panel de administración (Comisiones y baremo) tras desplegar este cambio.
+
 ## Limitaciones honestas
 Cifras de Grabr (ARR, valoración) vienen de estimaciones de terceros (Getlatka), no de la empresa —
 tratadas con reserva explícita. Sherpa no tiene cifras públicas de facturación/beneficio (startup

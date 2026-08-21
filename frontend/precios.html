@@ -71,7 +71,7 @@ async function load() {
         const { precio_orientativo } = await YQV.api('/api/pricing/estimate', {
           method: 'POST',
           auth: false,
-          body: { origin_island: route.origin, destination_island: route.destination, weight_kg: pt.typical_weight_kg },
+          body: { origin_island: route.origin, destination_island: route.destination, item_type: pt.key },
         });
         return { route, precio: precio_orientativo };
       }));

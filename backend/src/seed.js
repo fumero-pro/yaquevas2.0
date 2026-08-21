@@ -79,9 +79,14 @@ async function seed() {
     }
   }
 
-  // Configuración inicial explícita (aunque los defaults ya cubren esto, se deja constancia)
-  await setConfigValue(db, 'commission_sender_pct', '6', ownerId);
-  await setConfigValue(db, 'commission_traveler_pct', '6', ownerId);
+  // Configuración inicial explícita (aunque los defaults ya cubren esto, se deja constancia).
+  // Comisión subida de 6%/6% a 10%/10% (petición explícita del usuario: "subimos el porcentaje
+  // que se queda la app 10%y10% ... debe ser rentable", con objetivo de facturación de 1,5M€/año,
+  // ver docs/PLAN_RENTABILIDAD.md). Un sitio ya desplegado con este valor sembrado antes no se
+  // actualiza solo al cambiar este default — hay que subirlo también desde el panel de admin
+  // (Comisiones y baremo) o resembrar, porque la tabla config ya tiene una fila explícita.
+  await setConfigValue(db, 'commission_sender_pct', '10', ownerId);
+  await setConfigValue(db, 'commission_traveler_pct', '10', ownerId);
   await setConfigValue(db, 'baremo_discount_pct', '30', ownerId);
   await setConfigValue(db, 'demo_mode', 'true', ownerId);
   await setConfigValue(db, 'company_name', 'YaQueVas', ownerId);

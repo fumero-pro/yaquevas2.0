@@ -1,11 +1,16 @@
 'use strict';
 const { requireAuth } = require('../middleware/auth');
 const { newId } = require('../lib/auth');
-const { itemsToUsage } = require('../lib/tetris');
+const { itemsToUsage, ITEM_TYPES: TETRIS_ITEM_TYPES } = require('../lib/tetris');
 const { resolveLocation } = require('../lib/geo');
 const { validatePhoto } = require('../lib/photo');
 
-const ITEM_TYPES = ['maleta_grande', 'maleta_pequena', 'sobre', 'caja_mediana'];
+// Antes era una lista separada y desactualizada (solo 4 de las 6 tallas), así que un envío XXL u
+// XXXL (objeto_voluminoso, bulto_extra_grande) fallaba aquí con "Tipo de bulto no válido" aunque
+// el resto del sistema (tetris.js, misc.js) ya los soportaba — bug real encontrado al revisar este
+// archivo. Ahora se deriva del mismo catálogo único que usa el motor de capacidad, para que nunca
+// vuelvan a desincronizarse.
+const ITEM_TYPES = Object.keys(TETRIS_ITEM_TYPES);
 
 function serializeShipment(s, items) {
   return {
@@ -16,9 +21,13 @@ function serializeShipment(s, items) {
     origin_island: s.origin_island,
     origin_location_id: s.origin_location_id || null,
     origin_place: s.origin_place,
+    origin_lat: s.origin_lat != null ? s.origin_lat : null,
+    origin_lon: s.origin_lon != null ? s.origin_lon : null,
     destination_island: s.destination_island,
     destination_location_id: s.destination_location_id || null,
     destination_place: s.destination_place,
+    destination_lat: s.destination_lat != null ? s.destination_lat : null,
+    destination_lon: s.destination_lon != null ? s.destination_lon : null,
     desired_date: s.desired_date,
     category: s.category,
     weight_kg: s.weight_kg,
@@ -52,6 +61,7 @@ function register(router, db) {
       destination_island, destination_place, desired_date, category,
       weight_kg, dimensions, declared_value, fragile, notes,
       truthfulness_accepted, items,
+      origin_lat, origin_lon, destination_lat, destination_lon,
     } = body;
 
     if (!recipient_name || !origin_island || !destination_island || !desired_date || !items || !items.length) {
@@ -89,13 +99,18 @@ function register(router, db) {
     await db.prepare(
       `INSERT INTO shipments (id, sender_id, recipient_name, recipient_phone, origin_island, origin_location_id,
         origin_place, destination_island, destination_location_id, destination_place, desired_date, category,
-        weight_kg, dimensions, declared_value, fragile, notes, truthfulness_accepted, status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'publicado', ?)`
+        weight_kg, dimensions, declared_value, fragile, notes, truthfulness_accepted, status, created_at,
+        origin_lat, origin_lon, destination_lat, destination_lon)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'publicado', ?, ?, ?, ?, ?)`
     ).run(
       id, user.id, recipient_name, recipient_phone || null, originLoc.name, originLoc.id, origin_place || '',
       destinationLoc.name, destinationLoc.id, destination_place || '', desired_date, finalCategory,
       Number(weight_kg || 0), dimensions || '', declared_value != null ? Number(declared_value) : null,
-      fragile ? 1 : 0, notes || '', now
+      fragile ? 1 : 0, notes || '', now,
+      origin_lat != null && origin_lat !== '' ? Number(origin_lat) : null,
+      origin_lon != null && origin_lon !== '' ? Number(origin_lon) : null,
+      destination_lat != null && destination_lat !== '' ? Number(destination_lat) : null,
+      destination_lon != null && destination_lon !== '' ? Number(destination_lon) : null
     );
     for (const it of items) {
       await db.prepare(

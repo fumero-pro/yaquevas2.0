@@ -48,7 +48,22 @@
           <div><label>Punto de recogida</label><select id="origin_place" required></select></div>
           <div><label>Punto de entrega</label><select id="destination_place" required></select></div>
         </div>
-        <label>Fecha deseada</label>
+        <div class="field-row cols-2" style="margin-top:10px;">
+          <div class="address-search" data-role="origin">
+            <label>¿Prefieres indicar la dirección exacta de recogida? <span class="muted" style="font-weight:400;">(opcional)</span></label>
+            <input type="text" class="address-search-input" placeholder="Ej. Calle La Marina 12, Santa Cruz de Tenerife" autocomplete="off">
+            <div class="address-search-results"></div>
+            <div class="address-search-picked muted" style="font-size:0.82rem; margin-top:4px; display:none;"></div>
+          </div>
+          <div class="address-search" data-role="destination">
+            <label>¿Prefieres indicar la dirección exacta de entrega? <span class="muted" style="font-weight:400;">(opcional)</span></label>
+            <input type="text" class="address-search-input" placeholder="Ej. Avenida Marítima 5, Los Cristianos" autocomplete="off">
+            <div class="address-search-results"></div>
+            <div class="address-search-picked muted" style="font-size:0.82rem; margin-top:4px; display:none;"></div>
+          </div>
+        </div>
+        <p class="muted" style="font-size:0.78rem; margin-top:6px;">Búsqueda de direcciones vía OpenStreetMap (© OpenStreetMap contributors). Útil sobre todo para envíos en coche dentro de tu misma isla — el precio se ajusta a la distancia real entre las dos direcciones.</p>
+        <label style="margin-top:14px;">Fecha deseada</label>
         <input id="desired_date" type="date" required>
       </fieldset>
 
@@ -104,6 +119,68 @@
 <script src="/js/nav.js"></script>
 <script>
 let items = [];
+
+// Buscador de direcciones reales (calle+número -> lat/lon), opcional — sobre todo útil para
+// envíos en coche dentro de la misma isla, donde el precio pasa a depender de la distancia real
+// entre las dos direcciones (ver docs/PRECIO_INTERINSULAR.md). Vía Nominatim/OpenStreetMap.
+const addressCoords = { origin: null, destination: null };
+
+function initAddressSearch(role) {
+  const box = document.querySelector(`.address-search[data-role="${role}"]`);
+  const input = box.querySelector('.address-search-input');
+  const resultsBox = box.querySelector('.address-search-results');
+  const pickedBox = box.querySelector('.address-search-picked');
+  let debounceTimer = null;
+
+  function showPicked(displayName) {
+    input.style.display = 'none';
+    resultsBox.classList.remove('open');
+    resultsBox.innerHTML = '';
+    pickedBox.style.display = 'flex';
+    pickedBox.innerHTML = `<span>📍 ${YQV.escapeHtml(displayName)}</span><button type="button">Quitar</button>`;
+    pickedBox.querySelector('button').addEventListener('click', () => {
+      addressCoords[role] = null;
+      pickedBox.style.display = 'none';
+      input.style.display = '';
+      input.value = '';
+      input.focus();
+    });
+  }
+
+  input.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    const q = input.value.trim();
+    if (q.length < 3) { resultsBox.classList.remove('open'); resultsBox.innerHTML = ''; return; }
+    debounceTimer = setTimeout(async () => {
+      try {
+        const { results } = await YQV.api(`/api/geo/search-address?q=${encodeURIComponent(q)}`, { auth: false });
+        if (!results.length) {
+          resultsBox.innerHTML = '<div class="address-search-result muted">Sin resultados — prueba con más detalle o usa el punto de encuentro genérico de arriba.</div>';
+          resultsBox.classList.add('open');
+          return;
+        }
+        resultsBox.innerHTML = results.map((r, idx) => `<button type="button" class="address-search-result" data-idx="${idx}">${YQV.escapeHtml(r.display_name)}</button>`).join('');
+        resultsBox.classList.add('open');
+        resultsBox.querySelectorAll('.address-search-result[data-idx]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const r = results[Number(btn.dataset.idx)];
+            addressCoords[role] = { lat: r.lat, lon: r.lon };
+            showPicked(r.display_name);
+          });
+        });
+      } catch (err) {
+        resultsBox.innerHTML = '<div class="address-search-result muted">No se ha podido buscar ahora mismo.</div>';
+        resultsBox.classList.add('open');
+      }
+    }, 400);
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!box.contains(e.target)) resultsBox.classList.remove('open');
+  });
+}
+initAddressSearch('origin');
+initAddressSearch('destination');
 
 async function renderIslandOptions() {
   const origin = document.getElementById('origin_island');
@@ -204,6 +281,10 @@ document.getElementById('shipForm').addEventListener('submit', async (e) => {
     notes: document.getElementById('notes').value.trim(),
     truthfulness_accepted: document.getElementById('truthfulness').checked,
     items,
+    origin_lat: addressCoords.origin ? addressCoords.origin.lat : null,
+    origin_lon: addressCoords.origin ? addressCoords.origin.lon : null,
+    destination_lat: addressCoords.destination ? addressCoords.destination.lat : null,
+    destination_lon: addressCoords.destination ? addressCoords.destination.lon : null,
   };
 
   try {
@@ -230,7 +311,7 @@ async function showMatches(shipmentId) {
       <div class="card" style="background:var(--marine-900); color:white;">
         <h3 style="color:white;">Precio orientativo YaQueVas</h3>
         <div class="big-number" style="color:white;" id="priceDisplay">${YQV.fmtEur(price.orientative_price)}</div>
-        <p style="color:#D7E7FA;">Basado en una media de referencia de ${YQV.fmtEur(price.reference_price)} con un ${price.discount_pct}% de descuento orientativo. Puedes ajustarlo hasta un ${data.margen_ajuste_pct ?? 20}% arriba o abajo antes de solicitar.</p>
+        <p style="color:#D7E7FA;">Basado en una media de referencia de ${YQV.fmtEur(price.reference_price)} con un ${price.discount_pct}% de descuento orientativo. Puedes ajustarlo hasta un ${data.margen_ajuste_pct ?? 20}% arriba o abajo antes de solicitar.${price.breakdown.distancia_km != null ? ` Calculado sobre ${price.breakdown.distancia_km} km reales entre las direcciones indicadas.` : ''}</p>
         <input type="range" id="priceSlider" min="${minPrice}" max="${maxPrice}" step="0.5" value="${price.orientative_price}" style="width:100%; margin-top:8px;">
         <div class="row between" style="color:#D7E7FA; font-size:0.8rem;">
           <span>${YQV.fmtEur(minPrice)}</span>
@@ -250,6 +331,7 @@ async function showMatches(shipmentId) {
             <div>
               <strong>${t.origin_island} → ${t.destination_island}</strong> · ${YQV.fmtDate(t.trip_date)} · ${YQV.TRANSPORT_LABELS[t.transport_mode]}
               <div class="muted" style="font-size:0.85rem;">Espacio libre: ${t.status_capacidad.remaining_l} L · ${t.status_capacidad.remaining_kg} kg restantes</div>
+              ${m.precio_orientativo ? `<div style="font-weight:700; margin-top:4px;">${YQV.fmtEur(m.precio_orientativo.orientative_price)}</div>` : ''}
             </div>
             <div class="row">
               <span class="match-score ${cls}">${m.compatibilidad_pct}%</span>

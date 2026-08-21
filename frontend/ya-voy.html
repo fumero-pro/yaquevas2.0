@@ -184,6 +184,7 @@ async function showMatches(tripId) {
             <strong>${s.origin_island} → ${s.destination_island}</strong> · ${YQV.fmtDate(s.desired_date)}
             <div class="muted" style="font-size:0.85rem;">${s.items.length} bulto(s) · ${s.weight_kg} kg · ${s.fragile ? 'Frágil' : 'No frágil'}</div>
             <div style="color:var(--ok); font-weight:700; margin-top:4px;">Puedes ganar +${YQV.fmtEur(m.puedes_ganar)}</div>
+            ${m.distancia_km != null ? `<div class="muted" style="font-size:0.78rem; margin-top:2px;">${m.distancia_km} km · cubre de sobra el combustible real (~${YQV.fmtEur(m.combustible_estimado)})</div>` : ''}
           </div>
           <div class="row">
             <span class="match-score ${cls}">${m.compatibilidad_pct}%</span>

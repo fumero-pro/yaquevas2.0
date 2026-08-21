@@ -4,7 +4,7 @@ const { newId } = require('../lib/auth');
 const { calculateCommission } = require('../lib/commission');
 const { calculateOrientativePrice } = require('../lib/pricing');
 const { getConfig } = require('../lib/config');
-const { itemsToUsage, addUsage, fitsInTrip } = require('../lib/tetris');
+const { addUsage, fitsInTrip } = require('../lib/tetris');
 const { generateQrToken, generateBackupCode, renderQrDataUrl } = require('../lib/qr');
 const { isPaymentsConfigured, createCheckoutSession, createRefund } = require('../lib/payments');
 const { validatePhoto } = require('../lib/photo');
@@ -76,13 +76,17 @@ function register(router, db) {
     }
 
     const config = await getConfig(db);
-    const totalWeight = itemsToUsage(items).kg;
     const price = await calculateOrientativePrice(db, config, {
       originIsland: shipment.origin_island,
       destinationIsland: shipment.destination_island,
-      weightKg: shipment.weight_kg || totalWeight,
+      items,
       fragile: !!shipment.fragile,
       extraLuggage: items.length > 2,
+      transportMode: trip.transport_mode,
+      originLat: shipment.origin_lat,
+      originLon: shipment.origin_lon,
+      destinationLat: shipment.destination_lat,
+      destinationLon: shipment.destination_lon,
     });
     // El remitente puede ajustar el precio orientativo dentro de un margen (+/-30%,
     // y sin salirse del mínimo/máximo configurado) antes de solicitar la operación.

@@ -79,6 +79,155 @@ plataforma de forma proporcional — el precio base y la comisión son variables
 puede seguir ajustando `commission_sender_pct`/`commission_traveler_pct` desde el panel de admin
 si se necesita más margen, sin tocar el precio base que ve el remitente.
 
+## Actualización 2026-08-21: precio por talla, no por kg
+
+Corrección explícita del usuario: **"es por tamaño no por kg"** — el motor cobraba el precio base
+de arriba (12€/8€/45€ según distancia) más un recargo de `price_per_kg_extra` (0,80€/kg) por
+encima de 5kg. Eso es exactamente el modelo de Correos, no el de Sherpa/YaQueVas — y significaba
+que un objeto voluminoso (ej. una tabla de surf, 140L pero solo 8kg) pagaba lo mismo que una
+maleta pequeña de 8kg, pese a ocupar 3× más espacio de la maleta del viajero.
+
+**Cambio aplicado en `backend/src/lib/pricing.js`:** el precio ya no depende del peso declarado.
+Cada talla (S/M/L/XL/XXL/XXXL, mismo catálogo que `tetris.js`/`misc.js`) tiene un multiplicador
+fijo sobre el precio base de la distancia (misma_zona/interinsular/internacional).
+
+**Revisión el mismo día (petición explícita del usuario): "el XL no puede ser más barato que el L,
+copia los precios de Sherpa, haz el negocio muy rentable".** La primera versión de esta tabla
+usaba el *punto medio* de cada banda de Sherpa, lo que en la práctica seguía dejando poco margen.
+Se sustituyó por el **extremo superior** de cada banda real (más rentable, y sigue siendo un precio
+que el mercado ya paga de verdad, no uno inventado):
+
+| Talla | Tipo de bulto | Banda Sherpa (real) | Extremo superior | Multiplicador vs. M |
+|---|---|---|---|---|
+| S | sobre | 4–8 € | 8 € | 0,53× |
+| M | caja_mediana | 8–15 € | 15 € | 1× (ancla) |
+| L | maleta_pequena | 15–30 € | 30 € | 2× |
+| XL | maleta_grande | 30–70 € | 70 € | 4,67× |
+| XXL | objeto_voluminoso | 70–150 € | 150 € | 10× |
+| XXXL | bulto_extra_grande | *(Sherpa no tiene esta talla)* | — | 21× (extrapolado) |
+
+XXXL no existe en Sherpa (YaQueVas la añadió para bultos como equipaje muy voluminoso o un
+electrodoméstico pequeño) — su multiplicador extrapola el mismo ratio de crecimiento que ya se
+observa entre los extremos superiores consecutivos de Sherpa (S→M ×1,88, M→L ×2, L→XL ×2,33,
+XL→XXL ×2,14, media ~2,1×). Es una estimación razonada, no un dato verificado — pendiente de
+contrastar con un proveedor real en cuanto haya volumen en esa talla.
+
+**Precio base por talla M actualizado también:** `misma_zona` 8€→10€, `interinsular` 12€→15€ (el
+extremo superior de la banda M de Sherpa). `internacional` (Cuba) se mantiene en 45€ sin cambios —
+sigue fundamentado aparte frente a DHL (~184€ por 5kg), no derivado de Sherpa.
+
+Con el descuento de baremo (30%), el precio orientativo interinsular por talla queda: S 5,57€ ·
+M 10,50€ · L 21,00€ · XL 49,04€ · XXL 105,00€ · XXXL 220,50€. Internacional (Cuba) llega hasta
+661,50€ en talla XXXL. El precio máximo configurado (`max_price`) se subió de 200€ a **700€** para
+que estas combinaciones grandes/internacionales no se recorten y se pierda el margen que se acaba
+de ganar (ver `backend/src/lib/config.js`).
+
+**Bug real encontrado y corregido al verificar en navegador:** las muestras reales de
+`pricing_reference_samples` (precios de mercado que el admin introduce a mano) devolvían un precio
+plano, ignorando la talla por completo — un fallo que haría que en cuanto hubiera datos reales de
+un proveedor para una ruta, todas las tallas de esa ruta cobrasen lo mismo. Corregido: el precio
+unitario (de muestras reales o de la estimación demo) se multiplica siempre por la talla, nunca al
+revés (ver `referenceUnitPrice` en `pricing.js`).
+
+**Comisión subida de 6%/6% a 10%/10% (20% total)** el mismo día, a petición explícita del usuario,
+con el objetivo de una facturación de referencia de 1,5M€/año — ver el análisis de volumen y la
+comparativa con la comisión real de Uber/Glovo/Deliveroo en `docs/PLAN_RENTABILIDAD.md`.
+
+El campo `price_per_kg_extra` se retiró de `backend/src/lib/config.js` y del panel de admin (ya no
+hacía nada). El peso declarado (`shipment.weight_kg`) se conserva como dato informativo del envío,
+pero ni el precio ni el ajuste de capacidad del viaje (`fitsInTrip`, que ya usaba los bultos
+declarados) dependen de él.
+
+**Importante para quien retome esto:** la base de datos Turso en producción ya tenía filas
+explícitas de `commission_sender_pct`/`commission_traveler_pct` (6/6) y `max_price` (200) desde el
+primer sembrado — cambiar los valores por defecto en el código no actualiza un sitio ya desplegado.
+Hace falta subir estos valores también desde el panel de administración (Comisiones y baremo) tras
+desplegar, o resembrar.
+
+## Actualización 2026-08-21 (más tarde): Cuba por kg + avión/barco + coche entre municipios por distancia real
+
+Tres peticiones explícitas del usuario en la misma sesión:
+
+**1. "A Cuba SI debe ir por kg, creo que cobran unos 18 euros por kg."** La ruta internacional
+(Cuba) deja de usar el precio por talla y pasa a cobrarse por peso real de los bultos declarados
+(`itemsToUsage(items).kg`), a 18€/kg por defecto (`config.internacional_price_per_kg`) — coincide
+con el comparador ya investigado más arriba: un courier especializado en la ruta España-Cuba cobra
+~75-90€ por 5kg (≈15-18€/kg), frente a los ~184€/5kg (≈37€/kg) de DHL. Canarias (misma_zona,
+interinsular) sigue por talla, sin cambios.
+
+**2. "Debemos diferenciar precios de avión y de barco, avión siempre un poco más caro."** Solo
+afecta a la ruta internacional. Recargo del 15% (`config.avion_price_premium_pct`) si
+`transport_mode === 'avion'`, sin recargo en barco. Dentro de Canarias el medio de transporte no
+cambia el precio (ya se probó con un test explícito). El viaje concreto (con su medio de
+transporte ya fijado) se conoce en `bookings.js` y en `/api/matching/for-trip`; en
+`/api/matching/for-shipment` (sin viaje elegido todavía) se muestra el precio "desde" en barco
+como cabecera, y cada match de la lista lleva su propio precio real según el medio de transporte
+de ESE viaje.
+
+**3. "Los coches de la misma isla de despliegue entre los municipios... precio rentable, puede
+haber más movimiento diario."** Investigación real (WebSearch): Moto Envío Madrid cobra desde
+4,5€ por dirección + 0,5€/km fuera de la zona central — tarifa real de mensajería urbana en
+España, no inventada. Aplicado a `misma_zona` (origen y destino en la misma isla): si el envío
+tiene coordenadas reales (buscadas con el nuevo buscador de direcciones, ver más abajo) para
+origen y destino, el precio pasa a ser `(4€ + 0,5€/km × distancia real) × multiplicador de talla`
+en vez del ancla plana de 10€. La distancia se calcula con la fórmula de Haversine (línea recta,
+no ruta real por carretera — documentado como estimación). Sin coordenadas (el remitente no buscó
+una dirección exacta), sigue aplicando el ancla plana de siempre — no rompe envíos existentes ni
+obliga a usar el buscador. **Verificado de extremo a extremo en el navegador real** (no solo con
+tests): un envío de Santa Cruz de Tenerife a Los Cristianos, Arona, dio 65,39km reales (Haversine)
+y un precio de 13,61€ — el cálculo completo, no una simulación.
+
+**Buscador de direcciones reales** (`backend/src/lib/geocode.js`, endpoint público
+`GET /api/geo/search-address`): vía Nominatim/OpenStreetMap, **gratis, sin cuenta que crear**
+(decisión explícita del usuario frente a Google Places, que sí requiere cuenta de Google Cloud con
+facturación). Limitado a España y Cuba (`countrycodes=es,cu`). Respeta la política de uso de
+Nominatim: User-Agent identificando la app, sin geocodificación masiva, atribución
+"© OpenStreetMap contributors" mostrada en la UI. Integrado en `enviar.html` como buscador
+opcional bajo el punto de encuentro genérico de siempre (Aeropuerto/Puerto/Acordar directamente),
+que sigue siendo obligatorio y funcional sin usar el buscador.
+
+**Migración de esquema**: 4 columnas nuevas nullable en `shipments`
+(`origin_lat`/`origin_lon`/`destination_lat`/`destination_lon`), añadidas de forma idempotente en
+`backend/src/migrations/alters.js` — se aplican solas la próxima vez que arranque el servidor
+(incluida la base de datos compartida en Turso), sin necesidad de resembrar.
+
+**Bug real encontrado de paso, no relacionado con lo anterior**: `backend/src/routes/shipments.js`
+tenía su propia lista de tipos de bulto válidos, desactualizada (solo 4 de las 6 tallas) — un
+envío de talla XXL o XXXL (objeto_voluminoso, bulto_extra_grande) fallaba al publicarse con "Tipo
+de bulto no válido", aunque el resto del sistema (tetris.js, misc.js, motor de precios) ya los
+soportaba desde la sesión anterior. Corregido: ahora deriva del mismo catálogo único que usa
+`tetris.js`, para que nunca se vuelvan a desincronizar.
+
+Tests nuevos: 6 en `pricing.test.js` (Cuba por kg, avión más caro que barco, transporte no afecta
+dentro de Canarias, coche por distancia real, fallback sin coordenadas, coordenadas ignoradas en
+interinsular) + 3 en `geocode.test.js` (Haversine). Suite completa: **72/72 en verde.**
+
+## Actualización 2026-08-21 (más tarde todavía): validado contra el coste real de gasolina
+
+Petición explícita del usuario: **"calculando el precio de km, gasolina y demás... para que lo
+haga la gente"** — si el precio por km no deja margen real sobre el coste de conducir, nadie
+acepta estos envíos y toda la pieza de "coche misma isla" no sirve de nada.
+
+Datos reales investigados (WebSearch, no inventados):
+- Gasolina 95 en Canarias, media de agosto 2026: **1,45 €/L** (Canarias7, Moncloa/Istac).
+- Consumo medio de un coche en España: **7,2 L/100km** (cifra general citada en prensa del motor).
+- Coste real de gasolina ≈ 1,45 × 7,2 ÷ 100 ≈ **0,10 €/km**.
+
+Con el precio ya fijado (0,50€/km antes de descuento) el viajero cobra, tras el 30% de descuento
+y la comisión del 10%, unos **0,315€/km netos** — más de 3 veces el coste real de gasolina. La
+tarifa de mensajería urbana que ya se había usado como referencia (Moto Envío Madrid) resulta,
+sin haberlo buscado a propósito, dejar un margen real generoso — no solo cubre el depósito, deja
+para el tiempo y el desgaste del coche. Nuevo config `misma_zona_fuel_cost_per_km` (0,10€ por
+defecto) — es solo una referencia para mostrar el margen, nunca determina el precio cobrado.
+
+**Mostrado ahora también al viajero**, no solo calculado internamente: en `ya-voy.html`
+("Puedes ganar +X€"), cada envío compatible en coche dentro de la misma isla muestra además
+"X km · cubre de sobra el combustible real (~Y€)" — transparencia activa, no solo un número, para
+que el viajero vea por qué le compensa aceptar.
+
+Test nuevo: verifica que el neto del viajero sea más del doble del coste real de gasolina estimado
+para la ruta Santa Cruz de Tenerife → Los Cristianos (~65km). Suite completa: **73/73 en verde.**
+
 ## Qué NO se verificó (honestidad, no se inventó)
 
 Tarifas 2026 de MRW/SEUR para interinsular Canarias, exceso de peso por kg de Binter en vuelos

@@ -122,17 +122,16 @@ async function loadConfig() {
     panel.innerHTML = `
       <div class="card">
         <h3>Comisiones y baremo</h3>
-        <p class="muted">La comisión total de YaQueVas es la suma de ambos porcentajes. Por defecto 6% + 6% = 12%.</p>
+        <p class="muted">La comisión total de YaQueVas es la suma de ambos porcentajes. Por defecto 10% + 10% = 20%.</p>
         <div class="field-row cols-2">
           <div><label class="first">Comisión al remitente (%)</label><input id="cfg_commission_sender_pct" type="number" step="0.1" value="${config.commission_sender_pct}"></div>
           <div><label class="first">Comisión al viajero (%)</label><input id="cfg_commission_traveler_pct" type="number" step="0.1" value="${config.commission_traveler_pct}"></div>
         </div>
         <div class="field-row cols-2">
           <div><label class="first">Descuento del baremo (%)</label><input id="cfg_baremo_discount_pct" type="number" step="1" value="${config.baremo_discount_pct}"></div>
-          <div><label class="first">Recargo por kg extra (€)</label><input id="cfg_price_per_kg_extra" type="number" step="0.1" value="${config.price_per_kg_extra}"></div>
+          <div><label class="first">Precio mínimo (€)</label><input id="cfg_min_price" type="number" step="1" value="${config.min_price}"></div>
         </div>
         <div class="field-row cols-2">
-          <div><label class="first">Precio mínimo (€)</label><input id="cfg_min_price" type="number" step="1" value="${config.min_price}"></div>
           <div><label class="first">Precio máximo (€)</label><input id="cfg_max_price" type="number" step="1" value="${config.max_price}"></div>
         </div>
         <div class="field-row cols-2">
@@ -156,7 +155,7 @@ async function loadConfig() {
     `;
     document.getElementById('saveConfigBtn').addEventListener('click', async () => {
       const body = {};
-      ['commission_sender_pct','commission_traveler_pct','baremo_discount_pct','price_per_kg_extra','min_price','max_price','fragile_surcharge','extra_luggage_surcharge','price_adjustment_margin_pct']
+      ['commission_sender_pct','commission_traveler_pct','baremo_discount_pct','min_price','max_price','fragile_surcharge','extra_luggage_surcharge','price_adjustment_margin_pct']
         .forEach(k => body[k] = document.getElementById(`cfg_${k}`).value);
       try { await YQV.api('/api/admin/config', { method: 'PUT', body }); YQV.toast('Configuración guardada.', 'ok'); }
       catch (err) { YQV.toast(err.message, 'error'); }
