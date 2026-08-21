@@ -46,6 +46,7 @@ if (!YQV.requireLoginOrRedirect()) { /* redirige */ }
 
 async function load() {
   const user = YQV.getUser();
+  if (!user) return; // no autenticado: requireLoginOrRedirect ya está navegando a login.html
   document.getElementById('greeting').textContent = `Hola, ${user.name}`;
 
   try {
