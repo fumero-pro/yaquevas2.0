@@ -139,27 +139,31 @@ async function loadConfig() {
           <div><label class="first">Recargo frágil (€)</label><input id="cfg_fragile_surcharge" type="number" step="0.5" value="${config.fragile_surcharge}"></div>
           <div><label class="first">Recargo equipaje extra (€)</label><input id="cfg_extra_luggage_surcharge" type="number" step="0.5" value="${config.extra_luggage_surcharge}"></div>
         </div>
+        <div class="field-row cols-2">
+          <div><label class="first">Margen de ajuste del precio (%, patrón Sherpa)</label><input id="cfg_price_adjustment_margin_pct" type="number" step="1" min="0" max="100" value="${config.price_adjustment_margin_pct}"></div>
+        </div>
+        <p class="field-hint">Cuánto puede subir o bajar el remitente el precio orientativo con la barra deslizable antes de solicitar una operación (hoy ±${config.price_adjustment_margin_pct}%).</p>
         <button class="btn btn-primary" id="saveConfigBtn" style="margin-top:14px;">Guardar cambios</button>
       </div>
       <div class="card" style="margin-top:16px;">
         <h3>Programa de referidos</h3>
-        <p class="muted">Lo que gana cada parte (quien invita y quien es invitado) cuando el invitado completa su primera operación real. Nunca se paga solo por registrarse — ver docs/VIRALIDAD_REFERIDOS.md.</p>
+        <p class="muted">Descuento en la comisión de la PRÓXIMA operación de cada parte (quien invita y quien es invitado) cuando el invitado completa su primera operación real. No es dinero en efectivo — no hay forma de pagar a un usuario sin Stripe Connect. Nunca se concede solo por registrarse — ver docs/VIRALIDAD_REFERIDOS.md.</p>
         <div class="field-row cols-2">
-          <div><label class="first">Recompensa por referido (€, cada parte)</label><input id="cfg_referral_reward_eur" type="number" step="0.5" value="${config.referral_reward_eur}"></div>
+          <div><label class="first">Descuento por referido (%, cada parte)</label><input id="cfg_referral_reward_pct" type="number" step="0.5" min="0" max="100" value="${config.referral_reward_pct}"></div>
         </div>
         <button class="btn btn-primary" id="saveReferralConfigBtn" style="margin-top:14px;">Guardar cambios</button>
       </div>
     `;
     document.getElementById('saveConfigBtn').addEventListener('click', async () => {
       const body = {};
-      ['commission_sender_pct','commission_traveler_pct','baremo_discount_pct','price_per_kg_extra','min_price','max_price','fragile_surcharge','extra_luggage_surcharge']
+      ['commission_sender_pct','commission_traveler_pct','baremo_discount_pct','price_per_kg_extra','min_price','max_price','fragile_surcharge','extra_luggage_surcharge','price_adjustment_margin_pct']
         .forEach(k => body[k] = document.getElementById(`cfg_${k}`).value);
       try { await YQV.api('/api/admin/config', { method: 'PUT', body }); YQV.toast('Configuración guardada.', 'ok'); }
       catch (err) { YQV.toast(err.message, 'error'); }
     });
     document.getElementById('saveReferralConfigBtn').addEventListener('click', async () => {
       try {
-        await YQV.api('/api/admin/config', { method: 'PUT', body: { referral_reward_eur: document.getElementById('cfg_referral_reward_eur').value } });
+        await YQV.api('/api/admin/config', { method: 'PUT', body: { referral_reward_pct: document.getElementById('cfg_referral_reward_pct').value } });
         YQV.toast('Configuración guardada.', 'ok');
       } catch (err) { YQV.toast(err.message, 'error'); }
     });

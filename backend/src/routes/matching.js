@@ -24,6 +24,7 @@ function register(router, db) {
     res.json({
       matches: matches.map((m) => ({ trip: serializeTrip(m.trip), compatibilidad_pct: m.score })),
       precio_orientativo: price,
+      margen_ajuste_pct: Number(config.price_adjustment_margin_pct ?? 20),
     });
   });
 

@@ -79,6 +79,19 @@ const YQV = (() => {
     }</optgroup>`).join('');
   }
 
+  // Punto de encuentro para recogida/entrega: vocabulario fijo (antes texto libre) para que el
+  // motor de matching pueda comparar con fiabilidad (ver lib/matching.js, bonus por localidad
+  // exacta) y para que la persona no tenga que escribir una dirección a mano.
+  const MEETING_POINTS = [
+    { value: 'Aeropuerto', label: 'Aeropuerto' },
+    { value: 'Puerto', label: 'Puerto' },
+    { value: 'Acordar punto', label: 'Acordar punto directamente con la otra persona' },
+  ];
+  function meetingPointOptionsHtml() {
+    return `<option value="" disabled selected>Selecciona una opción...</option>` +
+      MEETING_POINTS.map((m) => `<option value="${escapeHtml(m.value)}">${escapeHtml(m.label)}</option>`).join('');
+  }
+
   // Rellena uno o varios <select> con el catálogo real (islas de Canarias + provincias de
   // Cuba, agrupadas por país). append=true conserva las <option> ya presentes en el HTML
   // (p.ej. un "Todas" inicial en los filtros de búsqueda).
@@ -112,6 +125,27 @@ const YQV = (() => {
   function fmtDateTime(d) {
     try { return new Date(d).toLocaleString('es-ES'); } catch { return d; }
   }
+
+  // Activa el botón de "ojo" (mostrar/ocultar) en cualquier <input type="password"> envuelto en
+  // .password-field con un <button class="password-toggle" data-toggle-for="ID">. Se ejecuta sola
+  // en DOMContentLoaded, igual que YQVIcons.hydrate(), así que las páginas solo necesitan el HTML.
+  function initPasswordToggles(root = document) {
+    root.querySelectorAll('.password-toggle[data-toggle-for]').forEach((btn) => {
+      const input = document.getElementById(btn.getAttribute('data-toggle-for'));
+      if (!input || typeof YQVIcons === 'undefined') return;
+      const render = () => {
+        const hidden = input.type === 'password';
+        btn.innerHTML = YQVIcons.svg(hidden ? 'eye' : 'eyeOff', { size: 18 });
+        btn.setAttribute('aria-label', hidden ? 'Mostrar contraseña' : 'Ocultar contraseña');
+      };
+      btn.addEventListener('click', () => {
+        input.type = input.type === 'password' ? 'text' : 'password';
+        render();
+      });
+      render();
+    });
+  }
+  document.addEventListener('DOMContentLoaded', () => initPasswordToggles());
 
   // Escapa contenido de usuario antes de interpolarlo en innerHTML (evita XSS almacenado).
   function escapeHtml(str) {
@@ -195,5 +229,6 @@ const YQV = (() => {
     api, getToken, getUser, setSession, clearSession, isLoggedIn, isAdmin,
     ISLANDS, TRANSPORT_LABELS, STATUS_LABELS, fmtEur, fmtDate, fmtDateTime, el, toast, share, escapeHtml,
     requireLoginOrRedirect, fetchLocationGroups, locationOptionsHtml, populateLocationSelects, routeMini,
+    MEETING_POINTS, meetingPointOptionsHtml, initPasswordToggles,
   };
 })();

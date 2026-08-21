@@ -20,13 +20,19 @@
 
 <section class="hero">
   <div class="container">
-    <span class="hero-eyebrow">Islas Canarias · crowdshipping entre personas</span>
-    <h1>Ya que vas,<br>gana.</h1>
+    <span class="hero-eyebrow">Islas Canarias</span>
+    <p class="hero-explainer">¿Qué es YaQueVas? Alguien que ya va a viajar te lleva tu paquete en su maleta, en vez de una empresa de paquetería. A cambio, gana algo de dinero por el favor.</p>
+    <h1>Ya que vas,<br><span id="heroRotator" class="hero-rotator">gana.</span></h1>
     <p class="lead">El viajero gana por aprovechar un trayecto que ya tenía. El remitente ahorra por no tener que hacerlo él. <a href="/como-funciona.html" class="link-on-dark">¿Cómo funciona?</a></p>
     <p class="hero-sublead">Ya que alguien va, ahorra tú.</p>
     <div class="hero-ctas">
       <a href="/ya-voy.html" class="btn btn-primary btn-lg">YA QUE VOY — GANA</a>
       <a href="/enviar.html" class="btn btn-lg btn-on-dark">YA QUE NECESITO — AHORRA</a>
+    </div>
+    <div class="hero-trust">
+      <span><span data-yqv-icon="shield" data-yqv-icon-size="16"></span> Tu dinero, retenido hasta que confirmes la entrega</span>
+      <span><span data-yqv-icon="userCheck" data-yqv-icon-size="16"></span> Personas verificadas, con valoraciones reales</span>
+      <span><span data-yqv-icon="eye" data-yqv-icon-size="16"></span> Ves quién es y qué lleva antes de aceptar nada</span>
     </div>
     <button type="button" id="downloadAppBtn" class="btn btn-outline btn-download"><span data-yqv-icon="phone" data-yqv-icon-size="16"></span> Descargar app (próximamente)</button>
   </div>
@@ -102,6 +108,30 @@
     </div>
     <div class="center" style="margin-top:28px;">
       <a href="/como-funciona.html" class="btn btn-outline">Ver cómo funciona en detalle</a>
+    </div>
+  </div>
+</section>
+
+<section class="section section-tinted">
+  <div class="container">
+    <h2>Tu envío, protegido de principio a fin</h2>
+    <p class="lead section-lead">Es normal tener dudas la primera vez que le confías algo a un desconocido. Así evitamos que salga mal:</p>
+    <div class="card-grid cols-3">
+      <div class="card">
+        <span data-yqv-icon="shield" data-yqv-icon-size="24" style="color:var(--teal-dark);"></span>
+        <h3 style="margin-top:10px;">El dinero espera hasta la entrega</h3>
+        <p>El remitente paga al aceptar, pero ese dinero se queda retenido por YaQueVas. El viajero no lo cobra hasta que se confirma que el paquete ha llegado, con un código de un solo uso.</p>
+      </div>
+      <div class="card">
+        <span data-yqv-icon="userCheck" data-yqv-icon-size="24" style="color:var(--teal-dark);"></span>
+        <h3 style="margin-top:10px;">Sabes con quién tratas</h3>
+        <p>Perfil, valoraciones de otras personas y verificación de identidad antes de aceptar cualquier envío. Nada de quedar con un desconocido a ciegas.</p>
+      </div>
+      <div class="card">
+        <span data-yqv-icon="eye" data-yqv-icon-size="24" style="color:var(--teal-dark);"></span>
+        <h3 style="margin-top:10px;">Nada de sorpresas</h3>
+        <p>El viajero ve qué va a llevar (descripción, peso, fotos) antes de decir que sí. Si algo no le convence, simplemente no lo acepta.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -222,6 +252,23 @@
 document.getElementById('downloadAppBtn').addEventListener('click', () => {
   YQV.toast('La app para Android e iPhone está en desarrollo. De momento, usa la web — funciona igual de bien en el móvil.', 'info');
 });
+
+// Juego de palabras en la cabecera: "Ya que vas," se queda fija, lo de después va cambiando
+// entre el beneficio (gana) y peticiones directas (llévame esto...) para que enganche más.
+(() => {
+  const phrases = ['gana.', 'llévame esto.', 'tráeme esto.', 'alcánzame esto.', 'gana tú también.'];
+  const el = document.getElementById('heroRotator');
+  if (!el || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  let i = 0;
+  setInterval(() => {
+    i = (i + 1) % phrases.length;
+    el.classList.add('is-swapping');
+    setTimeout(() => {
+      el.textContent = phrases[i];
+      el.classList.remove('is-swapping');
+    }, 220);
+  }, 2600);
+})();
 
 (async () => {
   const tripsBox = document.getElementById('homeTripsBox');

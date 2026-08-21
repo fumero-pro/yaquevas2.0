@@ -2,7 +2,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { createTestDb } = require('./helpers/testDb');
-const { generateReferralCode, resolveReferrer, awardReferralIfEligible } = require('../src/lib/referral');
+const { generateReferralCode, resolveReferrer, awardReferralIfEligible, peekAvailableDiscount, consumeDiscountCredit } = require('../src/lib/referral');
 
 function insertUser(db, id, { referredBy = null } = {}) {
   db.prepare(
@@ -51,7 +51,7 @@ test('resolveReferrer devuelve null si el código no existe', () => {
   assert.equal(resolveReferrer(db, null), null);
 });
 
-test('la primera operación completada de un usuario referido paga a ambas partes', () => {
+test('la primera operación completada de un usuario referido concede descuento a ambas partes', () => {
   const db = createTestDb();
   insertUser(db, 'usr_referrer');
   insertUser(db, 'usr_referred', { referredBy: 'usr_referrer' });
@@ -61,14 +61,16 @@ test('la primera operación completada de un usuario referido paga a ambas parte
   const reward = awardReferralIfEligible(db, 'usr_referred', 'book_1');
   assert.ok(reward);
   assert.equal(reward.referrer.id, 'usr_referrer');
-  assert.equal(reward.amount, 5); // valor por defecto de referral_reward_eur
+  assert.equal(reward.discountPct, 5); // valor por defecto de referral_reward_pct
 
   const row = db.prepare('SELECT * FROM referral_rewards WHERE referred_id = ?').get('usr_referred');
   assert.equal(row.referrer_id, 'usr_referrer');
-  assert.equal(row.status, 'pagado');
+  assert.equal(row.discount_pct, 5);
+  assert.equal(row.referrer_redeemed, 0);
+  assert.equal(row.referred_redeemed, 0);
 });
 
-test('no paga nada si el usuario no fue referido por nadie', () => {
+test('no concede nada si el usuario no fue referido por nadie', () => {
   const db = createTestDb();
   insertUser(db, 'usr_solo');
   insertUser(db, 'usr_other');
@@ -78,7 +80,7 @@ test('no paga nada si el usuario no fue referido por nadie', () => {
   assert.equal(reward, null);
 });
 
-test('no vuelve a pagar en la segunda operación completada del mismo referido', () => {
+test('no vuelve a conceder en la segunda operación completada del mismo referido', () => {
   const db = createTestDb();
   insertUser(db, 'usr_referrer');
   insertUser(db, 'usr_referred', { referredBy: 'usr_referrer' });
@@ -97,4 +99,32 @@ test('no vuelve a pagar en la segunda operación completada del mismo referido',
 
   const count = db.prepare('SELECT COUNT(*) AS n FROM referral_rewards WHERE referred_id = ?').get('usr_referred').n;
   assert.equal(count, 1);
+});
+
+test('peekAvailableDiscount y consumeDiscountCredit: el referido ve y canjea su descuento sin gastar el del referidor', () => {
+  const db = createTestDb();
+  insertUser(db, 'usr_referrer');
+  insertUser(db, 'usr_referred', { referredBy: 'usr_referrer' });
+  insertUser(db, 'usr_other');
+  insertCompletedBooking(db, { id: 'book_5', senderId: 'usr_referred', travelerId: 'usr_other' });
+  awardReferralIfEligible(db, 'usr_referred', 'book_5');
+
+  assert.equal(peekAvailableDiscount(db, 'usr_referred'), 5);
+  assert.equal(peekAvailableDiscount(db, 'usr_referrer'), 5);
+
+  const consumed = consumeDiscountCredit(db, 'usr_referred', 'book_6');
+  assert.equal(consumed, 5);
+  assert.equal(peekAvailableDiscount(db, 'usr_referred'), null); // ya lo gastó
+
+  // El referidor todavía no ha canjeado el suyo — su lado de la misma fila sigue disponible.
+  assert.equal(peekAvailableDiscount(db, 'usr_referrer'), 5);
+  const consumedByReferrer = consumeDiscountCredit(db, 'usr_referrer', 'book_7');
+  assert.equal(consumedByReferrer, 5);
+  assert.equal(peekAvailableDiscount(db, 'usr_referrer'), null);
+});
+
+test('consumeDiscountCredit devuelve null si no hay nada que canjear', () => {
+  const db = createTestDb();
+  insertUser(db, 'usr_solo');
+  assert.equal(consumeDiscountCredit(db, 'usr_solo', 'book_x'), null);
 });

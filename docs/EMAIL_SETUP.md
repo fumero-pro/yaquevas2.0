@@ -52,11 +52,15 @@ pero **no se ha podido probar contra una cuenta real** durante su desarrollo —
 crear la cuenta desde este entorno. Confírmalo tú mismo con los pasos de arriba antes de confiar
 en que llegan emails reales a usuarios de verdad.
 
-## Lo que falta (no cubierto todavía)
+## Qué se envía (actualizado 2026-08-21)
 
-Se envían dos emails reales: bienvenida al registrarse, y recuperación de contraseña
-(`/recuperar.html` → `/restablecer.html`, ya implementado y probado). Pendiente, por prioridad, si
-se quiere ampliar: email cuando se acepta/paga/entrega una operación (ya existen como notificación
-interna en `notify()`, solo falta enviarlas también por email si `notif_prefs.email` del usuario
-está activo), y verificación de email con enlace de confirmación (`users.email_verified` existe en
-la base de datos pero no se usa activamente todavía).
+- Bienvenida al registrarse, con enlace de confirmación de email incluido (`/verificar-email.html`,
+  `users.email_verified` ya se marca de verdad al confirmarlo — antes existía la columna pero no
+  se usaba).
+- Recuperación de contraseña (`/recuperar.html` → `/restablecer.html`).
+- **Toda notificación interna** (aceptación, pago, recogida, entrega, pago liberado, recompensa de
+  referido...) se envía también por email si el usuario tiene `notif_prefs.email` activo —
+  centralizado en `backend/src/lib/notify.js`, usado por `routes/bookings.js` y `routes/chat.js`.
+
+Ver también `docs/SMS_SETUP.md` para la confirmación de teléfono por SMS (Twilio), mismo patrón de
+"simulado sin configurar, real con las variables de entorno puestas".

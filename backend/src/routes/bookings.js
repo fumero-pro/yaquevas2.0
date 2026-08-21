@@ -8,7 +8,8 @@ const { itemsToUsage, addUsage, fitsInTrip } = require('../lib/tetris');
 const { generateQrToken, generateBackupCode, renderQrDataUrl } = require('../lib/qr');
 const { isPaymentsConfigured, createCheckoutSession, createRefund } = require('../lib/payments');
 const { validatePhoto } = require('../lib/photo');
-const { awardReferralIfEligible } = require('../lib/referral');
+const { awardReferralIfEligible, consumeDiscountCredit } = require('../lib/referral');
+const { notify } = require('../lib/notify');
 const { serializeTrip } = require('./trips');
 const { serializeShipment } = require('./shipments');
 
@@ -34,13 +35,6 @@ function serializeBooking(b) {
     delivered_at: b.delivered_at,
     created_at: b.created_at,
   };
-}
-
-function notify(db, userId, type, title, bodyText, relatedId) {
-  db.prepare(
-    `INSERT INTO notifications (id, user_id, type, title, body, related_type, related_id, created_at)
-     VALUES (?, ?, ?, ?, ?, 'booking', ?, ?)`
-  ).run(newId('notif'), userId, type, title, bodyText || '', relatedId || null, new Date().toISOString());
 }
 
 // Compartida entre el pago simulado (modo demo) y el webhook real de Stripe
@@ -98,18 +92,33 @@ function register(router, db) {
       if (!Number.isFinite(proposed) || proposed <= 0) {
         return res.status(400).json({ error: 'El precio propuesto no es válido.' });
       }
-      const minAllowed = Math.max(Number(config.min_price ?? 5), price.orientative_price * 0.7);
-      const maxAllowed = Math.min(Number(config.max_price ?? 200), price.orientative_price * 1.3);
+      // Margen configurable (panel de admin, patrón Sherpa) en vez de un ±30% fijo — ver
+      // config.price_adjustment_margin_pct. El frontend (enviar.html) lee el mismo valor desde
+      // /api/matching/for-shipment/:id para que la barra deslizable nunca se desincronice de
+      // este límite real del servidor.
+      const marginFraction = Number(config.price_adjustment_margin_pct ?? 20) / 100;
+      const minAllowed = Math.max(Number(config.min_price ?? 5), price.orientative_price * (1 - marginFraction));
+      const maxAllowed = Math.min(Number(config.max_price ?? 200), price.orientative_price * (1 + marginFraction));
       finalPrice = Math.min(maxAllowed, Math.max(minAllowed, proposed));
     }
 
-    const commission = calculateCommission(
-      finalPrice,
-      Number(config.commission_sender_pct),
-      Number(config.commission_traveler_pct)
-    );
-
     const id = newId('book');
+
+    // Descuento de referidos (ver docs/VIRALIDAD_REFERIDOS.md): si el remitente o el viajero
+    // tienen un descuento pendiente de canjear (por haber invitado a alguien, o por haber sido
+    // invitados), se resta de SU lado de la comisión en esta operación — nunca del precio base,
+    // así el otro lado de la operación no se ve afectado por un descuento que no le corresponde.
+    // Se canjea aquí, no antes, para no gastarlo si esta operación termina no completándose.
+    let senderCommissionPct = Number(config.commission_sender_pct);
+    const senderDiscount = consumeDiscountCredit(db, shipment.sender_id, id);
+    if (senderDiscount) senderCommissionPct = Math.max(0, senderCommissionPct - senderDiscount);
+
+    let travelerCommissionPct = Number(config.commission_traveler_pct);
+    const travelerDiscount = consumeDiscountCredit(db, trip.user_id, id);
+    if (travelerDiscount) travelerCommissionPct = Math.max(0, travelerCommissionPct - travelerDiscount);
+
+    const commission = calculateCommission(finalPrice, senderCommissionPct, travelerCommissionPct);
+
     const now = new Date().toISOString();
     db.prepare(
       `INSERT INTO bookings (id, shipment_id, trip_id, sender_id, traveler_id, base_price,
@@ -311,10 +320,10 @@ function register(router, db) {
     for (const uid of [booking.sender_id, booking.traveler_id]) {
       const reward = awardReferralIfEligible(db, uid, booking.id);
       if (reward) {
-        notify(db, reward.referrer.id, 'recompensa_referido', `Has ganado ${reward.amount} €`,
-          `${reward.referred.name} completó su primera operación en YaQueVas gracias a tu invitación.`, booking.id);
-        notify(db, reward.referred.id, 'recompensa_referido', `Has ganado ${reward.amount} € por tu primera operación`,
-          `Como es tu primera operación completada, tú y quien te invitó ganáis ${reward.amount} € cada uno.`, booking.id);
+        notify(db, reward.referrer.id, 'recompensa_referido', `Has ganado un ${reward.discountPct}% de descuento`,
+          `${reward.referred.name} completó su primera operación en YaQueVas gracias a tu invitación. Tienes un ${reward.discountPct}% de descuento en la comisión de tu próxima operación.`, booking.id);
+        notify(db, reward.referred.id, 'recompensa_referido', `Has ganado un ${reward.discountPct}% de descuento`,
+          `Como es tu primera operación completada, tú y quien te invitó tenéis un ${reward.discountPct}% de descuento en la comisión de vuestra próxima operación.`, booking.id);
       }
     }
 

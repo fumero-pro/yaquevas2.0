@@ -1,15 +1,9 @@
 'use strict';
 const { requireAuth } = require('../middleware/auth');
 const { newId } = require('../lib/auth');
+const { notify } = require('../lib/notify');
 
 const ACTION_TYPES = ['ubicacion', 'hora', 'ver_viaje', 'ver_envio'];
-
-function notify(db, userId, type, title, bodyText, relatedId) {
-  db.prepare(
-    `INSERT INTO notifications (id, user_id, type, title, body, related_type, related_id, created_at)
-     VALUES (?, ?, ?, ?, ?, 'booking', ?, ?)`
-  ).run(newId('notif'), userId, type, title, bodyText || '', relatedId || null, new Date().toISOString());
-}
 
 function serializeMessage(m) {
   return {

@@ -32,8 +32,8 @@
           <div><label class="first">Isla de destino</label><select id="destination_island" required></select></div>
         </div>
         <div class="field-row cols-2">
-          <div><label>Localidad de origen</label><input id="origin_place" placeholder="Ej. Santa Cruz de Tenerife"></div>
-          <div><label>Localidad de destino</label><input id="destination_place" placeholder="Ej. Las Palmas de Gran Canaria"></div>
+          <div><label>Punto de recogida</label><select id="origin_place" required></select></div>
+          <div><label>Punto de entrega</label><select id="destination_place" required></select></div>
         </div>
         <div class="field-row cols-3">
           <div><label class="first">Fecha</label><input id="trip_date" type="date" required></div>
@@ -86,6 +86,8 @@ async function renderIslandOptions() {
   const canarias = groups.find(g => g.country.id === 'ES');
   if (canarias && canarias.locations[0]) origin.value = canarias.locations[0].name;
   if (canarias && canarias.locations[1]) destination.value = canarias.locations[1].name;
+  document.getElementById('origin_place').innerHTML = YQV.meetingPointOptionsHtml();
+  document.getElementById('destination_place').innerHTML = YQV.meetingPointOptionsHtml();
 }
 renderIslandOptions();
 {

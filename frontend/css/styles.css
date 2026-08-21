@@ -260,9 +260,24 @@ strong { color: var(--marine-900); }
   color: var(--sun); font-weight: 700; margin-bottom: 14px;
 }
 .hero h1 { color: white; max-width: 780px; }
+.hero-rotator {
+  display: inline-block; color: var(--sun); transition: opacity 0.22s ease, transform 0.22s ease;
+}
+.hero-rotator.is-swapping { opacity: 0; transform: translateY(8px); }
 .hero .lead { color: #D7E7FA; font-size: 1.15rem; max-width: 560px; }
+.hero-explainer {
+  color: white; font-size: 1.05rem; font-weight: 600; line-height: 1.5; max-width: 640px;
+  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18);
+  border-radius: var(--radius-md); padding: 14px 18px; margin: 0 0 20px;
+}
 .hero-ctas { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 28px; }
 .hero-ctas .btn { min-width: 240px; }
+.hero-trust {
+  display: flex; gap: 20px; flex-wrap: wrap; margin-top: 22px;
+  font-size: 0.86rem; color: #D7E7FA;
+}
+.hero-trust span { display: inline-flex; align-items: center; gap: 7px; }
+.hero-trust .yqv-icon { color: var(--sun); flex-shrink: 0; }
 
 /* ---------- Tarjetas ---------- */
 .card {
@@ -304,6 +319,15 @@ input:focus, select:focus, textarea:focus {
   outline: 2px solid var(--teal); outline-offset: 1px; border-color: var(--teal);
 }
 .field-hint { font-size: 0.8rem; color: var(--ash-400); margin-top: 4px; }
+.password-field { position: relative; }
+.password-field input { padding-right: 44px; }
+.password-toggle {
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+  width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+  background: none; border: none; border-radius: var(--radius-sm); color: var(--ash-400); cursor: pointer; padding: 0;
+}
+.password-toggle:hover { color: var(--marine-800); background: var(--mist-100); }
+.password-toggle:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
 .field-row { display: grid; gap: 14px; }
 @media (min-width: 640px) { .field-row.cols-2 { grid-template-columns: repeat(2, 1fr); } }
 @media (min-width: 640px) { .field-row.cols-3 { grid-template-columns: repeat(3, 1fr); } }

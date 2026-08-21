@@ -45,8 +45,8 @@
           </div>
         </div>
         <div class="field-row cols-2">
-          <div><label>Localidad de origen</label><input id="origin_place" placeholder="Ej. Santa Cruz de Tenerife"></div>
-          <div><label>Localidad de destino</label><input id="destination_place" placeholder="Ej. Las Palmas de Gran Canaria"></div>
+          <div><label>Punto de recogida</label><select id="origin_place" required></select></div>
+          <div><label>Punto de entrega</label><select id="destination_place" required></select></div>
         </div>
         <label>Fecha deseada</label>
         <input id="desired_date" type="date" required>
@@ -110,6 +110,8 @@ async function renderIslandOptions() {
   const canarias = groups.find(g => g.country.id === 'ES');
   if (canarias && canarias.locations[0]) origin.value = canarias.locations[0].name;
   if (canarias && canarias.locations[1]) destination.value = canarias.locations[1].name;
+  document.getElementById('origin_place').innerHTML = YQV.meetingPointOptionsHtml();
+  document.getElementById('destination_place').innerHTML = YQV.meetingPointOptionsHtml();
 }
 
 function renderItems() {
@@ -219,13 +221,14 @@ async function showMatches(shipmentId) {
   try {
     const data = await YQV.api(`/api/matching/for-shipment/${shipmentId}`, { auth: false });
     const price = data.precio_orientativo;
-    const minPrice = Math.round(price.orientative_price * 0.7 * 100) / 100;
-    const maxPrice = Math.round(price.orientative_price * 1.3 * 100) / 100;
+    const marginFraction = (data.margen_ajuste_pct ?? 20) / 100;
+    const minPrice = Math.round(price.orientative_price * (1 - marginFraction) * 100) / 100;
+    const maxPrice = Math.round(price.orientative_price * (1 + marginFraction) * 100) / 100;
     let html = `
       <div class="card" style="background:var(--marine-900); color:white;">
         <h3 style="color:white;">Precio orientativo YaQueVas</h3>
         <div class="big-number" style="color:white;" id="priceDisplay">${YQV.fmtEur(price.orientative_price)}</div>
-        <p style="color:#D7E7FA;">Basado en una media de referencia de ${YQV.fmtEur(price.reference_price)} con un ${price.discount_pct}% de descuento orientativo. Este precio es orientativo: puedes ajustarlo antes de solicitar.</p>
+        <p style="color:#D7E7FA;">Basado en una media de referencia de ${YQV.fmtEur(price.reference_price)} con un ${price.discount_pct}% de descuento orientativo. Puedes ajustarlo hasta un ${data.margen_ajuste_pct ?? 20}% arriba o abajo antes de solicitar.</p>
         <input type="range" id="priceSlider" min="${minPrice}" max="${maxPrice}" step="0.5" value="${price.orientative_price}" style="width:100%; margin-top:8px;">
         <div class="row between" style="color:#D7E7FA; font-size:0.8rem;">
           <span>${YQV.fmtEur(minPrice)}</span>

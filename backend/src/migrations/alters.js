@@ -44,6 +44,39 @@ const ALTERS = [
     used INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL
   )`,
+  // Confirmación de cuenta por email (enlace) y teléfono (código SMS) — ver lib/emailVerification.js
+  // y lib/phoneVerification.js. `users.email_verified`/`phone_verified` ya existían desde el
+  // inicio pero nunca se marcaban a 1 fuera del seed de demo; estas tablas son lo que faltaba.
+  `CREATE TABLE IF NOT EXISTS email_verifications (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id),
+    token_hash TEXT NOT NULL UNIQUE,
+    expires_at TEXT NOT NULL,
+    used INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS phone_verifications (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id),
+    phone TEXT NOT NULL,
+    code_hash TEXT NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    expires_at TEXT NOT NULL,
+    used INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+  )`,
+  // Recompensa de referidos pasa de "dinero en efectivo" (nunca implementado de verdad, no hay
+  // forma de pagar a un usuario sin Stripe Connect) a "descuento en la comisión de la próxima
+  // operación" — pedido explícito del usuario ("como pago 5 euros a la gente? mejor un
+  // descuento"). amount_eur se mantiene en el esquema (NOT NULL) por compatibilidad con filas
+  // ya existentes, pero deja de usarse: la recompensa real ahora vive en discount_pct.
+  // referrer_redeemed/referred_redeemed van por separado porque una misma fila beneficia a DOS
+  // personas (quien invitó y quien fue invitado) que canjean su descuento en momentos distintos.
+  'ALTER TABLE referral_rewards ADD COLUMN discount_pct REAL',
+  'ALTER TABLE referral_rewards ADD COLUMN referrer_redeemed INTEGER NOT NULL DEFAULT 0',
+  'ALTER TABLE referral_rewards ADD COLUMN referred_redeemed INTEGER NOT NULL DEFAULT 0',
+  'ALTER TABLE referral_rewards ADD COLUMN referrer_redeemed_booking_id TEXT',
+  'ALTER TABLE referral_rewards ADD COLUMN referred_redeemed_booking_id TEXT',
 ];
 
 function applyAlters(db) {

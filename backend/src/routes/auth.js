@@ -3,10 +3,13 @@ const { hashPassword, verifyPassword, signToken, newId } = require('../lib/auth'
 const { requireAuth } = require('../middleware/auth');
 const { rateLimiter } = require('../lib/rateLimit');
 const { isIdentityConfigured, createVerificationSession } = require('../lib/identity');
-const { generateReferralCode, resolveReferrer } = require('../lib/referral');
+const { generateReferralCode, resolveReferrer, peekAvailableDiscount } = require('../lib/referral');
 const { getConfigValue } = require('../lib/config');
 const { sendEmail, welcomeEmailHtml } = require('../lib/email');
 const { createResetToken, findValidResetToken, consumeResetToken } = require('../lib/passwordReset');
+const { createVerificationToken, consumeVerificationToken } = require('../lib/emailVerification');
+const { isSmsConfigured, sendSms } = require('../lib/sms');
+const { createPhoneCode, verifyPhoneCode } = require('../lib/phoneVerification');
 
 // Mitiga fuerza bruta de credenciales (LAUNCH_CHECKLIST.md): 10 intentos de login o registro
 // por IP cada 5 minutos. No distingue email correcto/incorrecto para no filtrar qué cuentas existen.
@@ -17,6 +20,9 @@ const registerLimiter = rateLimiter({ windowMs: 5 * 60_000, max: 10, keyPrefix: 
 // identity_verified pasa a 1, así que esto solo protege el rato antes de verificarse).
 const identityLimiter = rateLimiter({ windowMs: 10 * 60_000, max: 5, keyPrefix: 'identity' });
 const forgotPasswordLimiter = rateLimiter({ windowMs: 15 * 60_000, max: 5, keyPrefix: 'forgot_password' });
+const resendVerificationLimiter = rateLimiter({ windowMs: 15 * 60_000, max: 5, keyPrefix: 'resend_verification' });
+// Cada código de SMS real tiene coste con Twilio configurado — igual de estricto que identityLimiter.
+const phoneCodeLimiter = rateLimiter({ windowMs: 10 * 60_000, max: 5, keyPrefix: 'phone_code' });
 
 function publicUser(u) {
   return {
@@ -76,10 +82,81 @@ function register(router, db) {
 
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
     const token = signToken({ sub: id, role: user.role });
-    // Fire-and-forget: un fallo de email nunca debe bloquear ni romper el registro en sí.
-    sendEmail({ to: user.email, subject: '¡Bienvenido a YaQueVas!', html: welcomeEmailHtml(user.name) })
+    // Fire-and-forget: un fallo de email nunca debe bloquear ni romper el registro en sí. Un solo
+    // email de bienvenida que incluye ya el enlace de confirmación (antes eran ideas separadas,
+    // pero mandar dos emails en el mismo minuto a alguien recién registrado es peor experiencia).
+    const verifyToken = createVerificationToken(db, id);
+    const verifyUrl = `${process.env.PUBLIC_APP_URL || req.headers.origin || ''}/verificar-email.html?token=${verifyToken}`;
+    sendEmail({ to: user.email, subject: '¡Bienvenido a YaQueVas! Confirma tu email', html: welcomeEmailHtml(user.name, verifyUrl) })
       .catch((err) => console.error('No se pudo enviar el email de bienvenida:', err.message));
     res.status(201).json({ token, user: publicUser(user) });
+  });
+
+  // Confirma el email a partir del enlace de la sección anterior. Público (el propio token,
+  // largo y de un solo uso, es la prueba de identidad — igual que reset-password).
+  router.post('/api/auth/verify-email', async (req, res, body) => {
+    const { token } = body;
+    if (!token) return res.status(400).json({ error: 'Falta el token de confirmación.' });
+    const row = consumeVerificationToken(db, token);
+    if (!row) return res.status(400).json({ error: 'Este enlace no es válido o ha caducado. Pide uno nuevo desde tu cuenta.' });
+    db.prepare('UPDATE users SET email_verified = 1 WHERE id = ?').run(row.user_id);
+    res.json({ ok: true, mensaje: 'Email confirmado.' });
+  });
+
+  router.post('/api/auth/resend-verification', async (req, res) => {
+    const user = requireAuth(req, res, db);
+    if (!user) return;
+    if (!resendVerificationLimiter(req)) {
+      return res.status(429).json({ error: 'Demasiados intentos. Inténtalo de nuevo en unos minutos.' });
+    }
+    if (user.email_verified) return res.json({ ya_verificado: true });
+    const verifyToken = createVerificationToken(db, user.id);
+    const verifyUrl = `${process.env.PUBLIC_APP_URL || req.headers.origin || ''}/verificar-email.html?token=${verifyToken}`;
+    sendEmail({
+      to: user.email, subject: 'Confirma tu email de YaQueVas',
+      html: `
+        <div style="font-family:sans-serif; max-width:480px; margin:0 auto; color:#14181F;">
+          <h1 style="color:#0B5FFF; font-size:20px;">Confirma tu email</h1>
+          <p>Hola ${user.name}, pulsa el botón para confirmar tu email. El enlace caduca en 48 horas.</p>
+          <p style="margin-top:24px;"><a href="${verifyUrl}" style="background:#FF6B4A;color:#14181F;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:700;">Confirmar email</a></p>
+        </div>
+      `,
+    }).catch((err) => console.error('No se pudo reenviar el email de confirmación:', err.message));
+    res.json({ ok: true, mensaje: 'Te hemos enviado un email de confirmación.' });
+  });
+
+  // Verificación de teléfono por código de 6 dígitos (SMS real con Twilio configurado, si no,
+  // modo simulado — se ve en los logs del servidor, igual que el resto de integraciones).
+  router.post('/api/me/phone/send-code', async (req, res) => {
+    const user = requireAuth(req, res, db);
+    if (!user) return;
+    if (!phoneCodeLimiter(req)) {
+      return res.status(429).json({ error: 'Demasiados intentos. Inténtalo de nuevo en unos minutos.' });
+    }
+    if (!user.phone) return res.status(400).json({ error: 'Añade primero un número de teléfono en tu perfil.' });
+    if (user.phone_verified) return res.json({ ya_verificado: true });
+    const code = createPhoneCode(db, user.id, user.phone);
+    await sendSms({ to: user.phone, body: `Tu código de verificación de YaQueVas es: ${code} (caduca en 10 minutos).` })
+      .catch((err) => console.error('No se pudo enviar el SMS de verificación:', err.message));
+    res.json({ ok: true, modo_demo: !isSmsConfigured(), mensaje: 'Te hemos enviado un código por SMS.' });
+  });
+
+  router.post('/api/me/phone/verify-code', async (req, res, body) => {
+    const user = requireAuth(req, res, db);
+    if (!user) return;
+    const { code } = body;
+    if (!code) return res.status(400).json({ error: 'Introduce el código que te hemos enviado.' });
+    const result = verifyPhoneCode(db, user.id, user.phone, code);
+    if (result === 'ok') {
+      db.prepare('UPDATE users SET phone_verified = 1 WHERE id = ?').run(user.id);
+      return res.json({ ok: true, mensaje: 'Teléfono confirmado.' });
+    }
+    const messages = {
+      invalido: 'Código incorrecto.',
+      caducado: 'Este código ha caducado. Pide uno nuevo.',
+      demasiados_intentos: 'Demasiados intentos con este código. Pide uno nuevo.',
+    };
+    res.status(400).json({ error: messages[result] || 'No se ha podido confirmar el código.' });
   });
 
   router.post('/api/auth/login', async (req, res, body) => {
@@ -115,22 +192,23 @@ function register(router, db) {
     if (!user) return;
     const referred = db.prepare(
       `SELECT u.id, u.name, u.surname, u.created_at,
-              rr.amount_eur, rr.status, rr.created_at AS reward_at
+              rr.discount_pct, rr.status, rr.created_at AS reward_at
        FROM users u LEFT JOIN referral_rewards rr ON rr.referred_id = u.id
        WHERE u.referred_by = ? ORDER BY u.created_at DESC`
     ).all(user.id);
-    const totalGanado = db.prepare(
-      "SELECT COALESCE(SUM(amount_eur), 0) AS total FROM referral_rewards WHERE referrer_id = ? AND status = 'pagado'"
-    ).get(user.id).total;
+    const creditosPendientes = db.prepare(
+      "SELECT COUNT(*) AS n FROM referral_rewards WHERE referrer_id = ? AND referrer_redeemed = 0 AND discount_pct IS NOT NULL"
+    ).get(user.id).n;
     res.json({
       referral_code: user.referral_code,
-      reward_eur: Number(getConfigValue(db, 'referral_reward_eur') || 5),
-      total_ganado: totalGanado,
+      reward_pct: Number(getConfigValue(db, 'referral_reward_pct') || 5),
+      descuento_disponible_pct: peekAvailableDiscount(db, user.id),
+      creditos_pendientes: creditosPendientes,
       invitados: referred.map((r) => ({
         nombre: `${r.name} ${r.surname}`.trim(),
         se_unio: r.created_at,
         completo_primera_operacion: !!r.status,
-        recompensa_eur: r.amount_eur || null,
+        descuento_pct: r.discount_pct || null,
       })),
     });
   });

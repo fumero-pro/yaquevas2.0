@@ -16,7 +16,10 @@
       <div id="resultBox"></div>
       <form id="resetForm">
         <label class="first" for="password">Contraseña nueva</label>
-        <input id="password" type="password" required minlength="8" autocomplete="new-password">
+        <div class="password-field">
+          <input id="password" type="password" required minlength="8" autocomplete="new-password">
+          <button type="button" class="password-toggle" data-toggle-for="password" aria-label="Mostrar contraseña"></button>
+        </div>
         <p class="field-hint">Mínimo 8 caracteres.</p>
         <button class="btn btn-primary btn-block" style="margin-top:18px;" type="submit">Guardar contraseña</button>
       </form>

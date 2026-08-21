@@ -14,6 +14,7 @@
     <h1 id="greeting">Mi cuenta</h1>
 
     <div id="notifBox" style="margin-bottom:24px;"></div>
+    <div id="contactVerifyBox" style="margin-bottom:24px;"></div>
     <div id="identityBox" style="margin-bottom:24px;"></div>
     <div id="referralBox" style="margin-bottom:24px;"></div>
 
@@ -49,6 +50,59 @@ async function load() {
 
   try {
     const me = await YQV.api('/api/me');
+
+    const contactBox = document.getElementById('contactVerifyBox');
+    const contactCards = [];
+    if (!me.user.email_verified) {
+      contactCards.push(`
+        <div class="card row between" style="gap:12px; flex-wrap:wrap;">
+          <div><strong>Confirma tu email</strong><p class="muted" style="margin:2px 0 0;">Te escribimos a ${YQV.escapeHtml(me.user.email)} al registrarte. Revisa también spam.</p></div>
+          <button class="btn btn-outline" id="resendVerifyBtn">Reenviar email</button>
+        </div>
+      `);
+    }
+    if (me.user.phone && !me.user.phone_verified) {
+      contactCards.push(`
+        <div class="card" id="phoneVerifyCard">
+          <div class="row between" style="gap:12px; flex-wrap:wrap;">
+            <div><strong>Confirma tu teléfono</strong><p class="muted" style="margin:2px 0 0;">Por SMS a ${YQV.escapeHtml(me.user.phone)}, para que puedan localizarte si algo falla con una entrega.</p></div>
+            <button class="btn btn-outline" id="sendPhoneCodeBtn">Enviar código</button>
+          </div>
+          <div id="phoneCodeRow" style="display:none; margin-top:12px; gap:10px;" class="row">
+            <input id="phoneCodeInput" placeholder="Código de 6 dígitos" inputmode="numeric" maxlength="6" style="max-width:180px;">
+            <button class="btn btn-primary" id="confirmPhoneCodeBtn">Confirmar</button>
+          </div>
+        </div>
+      `);
+    }
+    contactBox.innerHTML = contactCards.join('');
+
+    const resendBtn = document.getElementById('resendVerifyBtn');
+    if (resendBtn) resendBtn.addEventListener('click', async () => {
+      resendBtn.disabled = true;
+      try { const r = await YQV.api('/api/auth/resend-verification', { method: 'POST' }); YQV.toast(r.mensaje || 'Email reenviado.', 'ok'); }
+      catch (err) { YQV.toast(err.message, 'error'); resendBtn.disabled = false; }
+    });
+    const sendPhoneBtn = document.getElementById('sendPhoneCodeBtn');
+    if (sendPhoneBtn) sendPhoneBtn.addEventListener('click', async () => {
+      sendPhoneBtn.disabled = true;
+      try {
+        const r = await YQV.api('/api/me/phone/send-code', { method: 'POST' });
+        YQV.toast(r.modo_demo ? 'Código simulado: revisa los logs del servidor (modo demo, sin SMS real).' : 'Código enviado por SMS.', 'ok');
+        document.getElementById('phoneCodeRow').style.display = 'flex';
+      } catch (err) { YQV.toast(err.message, 'error'); }
+      sendPhoneBtn.disabled = false;
+    });
+    const confirmPhoneBtn = document.getElementById('confirmPhoneCodeBtn');
+    if (confirmPhoneBtn) confirmPhoneBtn.addEventListener('click', async () => {
+      const code = document.getElementById('phoneCodeInput').value.trim();
+      try {
+        const r = await YQV.api('/api/me/phone/verify-code', { method: 'POST', body: { code } });
+        YQV.toast(r.mensaje || 'Teléfono confirmado.', 'ok');
+        load();
+      } catch (err) { YQV.toast(err.message, 'error'); }
+    });
+
     const identityBox = document.getElementById('identityBox');
     if (me.user.identity_verified) {
       identityBox.innerHTML = `<div class="pill ok">${YQVIcons.svg('check', { size: 14 })} Identidad verificada</div>`;
@@ -78,10 +132,14 @@ async function load() {
     const referralBox = document.getElementById('referralBox');
     const link = `${window.location.origin}/registro.html?ref=${ref.referral_code}`;
     const completados = ref.invitados.filter(i => i.completo_primera_operacion).length;
+    const descuentoAviso = ref.descuento_disponible_pct
+      ? `<div class="alert alert-ok" style="margin-bottom:12px;">Tienes un <strong>${ref.descuento_disponible_pct}% de descuento</strong> en la comisión de tu próxima operación. Se aplica solo, sin que tengas que hacer nada.</div>`
+      : '';
     referralBox.innerHTML = `
       <div class="card">
-        <h3 style="margin-bottom:4px; display:flex; align-items:center; gap:8px;">${YQVIcons.svg('gift', { size: 18 })} Invita y gana dinero real</h3>
-        <p class="muted" style="margin:0 0 12px;">Cuando la persona que invitas complete su primera operación, ganáis ${YQV.fmtEur(ref.reward_eur)} cada uno. Sin condiciones ocultas, se paga siempre — nunca al registrarse, solo al completar de verdad.</p>
+        <h3 style="margin-bottom:4px; display:flex; align-items:center; gap:8px;">${YQVIcons.svg('gift', { size: 18 })} Invita y gana un descuento</h3>
+        <p class="muted" style="margin:0 0 12px;">Cuando la persona que invitas complete su primera operación, ganáis un ${ref.reward_pct}% de descuento en la comisión de vuestra próxima operación — los dos. Nunca al registrarse, solo al completar de verdad.</p>
+        ${descuentoAviso}
         <div class="row" style="gap:10px; flex-wrap:wrap; margin-bottom:12px;">
           <code style="background:var(--mist-100); padding:8px 14px; border-radius:var(--radius-sm); font-weight:700; letter-spacing:0.03em;">${ref.referral_code}</code>
           <button class="btn btn-outline" id="copyReferralBtn">Copiar enlace</button>
@@ -90,7 +148,7 @@ async function load() {
         <div class="row" style="gap:20px; font-size:0.9rem;">
           <span><strong>${ref.invitados.length}</strong> invitados</span>
           <span><strong>${completados}</strong> completaron su primera operación</span>
-          <span><strong style="color:var(--ok);">${YQV.fmtEur(ref.total_ganado)}</strong> ganados en total</span>
+          <span><strong style="color:var(--ok);">${ref.creditos_pendientes}</strong> descuentos pendientes de usar</span>
         </div>
       </div>
     `;
@@ -99,7 +157,7 @@ async function load() {
       catch { YQV.toast(link, 'info'); }
     });
     document.getElementById('shareReferralBtn').addEventListener('click', () => {
-      YQV.share({ title: 'YaQueVas', text: `Únete a YaQueVas con mi invitación: cuando completes tu primera operación, ganamos ${YQV.fmtEur(ref.reward_eur)} cada uno.`, url: link });
+      YQV.share({ title: 'YaQueVas', text: `Únete a YaQueVas con mi invitación: cuando completes tu primera operación, ganamos un ${ref.reward_pct}% de descuento cada uno.`, url: link });
     });
   } catch { /* si falla, no bloquea el resto de la página */ }
 
