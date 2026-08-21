@@ -1,9 +1,13 @@
 # Activar SMS real (Twilio) — verificación de teléfono
 
-El código ya está preparado para enviar SMS real (`backend/src/lib/sms.js`), hoy solo se usa para
-el código de confirmación de teléfono (`/api/me/phone/send-code`, botón "Confirma tu teléfono" en
-`mi-cuenta.html`). **Sin hacer nada de esto, el flujo sigue funcionando exactamente igual, solo que
-el SMS queda "simulado" (el código se ve en los logs del servidor, nunca bloquea ni rompe nada).**
+El código ya está preparado para enviar SMS real (`backend/src/lib/sms.js`), aunque hoy no está
+enchufado a ningún botón visible: el usuario decidió el 2026-08-21 que la cuenta se confirme solo
+por email, para no asumir el coste de Twilio. El backend sigue funcionando (`/api/me/phone/send-code`,
+`/api/me/phone/verify-code`), solo que `mi-cuenta.html` ya no muestra la tarjeta "Confirma tu
+teléfono" (se quitó a propósito, para no prometer un SMS que nunca llegaría a un usuario real).
+**Si en algún momento se activa Twilio siguiendo esta guía, hay que volver a añadir esa tarjeta en
+`mi-cuenta.html`** (el HTML y el cableado de eventos están en el historial de git, commit anterior
+a esta nota) para que la gente pueda usarla.
 
 Esto lo tienes que hacer tú (no una IA): crear la cuenta requiere tus propios datos y una tarjeta
 para verificarla (Twilio no tiene plan sin tarjeta, aunque el saldo de prueba es gratis).

@@ -61,20 +61,10 @@ async function load() {
         </div>
       `);
     }
-    if (me.user.phone && !me.user.phone_verified) {
-      contactCards.push(`
-        <div class="card" id="phoneVerifyCard">
-          <div class="row between" style="gap:12px; flex-wrap:wrap;">
-            <div><strong>Confirma tu teléfono</strong><p class="muted" style="margin:2px 0 0;">Por SMS a ${YQV.escapeHtml(me.user.phone)}, para que puedan localizarte si algo falla con una entrega.</p></div>
-            <button class="btn btn-outline" id="sendPhoneCodeBtn">Enviar código</button>
-          </div>
-          <div id="phoneCodeRow" style="display:none; margin-top:12px; gap:10px;" class="row">
-            <input id="phoneCodeInput" placeholder="Código de 6 dígitos" inputmode="numeric" maxlength="6" style="max-width:180px;">
-            <button class="btn btn-primary" id="confirmPhoneCodeBtn">Confirmar</button>
-          </div>
-        </div>
-      `);
-    }
+    // La confirmación por SMS existe en el backend (modo simulado, sin Twilio configurado) pero
+    // no se ofrece aquí: el usuario decidió que la cuenta se confirme solo por email para no
+    // asumir el coste de un proveedor de SMS real. Volver a mostrarla cuando/si se conecte Twilio
+    // (ver docs/SMS_SETUP.md) — el HTML de la tarjeta está en el historial de git si hace falta.
     contactBox.innerHTML = contactCards.join('');
 
     const resendBtn = document.getElementById('resendVerifyBtn');
@@ -83,26 +73,6 @@ async function load() {
       try { const r = await YQV.api('/api/auth/resend-verification', { method: 'POST' }); YQV.toast(r.mensaje || 'Email reenviado.', 'ok'); }
       catch (err) { YQV.toast(err.message, 'error'); resendBtn.disabled = false; }
     });
-    const sendPhoneBtn = document.getElementById('sendPhoneCodeBtn');
-    if (sendPhoneBtn) sendPhoneBtn.addEventListener('click', async () => {
-      sendPhoneBtn.disabled = true;
-      try {
-        const r = await YQV.api('/api/me/phone/send-code', { method: 'POST' });
-        YQV.toast(r.modo_demo ? 'Código simulado: revisa los logs del servidor (modo demo, sin SMS real).' : 'Código enviado por SMS.', 'ok');
-        document.getElementById('phoneCodeRow').style.display = 'flex';
-      } catch (err) { YQV.toast(err.message, 'error'); }
-      sendPhoneBtn.disabled = false;
-    });
-    const confirmPhoneBtn = document.getElementById('confirmPhoneCodeBtn');
-    if (confirmPhoneBtn) confirmPhoneBtn.addEventListener('click', async () => {
-      const code = document.getElementById('phoneCodeInput').value.trim();
-      try {
-        const r = await YQV.api('/api/me/phone/verify-code', { method: 'POST', body: { code } });
-        YQV.toast(r.mensaje || 'Teléfono confirmado.', 'ok');
-        load();
-      } catch (err) { YQV.toast(err.message, 'error'); }
-    });
-
     const identityBox = document.getElementById('identityBox');
     if (me.user.identity_verified) {
       identityBox.innerHTML = `<div class="pill ok">${YQVIcons.svg('check', { size: 14 })} Identidad verificada</div>`;
