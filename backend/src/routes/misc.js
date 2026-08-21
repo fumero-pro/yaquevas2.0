@@ -5,6 +5,12 @@ const { getConfig } = require('../lib/config');
 const { listCountries, listSelectableLocations } = require('../lib/geo');
 const { searchAddress } = require('../lib/geocode');
 const { UNIT_VOLUME_L, UNIT_WEIGHT_KG_TYPICAL } = require('../lib/tetris');
+const { rateLimiter } = require('../lib/rateLimit');
+
+// Nominatim exige máximo 1 petición/segundo desde el servidor (ver lib/geocode.js) — sin límite
+// aquí, alguien pegado directamente a la API (sin pasar por el debounce del frontend) podría
+// hacer que Nominatim baneara la IP del servidor entero, rompiendo la búsqueda para todo el mundo.
+const searchAddressLimiter = rateLimiter({ windowMs: 60_000, max: 20, keyPrefix: 'search_address' });
 
 // Letra de talla al estilo Sherpa (S/M/L/XL/XXL/XXXL — ver docs/PRECIO_INTERINSULAR.md), sobre
 // los 6 tipos de bulto reales que usa el motor "tetris" de capacidad (backend/src/lib/tetris.js,
