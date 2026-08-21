@@ -96,6 +96,15 @@ y en qué casos.
 Cómo se debe llamar y tratar contractualmente la cantidad que recibe el viajero (compensación por
 gastos y molestias vs. contraprestación por un servicio), con impacto directo en los puntos 1, 8 y 9.
 
+## 25. Aduana cubana — equipaje acompañado vs. envío no acompañado
+Cuba distingue "equipaje acompañado" (lo que el viajero lleva en su propio vuelo/ferry, límite
+1.000 USD según normativa 2026) de "envíos/equipaje no acompañado por persona natural" (límite mucho
+más bajo, 200 USD/20kg). Confirmar con un gestor aduanero si un envío gestionado y pagado a través
+de YaQueVas sigue calificando como equipaje acompañado del viajero, o si mediar una plataforma con
+pago lo reclasifica como envío comercial/postal con el límite más restrictivo — ver desarrollo en
+`docs/BORRADOR_ENCAJE_LEGAL.md` punto 4, con fuentes reales citadas. Tiene impacto directo en qué
+valor declarado puede aceptar la plataforma para envíos hacia Cuba.
+
 ---
 
 **Nota:** en el código, cualquier función que dependa de una decisión legal pendiente está señalada
