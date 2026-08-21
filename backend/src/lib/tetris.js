@@ -3,57 +3,57 @@
 // para poder sumar, restar y calcular el % de espacio y peso utilizado de un viaje,
 // sin que el usuario tenga que entender nada de algoritmos.
 
-// Litros aproximados de cada tipo de bulto (valores orientativos, configurables a futuro
-// desde administración -> punto 44).
-const UNIT_VOLUME_L = {
-  maleta_grande: 100,
-  maleta_pequena: 45,
-  sobre: 1,
-  caja_mediana: 30,
+// Catálogo único de tipos de bulto (talla al estilo Sherpa S/M/L/XL/XXL/XXXL, ver
+// docs/PRECIO_INTERINSULAR.md) — una sola fuente de verdad en vez de repetir cada tipo en 4
+// funciones distintas (así era antes: añadir un tipo nuevo significaba tocar
+// capacityVolumeL/usedVolumeL/addUsage/itemsToUsage por separado, con riesgo real de olvidarse
+// uno). `field` es el nombre de la clave dentro de los objetos capacity_json/used_json ya
+// guardados en la base de datos — se mantiene el mismo naming que tenían los 4 tipos
+// originales para no romper viajes ya publicados con datos antiguos.
+const ITEM_TYPES = {
+  sobre: { field: 'sobres', volumeL: 1, weightKg: 0.3 },
+  caja_mediana: { field: 'cajas_medianas', volumeL: 30, weightKg: 10 },
+  maleta_pequena: { field: 'maletas_pequenas', volumeL: 45, weightKg: 8 },
+  maleta_grande: { field: 'maletas_grandes', volumeL: 100, weightKg: 18 },
+  // Talla XXL: objetos largos/voluminosos pero relativamente ligeros — el caso que motivó
+  // añadir esta talla fue explícitamente "una tabla de surf de Fuerteventura a Tenerife".
+  objeto_voluminoso: { field: 'objetos_voluminosos', volumeL: 140, weightKg: 8 },
+  // Talla XXXL: el bulto más grande que admite la plataforma hoy (equipaje muy voluminoso,
+  // electrodoméstico pequeño). Volumen/peso son estimaciones orientativas — igual que el resto
+  // del catálogo, configurable a futuro desde administración (punto 44 del prompt maestro).
+  bulto_extra_grande: { field: 'bultos_extra_grandes', volumeL: 200, weightKg: 25 },
 };
 
-const UNIT_WEIGHT_KG_TYPICAL = {
-  maleta_grande: 18,
-  maleta_pequena: 8,
-  sobre: 0.3,
-  caja_mediana: 10,
-};
+const UNIT_VOLUME_L = Object.fromEntries(Object.entries(ITEM_TYPES).map(([k, v]) => [k, v.volumeL]));
+const UNIT_WEIGHT_KG_TYPICAL = Object.fromEntries(Object.entries(ITEM_TYPES).map(([k, v]) => [k, v.weightKg]));
 
 function emptyUsage() {
-  return { maletas_grandes: 0, maletas_pequenas: 0, sobres: 0, cajas_medianas: 0, kg: 0 };
+  const usage = { kg: 0 };
+  for (const { field } of Object.values(ITEM_TYPES)) usage[field] = 0;
+  return usage;
 }
 
-function capacityVolumeL(capacity) {
-  return (
-    (capacity.maletas_grandes || 0) * UNIT_VOLUME_L.maleta_grande +
-    (capacity.maletas_pequenas || 0) * UNIT_VOLUME_L.maleta_pequena +
-    (capacity.sobres || 0) * UNIT_VOLUME_L.sobre +
-    (capacity.cajas_medianas || 0) * UNIT_VOLUME_L.caja_mediana
-  );
+function volumeL(usageOrCapacity) {
+  let total = 0;
+  for (const { field, volumeL: unitL } of Object.values(ITEM_TYPES)) {
+    total += (usageOrCapacity[field] || 0) * unitL;
+  }
+  return total;
 }
 
-function usedVolumeL(used) {
-  return (
-    (used.maletas_grandes || 0) * UNIT_VOLUME_L.maleta_grande +
-    (used.maletas_pequenas || 0) * UNIT_VOLUME_L.maleta_pequena +
-    (used.sobres || 0) * UNIT_VOLUME_L.sobre +
-    (used.cajas_medianas || 0) * UNIT_VOLUME_L.caja_mediana
-  );
-}
+// Alias con los nombres históricos (capacity y used son estructuralmente iguales: un conteo
+// por campo + kg total) — se mantienen ambos nombres porque el resto del código ya los usa así
+// y distinguir "capacidad total" de "ya usado" ayuda a leer las llamadas.
+const capacityVolumeL = volumeL;
+const usedVolumeL = volumeL;
 
 // items: [{item_type, quantity}]
 function itemsToUsage(items) {
   const usage = emptyUsage();
-  const key = {
-    maleta_grande: 'maletas_grandes',
-    maleta_pequena: 'maletas_pequenas',
-    sobre: 'sobres',
-    caja_mediana: 'cajas_medianas',
-  };
   let estimatedKg = 0;
   for (const it of items) {
-    const field = key[it.item_type];
-    if (field) usage[field] += it.quantity;
+    const type = ITEM_TYPES[it.item_type];
+    if (type) usage[type.field] += it.quantity;
     estimatedKg += (UNIT_WEIGHT_KG_TYPICAL[it.item_type] || 0) * it.quantity;
   }
   usage.kg = Number(estimatedKg.toFixed(2));
@@ -61,13 +61,11 @@ function itemsToUsage(items) {
 }
 
 function addUsage(a, b) {
-  return {
-    maletas_grandes: (a.maletas_grandes || 0) + (b.maletas_grandes || 0),
-    maletas_pequenas: (a.maletas_pequenas || 0) + (b.maletas_pequenas || 0),
-    sobres: (a.sobres || 0) + (b.sobres || 0),
-    cajas_medianas: (a.cajas_medianas || 0) + (b.cajas_medianas || 0),
-    kg: Number(((a.kg || 0) + (b.kg || 0)).toFixed(2)),
-  };
+  const result = { kg: Number(((a.kg || 0) + (b.kg || 0)).toFixed(2)) };
+  for (const { field } of Object.values(ITEM_TYPES)) {
+    result[field] = (a[field] || 0) + (b[field] || 0);
+  }
+  return result;
 }
 
 // Calcula el estado de capacidad de un viaje dado su capacity + used actuales.
@@ -118,6 +116,7 @@ function fitsInTrip(capacity, used, newItems) {
 }
 
 module.exports = {
+  ITEM_TYPES,
   emptyUsage,
   capacityVolumeL,
   usedVolumeL,

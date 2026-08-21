@@ -76,7 +76,7 @@ function register(router, db) {
     }
 
     const config = getConfig(db);
-    const totalWeight = items.reduce((s, i) => s + (i.item_type === 'sobre' ? 0.3 : i.item_type === 'maleta_grande' ? 18 : i.item_type === 'caja_mediana' ? 10 : 8) * i.quantity, 0);
+    const totalWeight = itemsToUsage(items).kg;
     const price = calculateOrientativePrice(db, config, {
       originIsland: shipment.origin_island,
       destinationIsland: shipment.destination_island,

@@ -52,12 +52,16 @@
       <fieldset>
         <legend>Espacio disponible (sistema Tetris)</legend>
         <div class="field-row cols-3">
-          <div><label class="first">Maletas grandes</label><input id="cap_maletas_grandes" type="number" min="0" value="0"></div>
-          <div><label class="first">Maletas pequeñas</label><input id="cap_maletas_pequenas" type="number" min="0" value="1"></div>
-          <div><label class="first">Sobres</label><input id="cap_sobres" type="number" min="0" value="3"></div>
+          <div><label class="first">S — Sobres</label><input id="cap_sobres" type="number" min="0" value="3"></div>
+          <div><label class="first">M — Cajas medianas</label><input id="cap_cajas_medianas" type="number" min="0" value="0"></div>
+          <div><label class="first">L — Maletas pequeñas</label><input id="cap_maletas_pequenas" type="number" min="0" value="1"></div>
+        </div>
+        <div class="field-row cols-3">
+          <div><label class="first">XL — Maletas grandes</label><input id="cap_maletas_grandes" type="number" min="0" value="0"></div>
+          <div><label class="first">XXL — Objetos voluminosos</label><input id="cap_objetos_voluminosos" type="number" min="0" value="0"></div>
+          <div><label class="first">XXXL — Bultos extra grandes</label><input id="cap_bultos_extra_grandes" type="number" min="0" value="0"></div>
         </div>
         <div class="field-row cols-2">
-          <div><label class="first">Cajas medianas</label><input id="cap_cajas_medianas" type="number" min="0" value="0"></div>
           <div><label class="first">Peso disponible (kg)</label><input id="cap_kg" type="number" min="0" value="10"></div>
         </div>
         <div class="card" style="margin-top:14px; background:var(--mist-100);" id="capacityPreview"></div>
@@ -97,13 +101,14 @@ renderIslandOptions();
 
 function updatePreview() {
   const g = id => Number(document.getElementById(id).value || 0);
-  const volumeL = g('cap_maletas_grandes') * 100 + g('cap_maletas_pequenas') * 45 + g('cap_sobres') * 1 + g('cap_cajas_medianas') * 30;
+  const volumeL = g('cap_maletas_grandes') * 100 + g('cap_maletas_pequenas') * 45 + g('cap_sobres') * 1 + g('cap_cajas_medianas') * 30
+    + g('cap_objetos_voluminosos') * 140 + g('cap_bultos_extra_grandes') * 200;
   document.getElementById('capacityPreview').innerHTML = `
     <strong>Capacidad total estimada:</strong> ${volumeL} L de espacio · ${g('cap_kg')} kg de peso.
     <p class="muted" style="margin:6px 0 0;">Se irá descontando automáticamente a medida que aceptes envíos.</p>
   `;
 }
-['cap_maletas_grandes','cap_maletas_pequenas','cap_sobres','cap_cajas_medianas','cap_kg'].forEach(id => {
+['cap_maletas_grandes','cap_maletas_pequenas','cap_sobres','cap_cajas_medianas','cap_objetos_voluminosos','cap_bultos_extra_grandes','cap_kg'].forEach(id => {
   document.getElementById(id).addEventListener('input', updatePreview);
 });
 updatePreview();
@@ -135,6 +140,8 @@ document.getElementById('tripForm').addEventListener('submit', async (e) => {
       maletas_pequenas: Number(document.getElementById('cap_maletas_pequenas').value || 0),
       sobres: Number(document.getElementById('cap_sobres').value || 0),
       cajas_medianas: Number(document.getElementById('cap_cajas_medianas').value || 0),
+      objetos_voluminosos: Number(document.getElementById('cap_objetos_voluminosos').value || 0),
+      bultos_extra_grandes: Number(document.getElementById('cap_bultos_extra_grandes').value || 0),
       kg: Number(document.getElementById('cap_kg').value || 0),
     },
     accepts_fragile: document.getElementById('accepts_fragile').checked,

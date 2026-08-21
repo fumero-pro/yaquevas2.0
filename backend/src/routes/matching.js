@@ -3,6 +3,7 @@ const { findMatchesForShipment, findMatchesForTrip } = require('../lib/matching'
 const { calculateOrientativePrice } = require('../lib/pricing');
 const { calculateCommission } = require('../lib/commission');
 const { getConfig } = require('../lib/config');
+const { itemsToUsage } = require('../lib/tetris');
 const { serializeTrip } = require('./trips');
 const { serializeShipment } = require('./shipments');
 
@@ -13,7 +14,7 @@ function register(router, db) {
     const items = db.prepare('SELECT * FROM shipment_items WHERE shipment_id = ?').all(params.id);
     const matches = findMatchesForShipment(db, shipment, items);
     const config = getConfig(db);
-    const totalWeight = items.reduce((s, i) => s + (i.item_type === 'sobre' ? 0.3 : i.item_type === 'maleta_grande' ? 18 : i.item_type === 'caja_mediana' ? 10 : 8) * i.quantity, 0);
+    const totalWeight = itemsToUsage(items).kg;
     const price = calculateOrientativePrice(db, config, {
       originIsland: shipment.origin_island,
       destinationIsland: shipment.destination_island,
@@ -36,7 +37,7 @@ function register(router, db) {
 
     const withEarnings = matches.map((m) => {
       const items = db.prepare('SELECT * FROM shipment_items WHERE shipment_id = ?').all(m.shipment.id);
-      const totalWeight = items.reduce((s, i) => s + (i.item_type === 'sobre' ? 0.3 : i.item_type === 'maleta_grande' ? 18 : i.item_type === 'caja_mediana' ? 10 : 8) * i.quantity, 0);
+      const totalWeight = itemsToUsage(items).kg;
       const price = calculateOrientativePrice(db, config, {
         originIsland: m.shipment.origin_island,
         destinationIsland: m.shipment.destination_island,
