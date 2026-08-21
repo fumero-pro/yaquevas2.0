@@ -79,9 +79,9 @@ const ALTERS = [
   'ALTER TABLE referral_rewards ADD COLUMN referred_redeemed_booking_id TEXT',
 ];
 
-function applyAlters(db) {
+async function applyAlters(db) {
   for (const stmt of ALTERS) {
-    try { db.exec(stmt); } catch (e) { if (!/duplicate column/i.test(e.message)) throw e; }
+    try { await db.exec(stmt); } catch (e) { if (!/duplicate column/i.test(e.message)) throw e; }
   }
 }
 

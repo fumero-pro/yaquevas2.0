@@ -15,8 +15,9 @@
     "test": "node --test"
   },
   "license": "UNLICENSED",
-  "notes": "Base en Node puro (node:sqlite, node:http) sin framework. Única dependencia externa: 'qrcode' (renderizado real de códigos QR escaneables). Requiere 'npm install' antes de arrancar.",
+  "notes": "Base en Node puro (node:http) sin framework. Base de datos: node:sqlite local en desarrollo, o Turso (SQLite en la nube, persiste entre despliegues) en producción si TURSO_DATABASE_URL está configurada — ver docs/TURSO_SETUP.md. Dependencias externas: 'qrcode' (códigos QR), 'stripe' (pagos), '@libsql/client' (Turso). Requiere 'npm install' antes de arrancar.",
   "dependencies": {
+    "@libsql/client": "^0.17.4",
     "qrcode": "^1.5.4",
     "stripe": "^22.5.0"
   }

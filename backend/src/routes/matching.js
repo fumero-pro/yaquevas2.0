@@ -9,13 +9,13 @@ const { serializeShipment } = require('./shipments');
 
 function register(router, db) {
   router.get('/api/matching/for-shipment/:id', async (req, res, body, params) => {
-    const shipment = db.prepare('SELECT * FROM shipments WHERE id = ?').get(params.id);
+    const shipment = await db.prepare('SELECT * FROM shipments WHERE id = ?').get(params.id);
     if (!shipment) return res.status(404).json({ error: 'Envío no encontrado.' });
-    const items = db.prepare('SELECT * FROM shipment_items WHERE shipment_id = ?').all(params.id);
-    const matches = findMatchesForShipment(db, shipment, items);
-    const config = getConfig(db);
+    const items = await db.prepare('SELECT * FROM shipment_items WHERE shipment_id = ?').all(params.id);
+    const matches = await findMatchesForShipment(db, shipment, items);
+    const config = await getConfig(db);
     const totalWeight = itemsToUsage(items).kg;
-    const price = calculateOrientativePrice(db, config, {
+    const price = await calculateOrientativePrice(db, config, {
       originIsland: shipment.origin_island,
       destinationIsland: shipment.destination_island,
       weightKg: shipment.weight_kg || totalWeight,
@@ -30,15 +30,15 @@ function register(router, db) {
   });
 
   router.get('/api/matching/for-trip/:id', async (req, res, body, params) => {
-    const trip = db.prepare('SELECT * FROM trips WHERE id = ?').get(params.id);
+    const trip = await db.prepare('SELECT * FROM trips WHERE id = ?').get(params.id);
     if (!trip) return res.status(404).json({ error: 'Viaje no encontrado.' });
-    const matches = findMatchesForTrip(db, trip);
-    const config = getConfig(db);
+    const matches = await findMatchesForTrip(db, trip);
+    const config = await getConfig(db);
 
-    const withEarnings = matches.map((m) => {
-      const items = db.prepare('SELECT * FROM shipment_items WHERE shipment_id = ?').all(m.shipment.id);
+    const withEarnings = await Promise.all(matches.map(async (m) => {
+      const items = await db.prepare('SELECT * FROM shipment_items WHERE shipment_id = ?').all(m.shipment.id);
       const totalWeight = itemsToUsage(items).kg;
-      const price = calculateOrientativePrice(db, config, {
+      const price = await calculateOrientativePrice(db, config, {
         originIsland: m.shipment.origin_island,
         destinationIsland: m.shipment.destination_island,
         weightKg: m.shipment.weight_kg || totalWeight,
@@ -51,7 +51,7 @@ function register(router, db) {
         compatibilidad_pct: m.score,
         puedes_ganar: commission.traveler_net,
       };
-    });
+    }));
 
     const totalPotencial = Math.round(withEarnings.reduce((s, m) => s + m.puedes_ganar, 0) * 100) / 100;
     res.json({ matches: withEarnings, total_potencial: totalPotencial });
@@ -62,8 +62,8 @@ function register(router, db) {
     if (!origin_island || !destination_island) {
       return res.status(400).json({ error: 'Origen y destino son obligatorios.' });
     }
-    const config = getConfig(db);
-    const price = calculateOrientativePrice(db, config, {
+    const config = await getConfig(db);
+    const price = await calculateOrientativePrice(db, config, {
       originIsland: origin_island,
       destinationIsland: destination_island,
       weightKg: Number(weight_kg || 1),

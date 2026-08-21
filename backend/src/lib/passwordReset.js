@@ -12,11 +12,11 @@ function hashToken(rawToken) {
   return crypto.createHash('sha256').update(rawToken).digest('hex');
 }
 
-function createResetToken(db, userId) {
+async function createResetToken(db, userId) {
   const rawToken = crypto.randomBytes(32).toString('base64url');
   const now = new Date();
   const expiresAt = new Date(now.getTime() + RESET_TOKEN_TTL_MS);
-  db.prepare(
+  await db.prepare(
     `INSERT INTO password_resets (id, user_id, token_hash, expires_at, used, created_at)
      VALUES (?, ?, ?, ?, 0, ?)`
   ).run(newId('reset'), userId, hashToken(rawToken), expiresAt.toISOString(), now.toISOString());
@@ -25,9 +25,9 @@ function createResetToken(db, userId) {
 
 // Devuelve el user_id si el token es válido, sin usar todavía (consumeResetToken lo marca usado
 // aparte, para poder validar primero y solo gastar el token si la contraseña nueva es correcta).
-function findValidResetToken(db, rawToken) {
+async function findValidResetToken(db, rawToken) {
   if (!rawToken || typeof rawToken !== 'string') return null;
-  const row = db.prepare(
+  const row = await db.prepare(
     'SELECT * FROM password_resets WHERE token_hash = ? AND used = 0'
   ).get(hashToken(rawToken));
   if (!row) return null;
@@ -35,8 +35,8 @@ function findValidResetToken(db, rawToken) {
   return row;
 }
 
-function consumeResetToken(db, resetId) {
-  db.prepare('UPDATE password_resets SET used = 1 WHERE id = ?').run(resetId);
+async function consumeResetToken(db, resetId) {
+  await db.prepare('UPDATE password_resets SET used = 1 WHERE id = ?').run(resetId);
 }
 
 module.exports = { createResetToken, findValidResetToken, consumeResetToken };

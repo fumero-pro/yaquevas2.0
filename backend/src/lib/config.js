@@ -23,21 +23,21 @@ const DEFAULTS = {
   referral_reward_pct: '5',
 };
 
-function getConfig(db) {
-  const rows = db.prepare('SELECT key, value FROM config').all();
+async function getConfig(db) {
+  const rows = await db.prepare('SELECT key, value FROM config').all();
   const cfg = { ...DEFAULTS };
   for (const r of rows) cfg[r.key] = r.value;
   return cfg;
 }
 
-function getConfigValue(db, key) {
-  const row = db.prepare('SELECT value FROM config WHERE key = ?').get(key);
+async function getConfigValue(db, key) {
+  const row = await db.prepare('SELECT value FROM config WHERE key = ?').get(key);
   return row ? row.value : DEFAULTS[key];
 }
 
-function setConfigValue(db, key, value, updatedBy) {
+async function setConfigValue(db, key, value, updatedBy) {
   const now = new Date().toISOString();
-  db.prepare(
+  await db.prepare(
     `INSERT INTO config (key, value, updated_at, updated_by) VALUES (?, ?, ?, ?)
      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at, updated_by = excluded.updated_by`
   ).run(key, String(value), now, updatedBy || null);

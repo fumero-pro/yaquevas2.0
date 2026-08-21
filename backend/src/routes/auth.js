@@ -56,7 +56,7 @@ function register(router, db) {
     if (password.length < 8) {
       return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });
     }
-    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email.toLowerCase());
+    const existing = await db.prepare('SELECT id FROM users WHERE email = ?').get(email.toLowerCase());
     if (existing) {
       return res.status(409).json({ error: 'Ya existe una cuenta con ese email.' });
     }
@@ -67,25 +67,25 @@ function register(router, db) {
     // se paga aquí, solo se guarda quién invitó a quién. Se paga al completar la primera
     // operación real (ver lib/referral.js), nunca en el registro (lección del fraude de bots
     // de PayPal, ver docs/VIRALIDAD_REFERIDOS.md).
-    const referrer = resolveReferrer(db, referral_code);
+    const referrer = await resolveReferrer(db, referral_code);
     const myReferralCode = generateReferralCode(name);
-    db.prepare(
+    await db.prepare(
       `INSERT INTO users (id, name, surname, email, phone, password_hash, password_salt, country, role, referral_code, referred_by, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'user', ?, ?, ?)`
     ).run(id, name, surname, email.toLowerCase(), phone || null, hash, salt, country || 'ES', myReferralCode, referrer ? referrer.id : null, now);
 
     // Registrar aceptación de términos con versión (punto 45/35)
-    const termsDoc = db.prepare("SELECT version FROM legal_documents WHERE doc_type = 'terminos' ORDER BY created_at DESC LIMIT 1").get();
-    db.prepare(
+    const termsDoc = await db.prepare("SELECT version FROM legal_documents WHERE doc_type = 'terminos' ORDER BY created_at DESC LIMIT 1").get();
+    await db.prepare(
       `INSERT INTO legal_acceptances (id, user_id, doc_type, version, accepted_at) VALUES (?, ?, 'terminos', ?, ?)`
     ).run(newId('acc'), id, termsDoc ? termsDoc.version : 'v1', now);
 
-    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+    const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(id);
     const token = signToken({ sub: id, role: user.role });
     // Fire-and-forget: un fallo de email nunca debe bloquear ni romper el registro en sí. Un solo
     // email de bienvenida que incluye ya el enlace de confirmación (antes eran ideas separadas,
     // pero mandar dos emails en el mismo minuto a alguien recién registrado es peor experiencia).
-    const verifyToken = createVerificationToken(db, id);
+    const verifyToken = await createVerificationToken(db, id);
     const verifyUrl = `${process.env.PUBLIC_APP_URL || req.headers.origin || ''}/verificar-email.html?token=${verifyToken}`;
     sendEmail({ to: user.email, subject: '¡Bienvenido a YaQueVas! Confirma tu email', html: welcomeEmailHtml(user.name, verifyUrl) })
       .catch((err) => console.error('No se pudo enviar el email de bienvenida:', err.message));
@@ -97,20 +97,20 @@ function register(router, db) {
   router.post('/api/auth/verify-email', async (req, res, body) => {
     const { token } = body;
     if (!token) return res.status(400).json({ error: 'Falta el token de confirmación.' });
-    const row = consumeVerificationToken(db, token);
+    const row = await consumeVerificationToken(db, token);
     if (!row) return res.status(400).json({ error: 'Este enlace no es válido o ha caducado. Pide uno nuevo desde tu cuenta.' });
-    db.prepare('UPDATE users SET email_verified = 1 WHERE id = ?').run(row.user_id);
+    await db.prepare('UPDATE users SET email_verified = 1 WHERE id = ?').run(row.user_id);
     res.json({ ok: true, mensaje: 'Email confirmado.' });
   });
 
   router.post('/api/auth/resend-verification', async (req, res) => {
-    const user = requireAuth(req, res, db);
+    const user = await requireAuth(req, res, db);
     if (!user) return;
     if (!resendVerificationLimiter(req)) {
       return res.status(429).json({ error: 'Demasiados intentos. Inténtalo de nuevo en unos minutos.' });
     }
     if (user.email_verified) return res.json({ ya_verificado: true });
-    const verifyToken = createVerificationToken(db, user.id);
+    const verifyToken = await createVerificationToken(db, user.id);
     const verifyUrl = `${process.env.PUBLIC_APP_URL || req.headers.origin || ''}/verificar-email.html?token=${verifyToken}`;
     sendEmail({
       to: user.email, subject: 'Confirma tu email de YaQueVas',
@@ -128,27 +128,27 @@ function register(router, db) {
   // Verificación de teléfono por código de 6 dígitos (SMS real con Twilio configurado, si no,
   // modo simulado — se ve en los logs del servidor, igual que el resto de integraciones).
   router.post('/api/me/phone/send-code', async (req, res) => {
-    const user = requireAuth(req, res, db);
+    const user = await requireAuth(req, res, db);
     if (!user) return;
     if (!phoneCodeLimiter(req)) {
       return res.status(429).json({ error: 'Demasiados intentos. Inténtalo de nuevo en unos minutos.' });
     }
     if (!user.phone) return res.status(400).json({ error: 'Añade primero un número de teléfono en tu perfil.' });
     if (user.phone_verified) return res.json({ ya_verificado: true });
-    const code = createPhoneCode(db, user.id, user.phone);
+    const code = await createPhoneCode(db, user.id, user.phone);
     await sendSms({ to: user.phone, body: `Tu código de verificación de YaQueVas es: ${code} (caduca en 10 minutos).` })
       .catch((err) => console.error('No se pudo enviar el SMS de verificación:', err.message));
     res.json({ ok: true, modo_demo: !isSmsConfigured(), mensaje: 'Te hemos enviado un código por SMS.' });
   });
 
   router.post('/api/me/phone/verify-code', async (req, res, body) => {
-    const user = requireAuth(req, res, db);
+    const user = await requireAuth(req, res, db);
     if (!user) return;
     const { code } = body;
     if (!code) return res.status(400).json({ error: 'Introduce el código que te hemos enviado.' });
-    const result = verifyPhoneCode(db, user.id, user.phone, code);
+    const result = await verifyPhoneCode(db, user.id, user.phone, code);
     if (result === 'ok') {
-      db.prepare('UPDATE users SET phone_verified = 1 WHERE id = ?').run(user.id);
+      await db.prepare('UPDATE users SET phone_verified = 1 WHERE id = ?').run(user.id);
       return res.json({ ok: true, mensaje: 'Teléfono confirmado.' });
     }
     const messages = {
@@ -165,7 +165,7 @@ function register(router, db) {
     }
     const { email, password } = body;
     if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos.' });
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(String(email).toLowerCase());
+    const user = await db.prepare('SELECT * FROM users WHERE email = ?').get(String(email).toLowerCase());
     if (!user || !verifyPassword(password, user.password_hash, user.password_salt)) {
       return res.status(401).json({ error: 'Credenciales incorrectas.' });
     }
@@ -175,34 +175,34 @@ function register(router, db) {
   });
 
   router.get('/api/me', async (req, res) => {
-    let user = requireAuth(req, res, db);
+    let user = await requireAuth(req, res, db);
     if (!user) return;
     // Backfill para cuentas creadas antes de que existiera el programa de referidos (la
     // migración solo añade la columna, no rellena un código para quien ya existía).
     if (!user.referral_code) {
       const code = generateReferralCode(user.name);
-      db.prepare('UPDATE users SET referral_code = ? WHERE id = ?').run(code, user.id);
-      user = db.prepare('SELECT * FROM users WHERE id = ?').get(user.id);
+      await db.prepare('UPDATE users SET referral_code = ? WHERE id = ?').run(code, user.id);
+      user = await db.prepare('SELECT * FROM users WHERE id = ?').get(user.id);
     }
     res.json({ user: publicUser(user) });
   });
 
   router.get('/api/me/referral', async (req, res) => {
-    const user = requireAuth(req, res, db);
+    const user = await requireAuth(req, res, db);
     if (!user) return;
-    const referred = db.prepare(
+    const referred = await db.prepare(
       `SELECT u.id, u.name, u.surname, u.created_at,
               rr.discount_pct, rr.status, rr.created_at AS reward_at
        FROM users u LEFT JOIN referral_rewards rr ON rr.referred_id = u.id
        WHERE u.referred_by = ? ORDER BY u.created_at DESC`
     ).all(user.id);
-    const creditosPendientes = db.prepare(
+    const creditosPendientes = (await db.prepare(
       "SELECT COUNT(*) AS n FROM referral_rewards WHERE referrer_id = ? AND referrer_redeemed = 0 AND discount_pct IS NOT NULL"
-    ).get(user.id).n;
+    ).get(user.id)).n;
     res.json({
       referral_code: user.referral_code,
-      reward_pct: Number(getConfigValue(db, 'referral_reward_pct') || 5),
-      descuento_disponible_pct: peekAvailableDiscount(db, user.id),
+      reward_pct: Number(await getConfigValue(db, 'referral_reward_pct') || 5),
+      descuento_disponible_pct: await peekAvailableDiscount(db, user.id),
       creditos_pendientes: creditosPendientes,
       invitados: referred.map((r) => ({
         nombre: `${r.name} ${r.surname}`.trim(),
@@ -223,10 +223,10 @@ function register(router, db) {
     const generic = { ok: true, mensaje: 'Si existe una cuenta con ese email, hemos enviado un enlace para restablecer la contraseña.' };
     if (!email) return res.status(400).json({ error: 'Email requerido.' });
 
-    const user = db.prepare('SELECT * FROM users WHERE email = ? AND active = 1').get(String(email).toLowerCase());
+    const user = await db.prepare('SELECT * FROM users WHERE email = ? AND active = 1').get(String(email).toLowerCase());
     if (!user) return res.json(generic); // misma respuesta exista o no, a propósito
 
-    const rawToken = createResetToken(db, user.id);
+    const rawToken = await createResetToken(db, user.id);
     const resetUrl = `${process.env.PUBLIC_APP_URL || req.headers.origin || ''}/restablecer.html?token=${rawToken}`;
     sendEmail({
       to: user.email,
@@ -251,12 +251,12 @@ function register(router, db) {
     if (!token || !password) return res.status(400).json({ error: 'Faltan datos.' });
     if (password.length < 8) return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });
 
-    const reset = findValidResetToken(db, token);
+    const reset = await findValidResetToken(db, token);
     if (!reset) return res.status(400).json({ error: 'Este enlace no es válido o ha caducado. Pide uno nuevo.' });
 
     const { hash, salt } = hashPassword(password);
-    db.prepare('UPDATE users SET password_hash = ?, password_salt = ? WHERE id = ?').run(hash, salt, reset.user_id);
-    consumeResetToken(db, reset.id);
+    await db.prepare('UPDATE users SET password_hash = ?, password_salt = ? WHERE id = ?').run(hash, salt, reset.user_id);
+    await consumeResetToken(db, reset.id);
     res.json({ ok: true, mensaje: 'Contraseña actualizada. Ya puedes iniciar sesión con la nueva.' });
   });
 
@@ -266,7 +266,7 @@ function register(router, db) {
   // aquí mismo. Sin esa variable, sigue el modo simulado de siempre: verificación instantánea,
   // etiquetada como demo, tal y como ya hacía el seed de datos de ejemplo.
   router.post('/api/me/identity/start', async (req, res, body) => {
-    const user = requireAuth(req, res, db);
+    const user = await requireAuth(req, res, db);
     if (!user) return;
     if (!identityLimiter(req)) {
       return res.status(429).json({ error: 'Demasiados intentos de verificación. Inténtalo de nuevo en unos minutos.' });
@@ -279,15 +279,15 @@ function register(router, db) {
       return res.json({ modo_demo: false, verification_url: url });
     }
 
-    db.prepare("UPDATE users SET identity_verified = 1, identity_provider_ref = ? WHERE id = ?").run(`DEMO-${newId('kyc')}`, user.id);
+    await db.prepare("UPDATE users SET identity_verified = 1, identity_provider_ref = ? WHERE id = ?").run(`DEMO-${newId('kyc')}`, user.id);
     res.json({ modo_demo: true, ya_verificado: true, aviso: 'Verificación simulada (MODO DEMOSTRACIÓN). Pendiente de conectar proveedor real.' });
   });
 
   router.put('/api/me/notifications', async (req, res, body) => {
-    const user = requireAuth(req, res, db);
+    const user = await requireAuth(req, res, db);
     if (!user) return;
     const prefs = { push: !!body.push, email: !!body.email, whatsapp: !!body.whatsapp };
-    db.prepare('UPDATE users SET notif_prefs_json = ? WHERE id = ?').run(JSON.stringify(prefs), user.id);
+    await db.prepare('UPDATE users SET notif_prefs_json = ? WHERE id = ?').run(JSON.stringify(prefs), user.id);
     res.json({ ok: true, notif_prefs: prefs });
   });
 }

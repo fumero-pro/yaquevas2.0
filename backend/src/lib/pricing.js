@@ -29,9 +29,9 @@ function baseReferenceEstimate({ weightKg, distanceCategory }) {
 // Generaliza la categoría de distancia a cualquier país/ubicación del catálogo geográfico
 // (backend/src/lib/geo.js), en vez de nombres de isla canaria hardcodeados. Acepta tanto el
 // id de ubicación nuevo como el nombre de isla en texto libre que aún envía el frontend.
-function distanceCategory(db, originIsland, destinationIsland) {
-  const origin = resolveLocation(db, originIsland);
-  const destination = resolveLocation(db, destinationIsland);
+async function distanceCategory(db, originIsland, destinationIsland) {
+  const origin = await resolveLocation(db, originIsland);
+  const destination = await resolveLocation(db, destinationIsland);
   if (!origin || !destination) return 'interinsular';
   return geoDistanceCategory(db, origin.id, destination.id);
 }
@@ -41,10 +41,10 @@ function distanceCategory(db, originIsland, destinationIsland) {
 // muestra tiene rango declarado) y todavía vigentes (si tiene fecha de caducidad). Una
 // muestra sin rango/vigencia declarados se interpreta como "aplica a cualquier peso, sin
 // caducidad" — compatible con las muestras antiguas sembradas antes de este campo.
-function referenceAverage(db, { originIsland, destinationIsland, weightKg }) {
+async function referenceAverage(db, { originIsland, destinationIsland, weightKg }) {
   const routeKey = `${originIsland}-${destinationIsland}`;
   const today = new Date().toISOString().slice(0, 10);
-  const rows = db
+  const rows = await db
     .prepare(
       `SELECT price FROM pricing_reference_samples
        WHERE route_key = ?
@@ -59,9 +59,9 @@ function referenceAverage(db, { originIsland, destinationIsland, weightKg }) {
   return Number(avg.toFixed(2));
 }
 
-function calculateOrientativePrice(db, config, { originIsland, destinationIsland, weightKg, fragile, extraLuggage }) {
-  const cat = distanceCategory(db, originIsland, destinationIsland);
-  const refFromSamples = referenceAverage(db, { originIsland, destinationIsland, weightKg });
+async function calculateOrientativePrice(db, config, { originIsland, destinationIsland, weightKg, fragile, extraLuggage }) {
+  const cat = await distanceCategory(db, originIsland, destinationIsland);
+  const refFromSamples = await referenceAverage(db, { originIsland, destinationIsland, weightKg });
   const reference = refFromSamples ?? baseReferenceEstimate({ weightKg, distanceCategory: cat });
 
   const discountPct = Number(config.baremo_discount_pct ?? 20);

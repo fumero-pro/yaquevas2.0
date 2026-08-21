@@ -33,9 +33,9 @@ function serializeShipment(s, items) {
 }
 
 // Comprueba el nombre/descripcion declarado contra la lista de objetos prohibidos (coincidencia simple).
-function checkProhibited(db, description) {
+async function checkProhibited(db, description) {
   if (!description) return null;
-  const items = db.prepare('SELECT * FROM prohibited_items WHERE active = 1').all();
+  const items = await db.prepare('SELECT * FROM prohibited_items WHERE active = 1').all();
   const text = description.toLowerCase();
   for (const it of items) {
     if (text.includes(it.name.toLowerCase())) return it;
@@ -45,7 +45,7 @@ function checkProhibited(db, description) {
 
 function register(router, db) {
   router.post('/api/shipments', async (req, res, body) => {
-    const user = requireAuth(req, res, db);
+    const user = await requireAuth(req, res, db);
     if (!user) return;
     const {
       recipient_name, recipient_phone, origin_island, origin_place,
@@ -57,8 +57,8 @@ function register(router, db) {
     if (!recipient_name || !origin_island || !destination_island || !desired_date || !items || !items.length) {
       return res.status(400).json({ error: 'Faltan campos obligatorios: destinatario, origen, destino, fecha y al menos un bulto.' });
     }
-    const originLoc = resolveLocation(db, origin_island);
-    const destinationLoc = resolveLocation(db, destination_island);
+    const originLoc = await resolveLocation(db, origin_island);
+    const destinationLoc = await resolveLocation(db, destination_island);
     if (!originLoc || !destinationLoc) {
       return res.status(400).json({ error: 'Origen o destino no reconocido.' });
     }
@@ -75,7 +75,7 @@ function register(router, db) {
 
     // Comprobación básica contra la lista de objetos prohibidos (punto 6)
     const combinedText = [notes, ...items.map((i) => i.description)].filter(Boolean).join(' ');
-    const hit = checkProhibited(db, combinedText);
+    const hit = await checkProhibited(db, combinedText);
     if (hit && hit.category === 'prohibido') {
       return res.status(400).json({
         error: `El contenido descrito coincide con un objeto prohibido en YaQueVas: "${hit.name}". No se puede publicar este envío.`,
@@ -86,7 +86,7 @@ function register(router, db) {
     const now = new Date().toISOString();
     const finalCategory = hit && hit.category === 'permitido_aceptacion_expresa' ? 'permitido_aceptacion_expresa' : (category || 'permitido');
 
-    db.prepare(
+    await db.prepare(
       `INSERT INTO shipments (id, sender_id, recipient_name, recipient_phone, origin_island, origin_location_id,
         origin_place, destination_island, destination_location_id, destination_place, desired_date, category,
         weight_kg, dimensions, declared_value, fragile, notes, truthfulness_accepted, status, created_at)
@@ -98,13 +98,13 @@ function register(router, db) {
       fragile ? 1 : 0, notes || '', now
     );
     for (const it of items) {
-      db.prepare(
+      await db.prepare(
         `INSERT INTO shipment_items (id, shipment_id, item_type, quantity, description, photo_url) VALUES (?, ?, ?, ?, ?, ?)`
       ).run(newId('item'), id, it.item_type, Number(it.quantity || 1), it.description || '', it.photo || null);
     }
 
-    const shipment = db.prepare('SELECT * FROM shipments WHERE id = ?').get(id);
-    const savedItems = db.prepare('SELECT * FROM shipment_items WHERE shipment_id = ?').all(id);
+    const shipment = await db.prepare('SELECT * FROM shipments WHERE id = ?').get(id);
+    const savedItems = await db.prepare('SELECT * FROM shipment_items WHERE shipment_id = ?').all(id);
     res.status(201).json({
       shipment: serializeShipment(shipment, savedItems),
       aviso_categoria: hit && hit.category === 'permitido_aceptacion_expresa'
@@ -120,20 +120,20 @@ function register(router, db) {
     if (query.destination_island) { sql += ' AND destination_island = ?'; args.push(query.destination_island); }
     if (query.status) { sql += ' AND status = ?'; args.push(query.status); }
     if (query.mine === '1') {
-      const user = requireAuth(req, res, db);
+      const user = await requireAuth(req, res, db);
       if (!user) return;
       sql += ' AND sender_id = ?'; args.push(user.id);
     }
     sql += ' ORDER BY desired_date ASC LIMIT 100';
-    const rows = db.prepare(sql).all(...args);
-    const result = rows.map((s) => serializeShipment(s, db.prepare('SELECT * FROM shipment_items WHERE shipment_id = ?').all(s.id)));
+    const rows = await db.prepare(sql).all(...args);
+    const result = await Promise.all(rows.map(async (s) => serializeShipment(s, await db.prepare('SELECT * FROM shipment_items WHERE shipment_id = ?').all(s.id))));
     res.json({ shipments: result });
   });
 
   router.get('/api/shipments/:id', async (req, res, body, params) => {
-    const shipment = db.prepare('SELECT * FROM shipments WHERE id = ?').get(params.id);
+    const shipment = await db.prepare('SELECT * FROM shipments WHERE id = ?').get(params.id);
     if (!shipment) return res.status(404).json({ error: 'Envío no encontrado.' });
-    const items = db.prepare('SELECT * FROM shipment_items WHERE shipment_id = ?').all(params.id);
+    const items = await db.prepare('SELECT * FROM shipment_items WHERE shipment_id = ?').all(params.id);
     res.json({ shipment: serializeShipment(shipment, items) });
   });
 }

@@ -24,9 +24,9 @@ function generateReferralCode(name) {
   return `${base}${suffix}`;
 }
 
-function resolveReferrer(db, code) {
+async function resolveReferrer(db, code) {
   if (!code || typeof code !== 'string') return null;
-  const referrer = db.prepare('SELECT * FROM users WHERE referral_code = ?').get(code.trim().toUpperCase());
+  const referrer = await db.prepare('SELECT * FROM users WHERE referral_code = ?').get(code.trim().toUpperCase());
   return referrer || null;
 }
 
@@ -35,26 +35,26 @@ function resolveReferrer(db, code) {
 // alguien (referred_by), y (b) es su primera operación con pago liberado, y (c) no se le ha
 // concedido ya una recompensa antes (UNIQUE(referred_id) en la tabla lo garantiza también a
 // nivel de base de datos, esto es solo para no intentar el INSERT si ya sabemos que no toca).
-function awardReferralIfEligible(db, userId, triggeringBookingId) {
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+async function awardReferralIfEligible(db, userId, triggeringBookingId) {
+  const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
   if (!user || !user.referred_by) return null;
 
-  const alreadyRewarded = db.prepare('SELECT 1 FROM referral_rewards WHERE referred_id = ?').get(userId);
+  const alreadyRewarded = await db.prepare('SELECT 1 FROM referral_rewards WHERE referred_id = ?').get(userId);
   if (alreadyRewarded) return null;
 
-  const completedCount = db.prepare(
+  const completedCount = (await db.prepare(
     `SELECT COUNT(*) AS n FROM bookings
      WHERE (sender_id = ? OR traveler_id = ?) AND status IN ('pago_liberado', 'entregado', 'finalizado')`
-  ).get(userId, userId).n;
+  ).get(userId, userId)).n;
   if (completedCount > 1) return null; // ya tenía operaciones completadas antes de esta — no es "su primera"
 
-  const referrer = db.prepare('SELECT * FROM users WHERE id = ? AND active = 1').get(user.referred_by);
+  const referrer = await db.prepare('SELECT * FROM users WHERE id = ? AND active = 1').get(user.referred_by);
   if (!referrer) return null;
 
-  const discountPct = Number(getConfigValue(db, 'referral_reward_pct') || 5);
+  const discountPct = Number((await getConfigValue(db, 'referral_reward_pct')) || 5);
   const now = new Date().toISOString();
   try {
-    db.prepare(
+    await db.prepare(
       `INSERT INTO referral_rewards (id, referrer_id, referred_id, triggering_booking_id, amount_eur, discount_pct, status, created_at)
        VALUES (?, ?, ?, ?, 0, ?, 'concedido', ?)`
     ).run(newId('ref'), referrer.id, userId, triggeringBookingId, discountPct, now);
@@ -68,12 +68,12 @@ function awardReferralIfEligible(db, userId, triggeringBookingId) {
 // cuenta" antes de que llegue el momento de usarlo. Mira primero como referido (solo puede
 // pasar una vez en la vida de la cuenta) y si no, como referidor (puede tener varios créditos
 // acumulados si ha invitado a más de una persona; se muestra/canjea el más antiguo primero).
-function peekAvailableDiscount(db, userId) {
-  const asReferred = db.prepare(
+async function peekAvailableDiscount(db, userId) {
+  const asReferred = await db.prepare(
     'SELECT discount_pct FROM referral_rewards WHERE referred_id = ? AND referred_redeemed = 0 AND discount_pct IS NOT NULL'
   ).get(userId);
   if (asReferred) return asReferred.discount_pct;
-  const asReferrer = db.prepare(
+  const asReferrer = await db.prepare(
     'SELECT discount_pct FROM referral_rewards WHERE referrer_id = ? AND referrer_redeemed = 0 AND discount_pct IS NOT NULL ORDER BY created_at ASC LIMIT 1'
   ).get(userId);
   return asReferrer ? asReferrer.discount_pct : null;
@@ -82,19 +82,19 @@ function peekAvailableDiscount(db, userId) {
 // Gasta el descuento pendiente de este usuario (si tiene) al crear una operación nueva. Marca
 // el lado correspondiente (referrer/referred) como canjeado sin tocar el otro lado — la misma
 // fila beneficia a dos personas que pueden canjear su parte en momentos distintos.
-function consumeDiscountCredit(db, userId, bookingId) {
-  const asReferred = db.prepare(
+async function consumeDiscountCredit(db, userId, bookingId) {
+  const asReferred = await db.prepare(
     'SELECT * FROM referral_rewards WHERE referred_id = ? AND referred_redeemed = 0 AND discount_pct IS NOT NULL'
   ).get(userId);
   if (asReferred) {
-    db.prepare('UPDATE referral_rewards SET referred_redeemed = 1, referred_redeemed_booking_id = ? WHERE id = ?').run(bookingId, asReferred.id);
+    await db.prepare('UPDATE referral_rewards SET referred_redeemed = 1, referred_redeemed_booking_id = ? WHERE id = ?').run(bookingId, asReferred.id);
     return asReferred.discount_pct;
   }
-  const asReferrer = db.prepare(
+  const asReferrer = await db.prepare(
     'SELECT * FROM referral_rewards WHERE referrer_id = ? AND referrer_redeemed = 0 AND discount_pct IS NOT NULL ORDER BY created_at ASC LIMIT 1'
   ).get(userId);
   if (asReferrer) {
-    db.prepare('UPDATE referral_rewards SET referrer_redeemed = 1, referrer_redeemed_booking_id = ? WHERE id = ?').run(bookingId, asReferrer.id);
+    await db.prepare('UPDATE referral_rewards SET referrer_redeemed = 1, referrer_redeemed_booking_id = ? WHERE id = ?').run(bookingId, asReferrer.id);
     return asReferrer.discount_pct;
   }
   return null;

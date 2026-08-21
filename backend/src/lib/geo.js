@@ -43,30 +43,30 @@ function slug(s) {
 }
 
 // Idempotente: usa INSERT OR IGNORE, seguro de ejecutar en cada arranque.
-function seedGeo(db) {
+async function seedGeo(db) {
   for (const c of COUNTRIES) {
-    db.prepare('INSERT OR IGNORE INTO countries (id, name, active) VALUES (?, ?, 1)').run(c.id, c.name);
+    await db.prepare('INSERT OR IGNORE INTO countries (id, name, active) VALUES (?, ?, 1)').run(c.id, c.name);
   }
 
   const canariasId = 'loc_canarias';
-  db.prepare(
+  await db.prepare(
     `INSERT OR IGNORE INTO locations (id, country_id, parent_id, level, name, distance_zone, selectable, sort_order, active)
      VALUES (?, 'ES', NULL, 'region', 'Canarias', NULL, 0, 0, 1)`
   ).run(canariasId);
 
-  CANARY_ISLANDS.forEach((isl, i) => {
-    db.prepare(
+  for (const [i, isl] of CANARY_ISLANDS.entries()) {
+    await db.prepare(
       `INSERT OR IGNORE INTO locations (id, country_id, parent_id, level, name, distance_zone, selectable, sort_order, active)
        VALUES (?, 'ES', ?, 'island', ?, ?, 1, ?, 1)`
     ).run(`loc_island_${slug(isl.name)}`, canariasId, isl.name, isl.zone, i + 1);
-  });
+  }
 
-  CUBA_PROVINCES.forEach((name, i) => {
-    db.prepare(
+  for (const [i, name] of CUBA_PROVINCES.entries()) {
+    await db.prepare(
       `INSERT OR IGNORE INTO locations (id, country_id, parent_id, level, name, distance_zone, selectable, sort_order, active)
        VALUES (?, 'CU', NULL, 'province', ?, ?, 1, ?, 1)`
     ).run(`loc_province_${slug(name)}`, name, `cu_${slug(name)}`, i + 1);
-  });
+  }
 }
 
 // ES primero (mercado base de lanzamiento), el resto alfabético — ni el orden alfabético
@@ -74,33 +74,33 @@ function seedGeo(db) {
 const COUNTRY_ORDER = "CASE WHEN id = 'ES' THEN 0 ELSE 1 END, name";
 const LOCATION_COUNTRY_ORDER = "CASE WHEN country_id = 'ES' THEN 0 ELSE 1 END";
 
-function listCountries(db) {
-  return db.prepare(`SELECT * FROM countries WHERE active = 1 ORDER BY ${COUNTRY_ORDER}`).all();
+async function listCountries(db) {
+  return await db.prepare(`SELECT * FROM countries WHERE active = 1 ORDER BY ${COUNTRY_ORDER}`).all();
 }
 
-function listSelectableLocations(db, countryId) {
+async function listSelectableLocations(db, countryId) {
   if (countryId) {
-    return db
+    return await db
       .prepare('SELECT * FROM locations WHERE selectable = 1 AND active = 1 AND country_id = ? ORDER BY sort_order, name')
       .all(countryId);
   }
-  return db
+  return await db
     .prepare(`SELECT * FROM locations WHERE selectable = 1 AND active = 1 ORDER BY ${LOCATION_COUNTRY_ORDER}, sort_order, name`)
     .all();
 }
 
-function getLocation(db, id) {
+async function getLocation(db, id) {
   if (!id) return null;
-  return db.prepare('SELECT * FROM locations WHERE id = ?').get(id);
+  return await db.prepare('SELECT * FROM locations WHERE id = ?').get(id);
 }
 
 // Acepta el id nuevo (loc_xxx) o, por compatibilidad con el frontend que aún envía nombres
 // de isla en texto libre, el nombre exacto de una ubicación seleccionable.
-function resolveLocation(db, value) {
+async function resolveLocation(db, value) {
   if (!value) return null;
-  const byId = getLocation(db, value);
+  const byId = await getLocation(db, value);
   if (byId && byId.selectable && byId.active) return byId;
-  return db.prepare('SELECT * FROM locations WHERE name = ? AND selectable = 1 AND active = 1 LIMIT 1').get(value) || null;
+  return (await db.prepare('SELECT * FROM locations WHERE name = ? AND selectable = 1 AND active = 1 LIMIT 1').get(value)) || null;
 }
 
 // Categoría de distancia entre dos ubicaciones, para el motor de precios. Generaliza el
@@ -111,10 +111,10 @@ function resolveLocation(db, value) {
 // distinto país (p.ej. Canarias <-> Cuba) -> internacional. `distance_zone` en `locations` ya
 // no se usa para bifurcar el precio, se deja en el esquema por si sirve para otra cosa a futuro
 // (agrupar islas cercanas en el mapa, por ejemplo), pero el pricing ya no depende de él.
-function distanceCategory(db, originId, destinationId) {
+async function distanceCategory(db, originId, destinationId) {
   if (originId === destinationId) return 'misma_zona';
-  const a = getLocation(db, originId);
-  const b = getLocation(db, destinationId);
+  const a = await getLocation(db, originId);
+  const b = await getLocation(db, destinationId);
   if (!a || !b) return 'interinsular';
   if (a.country_id !== b.country_id) return 'internacional';
   return 'interinsular';

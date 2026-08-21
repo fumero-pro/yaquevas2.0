@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const { URL } = require('url');
 
-const { db } = require('./db');
+const { db, initDb } = require('./db');
 const { createRouter, readJsonBody, readRawBody, attachHelpers } = require('./lib/http');
 
 const router = createRouter();
@@ -126,7 +126,14 @@ const server = http.createServer(async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`YaQueVas backend escuchando en http://localhost:${PORT}`);
-  console.log('Modo DEMOSTRACIÓN activo: pagos, KYC y WhatsApp están simulados.');
-});
+initDb()
+  .then(() => {
+    server.listen(PORT, () => {
+      console.log(`YaQueVas backend escuchando en http://localhost:${PORT}`);
+      console.log('Modo DEMOSTRACIÓN activo: pagos, KYC y WhatsApp están simulados.');
+    });
+  })
+  .catch((err) => {
+    console.error('No se pudo inicializar la base de datos:', err);
+    process.exit(1);
+  });

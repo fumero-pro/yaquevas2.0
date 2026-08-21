@@ -38,7 +38,7 @@ function serializeTrip(t) {
 
 function register(router, db) {
   router.post('/api/trips', async (req, res, body) => {
-    const user = requireAuth(req, res, db);
+    const user = await requireAuth(req, res, db);
     if (!user) return;
     const {
       origin_island, origin_place, destination_island, destination_place,
@@ -51,8 +51,8 @@ function register(router, db) {
     }
     // Acepta el id de ubicación nuevo (loc_xxx) o, por compatibilidad con el frontend actual,
     // el nombre exacto de una ubicación seleccionable (isla canaria o provincia cubana).
-    const originLoc = resolveLocation(db, origin_island);
-    const destinationLoc = resolveLocation(db, destination_island);
+    const originLoc = await resolveLocation(db, origin_island);
+    const destinationLoc = await resolveLocation(db, destination_island);
     if (!originLoc || !destinationLoc) {
       return res.status(400).json({ error: 'Origen o destino no reconocido.' });
     }
@@ -69,7 +69,7 @@ function register(router, db) {
 
     const id = newId('trip');
     const now = new Date().toISOString();
-    db.prepare(
+    await db.prepare(
       `INSERT INTO trips (id, user_id, origin_island, origin_location_id, origin_place,
         destination_island, destination_location_id, destination_place,
         trip_date, departure_time, arrival_time, transport_mode, capacity_json, used_json,
@@ -82,7 +82,7 @@ function register(router, db) {
       JSON.stringify(cap), JSON.stringify({ maletas_grandes: 0, maletas_pequenas: 0, sobres: 0, cajas_medianas: 0, kg: 0 }),
       accepts_fragile === false ? 0 : 1, accepts_detours ? 1 : 0, notes || '', now
     );
-    const trip = db.prepare('SELECT * FROM trips WHERE id = ?').get(id);
+    const trip = await db.prepare('SELECT * FROM trips WHERE id = ?').get(id);
     res.status(201).json({ trip: serializeTrip(trip) });
   });
 
@@ -93,28 +93,28 @@ function register(router, db) {
     if (query.destination_island) { sql += ' AND destination_island = ?'; args.push(query.destination_island); }
     if (query.status) { sql += ' AND status = ?'; args.push(query.status); }
     if (query.mine === '1') {
-      const user = requireAuth(req, res, db);
+      const user = await requireAuth(req, res, db);
       if (!user) return;
       sql += ' AND user_id = ?'; args.push(user.id);
     }
     sql += ' ORDER BY trip_date ASC LIMIT 100';
-    const rows = db.prepare(sql).all(...args);
+    const rows = await db.prepare(sql).all(...args);
     res.json({ trips: rows.map(serializeTrip) });
   });
 
   router.get('/api/trips/:id', async (req, res, body, params) => {
-    const trip = db.prepare('SELECT * FROM trips WHERE id = ?').get(params.id);
+    const trip = await db.prepare('SELECT * FROM trips WHERE id = ?').get(params.id);
     if (!trip) return res.status(404).json({ error: 'Viaje no encontrado.' });
     res.json({ trip: serializeTrip(trip) });
   });
 
   router.post('/api/trips/:id/cancel', async (req, res, body, params) => {
-    const user = requireAuth(req, res, db);
+    const user = await requireAuth(req, res, db);
     if (!user) return;
-    const trip = db.prepare('SELECT * FROM trips WHERE id = ?').get(params.id);
+    const trip = await db.prepare('SELECT * FROM trips WHERE id = ?').get(params.id);
     if (!trip) return res.status(404).json({ error: 'Viaje no encontrado.' });
     if (trip.user_id !== user.id) return res.status(403).json({ error: 'Solo el creador del viaje puede cancelarlo.' });
-    db.prepare("UPDATE trips SET status = 'cancelado' WHERE id = ?").run(trip.id);
+    await db.prepare("UPDATE trips SET status = 'cancelado' WHERE id = ?").run(trip.id);
     res.json({ ok: true });
   });
 }

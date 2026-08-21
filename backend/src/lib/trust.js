@@ -7,8 +7,8 @@
 // propia versión.
 const VISIBILITY_WINDOW_DAYS = 14;
 
-function getVisibleRatingSummary(db, userId) {
-  const row = db.prepare(
+async function getVisibleRatingSummary(db, userId) {
+  const row = await db.prepare(
     `SELECT AVG(r.rating) avg, COUNT(*) c
      FROM reviews r
      JOIN bookings b ON b.id = r.booking_id

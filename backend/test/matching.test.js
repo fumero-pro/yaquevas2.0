@@ -4,14 +4,14 @@ const assert = require('node:assert/strict');
 const { createTestDb } = require('./helpers/testDb');
 const { matchScore, findMatchesForShipment } = require('../src/lib/matching');
 
-function insertUser(db, id) {
-  db.prepare(
+async function insertUser(db, id) {
+  await db.prepare(
     `INSERT INTO users (id, name, surname, email, password_hash, password_salt, created_at)
      VALUES (?, 'Test', 'User', ?, 'x', 'x', datetime('now'))`
   ).run(id, `${id}@test.local`);
 }
 
-function insertTrip(db, overrides = {}) {
+async function insertTrip(db, overrides = {}) {
   const trip = {
     id: 'trip_1', user_id: 'usr_1', origin_island: 'Tenerife', origin_place: 'Santa Cruz',
     destination_island: 'Gran Canaria', destination_place: 'Las Palmas', trip_date: '2026-09-01',
@@ -19,7 +19,7 @@ function insertTrip(db, overrides = {}) {
     used_json: JSON.stringify({ maletas_grandes: 0, maletas_pequenas: 0, sobres: 0, cajas_medianas: 0, kg: 0 }),
     accepts_fragile: 1, accepts_detours: 1, status: 'publicado', ...overrides,
   };
-  db.prepare(
+  await db.prepare(
     `INSERT INTO trips (id, user_id, origin_island, origin_place, destination_island, destination_place, trip_date,
       transport_mode, capacity_json, used_json, accepts_fragile, accepts_detours, status, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
@@ -28,13 +28,13 @@ function insertTrip(db, overrides = {}) {
   return trip;
 }
 
-function insertShipment(db, overrides = {}) {
+async function insertShipment(db, overrides = {}) {
   const s = {
     id: 'ship_1', sender_id: 'usr_2', recipient_name: 'Ana', origin_island: 'Tenerife', origin_place: 'Santa Cruz',
     destination_island: 'Gran Canaria', destination_place: 'Las Palmas', desired_date: '2026-09-01',
     category: 'permitido', weight_kg: 3, fragile: 0, status: 'publicado', ...overrides,
   };
-  db.prepare(
+  await db.prepare(
     `INSERT INTO shipments (id, sender_id, recipient_name, origin_island, origin_place, destination_island,
       destination_place, desired_date, category, weight_kg, fragile, status, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
@@ -43,44 +43,44 @@ function insertShipment(db, overrides = {}) {
   return s;
 }
 
-function seedUsers(db) {
-  insertUser(db, 'usr_1');
-  insertUser(db, 'usr_2');
+async function seedUsers(db) {
+  await insertUser(db, 'usr_1');
+  await insertUser(db, 'usr_2');
 }
 
-test('matchScore devuelve null si la ruta no coincide', () => {
-  const db = createTestDb();
-  seedUsers(db);
-  const trip = insertTrip(db);
-  const shipment = insertShipment(db, { destination_island: 'La Palma' });
+test('matchScore devuelve null si la ruta no coincide', async () => {
+  const db = await createTestDb();
+  await seedUsers(db);
+  const trip = await insertTrip(db);
+  const shipment = await insertShipment(db, { destination_island: 'La Palma' });
   assert.equal(matchScore(shipment, trip, []), null);
 });
 
-test('matchScore devuelve null si el contenido es frágil y el viaje no lo acepta', () => {
-  const db = createTestDb();
-  seedUsers(db);
-  const trip = insertTrip(db, { accepts_fragile: 0 });
-  const shipment = insertShipment(db, { fragile: 1 });
+test('matchScore devuelve null si el contenido es frágil y el viaje no lo acepta', async () => {
+  const db = await createTestDb();
+  await seedUsers(db);
+  const trip = await insertTrip(db, { accepts_fragile: 0 });
+  const shipment = await insertShipment(db, { fragile: 1 });
   assert.equal(matchScore(shipment, trip, []), null);
 });
 
-test('matchScore puntúa más alto cuando coinciden fecha y localidad exactas', () => {
-  const db = createTestDb();
-  seedUsers(db);
-  const tripExact = insertTrip(db, { id: 'trip_exact' });
-  const tripDiff = insertTrip(db, { id: 'trip_diff', origin_place: 'Otro sitio', trip_date: '2026-09-10' });
-  const shipment = insertShipment(db);
+test('matchScore puntúa más alto cuando coinciden fecha y localidad exactas', async () => {
+  const db = await createTestDb();
+  await seedUsers(db);
+  const tripExact = await insertTrip(db, { id: 'trip_exact' });
+  const tripDiff = await insertTrip(db, { id: 'trip_diff', origin_place: 'Otro sitio', trip_date: '2026-09-10' });
+  const shipment = await insertShipment(db);
   const exact = matchScore(shipment, tripExact, []);
   const diff = matchScore(shipment, tripDiff, []);
   assert.ok(exact.score > diff.score);
 });
 
-test('findMatchesForShipment encuentra un viaje compatible en Cuba igual que en Canarias', () => {
-  const db = createTestDb();
-  seedUsers(db);
-  insertTrip(db, { id: 'trip_cuba', origin_island: 'Tenerife', destination_island: 'La Habana' });
-  const shipment = insertShipment(db, { id: 'ship_cuba', origin_island: 'Tenerife', destination_island: 'La Habana' });
-  const matches = findMatchesForShipment(db, shipment, []);
+test('findMatchesForShipment encuentra un viaje compatible en Cuba igual que en Canarias', async () => {
+  const db = await createTestDb();
+  await seedUsers(db);
+  await insertTrip(db, { id: 'trip_cuba', origin_island: 'Tenerife', destination_island: 'La Habana' });
+  const shipment = await insertShipment(db, { id: 'ship_cuba', origin_island: 'Tenerife', destination_island: 'La Habana' });
+  const matches = await findMatchesForShipment(db, shipment, []);
   assert.equal(matches.length, 1);
   assert.equal(matches[0].trip.destination_island, 'La Habana');
 });

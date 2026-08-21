@@ -16,15 +16,15 @@ function notificationEmailHtml(title, bodyText) {
   `;
 }
 
-function notify(db, userId, type, title, bodyText, relatedId) {
-  db.prepare(
+async function notify(db, userId, type, title, bodyText, relatedId) {
+  await db.prepare(
     `INSERT INTO notifications (id, user_id, type, title, body, related_type, related_id, created_at)
      VALUES (?, ?, ?, ?, ?, 'booking', ?, ?)`
   ).run(newId('notif'), userId, type, title, bodyText || '', relatedId || null, new Date().toISOString());
 
   // Fire-and-forget, igual que el resto de envíos de email del proyecto (auth.js): un fallo de
   // email nunca debe romper el flujo (pago, entrega, chat...) que disparó la notificación.
-  const user = db.prepare('SELECT email, notif_prefs_json FROM users WHERE id = ?').get(userId);
+  const user = await db.prepare('SELECT email, notif_prefs_json FROM users WHERE id = ?').get(userId);
   if (!user || !user.email) return;
   let prefs;
   try { prefs = JSON.parse(user.notif_prefs_json); } catch { prefs = {}; }

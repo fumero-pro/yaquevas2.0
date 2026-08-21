@@ -7,7 +7,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
-test('isPaymentsConfigured es false sin STRIPE_SECRET_KEY', () => {
+test('isPaymentsConfigured es false sin STRIPE_SECRET_KEY', async () => {
   delete process.env.STRIPE_SECRET_KEY;
   delete require.cache[require.resolve('../src/lib/payments')];
   const { isPaymentsConfigured } = require('../src/lib/payments');
@@ -31,7 +31,7 @@ test('createRefund lanza un error claro si Stripe no está configurado', async (
   await assert.rejects(() => createRefund('pi_fake'), /Stripe no está configurado/);
 });
 
-test('verifyWebhookSignature devuelve null sin STRIPE_WEBHOOK_SECRET (aunque haya body)', () => {
+test('verifyWebhookSignature devuelve null sin STRIPE_WEBHOOK_SECRET (aunque haya body)', async () => {
   delete process.env.STRIPE_SECRET_KEY;
   delete process.env.STRIPE_WEBHOOK_SECRET;
   delete require.cache[require.resolve('../src/lib/payments')];
@@ -39,7 +39,7 @@ test('verifyWebhookSignature devuelve null sin STRIPE_WEBHOOK_SECRET (aunque hay
   assert.equal(verifyWebhookSignature(Buffer.from('{}'), 'fake-signature'), null);
 });
 
-test('isIdentityConfigured es false sin STRIPE_SECRET_KEY', () => {
+test('isIdentityConfigured es false sin STRIPE_SECRET_KEY', async () => {
   delete process.env.STRIPE_SECRET_KEY;
   delete require.cache[require.resolve('../src/lib/payments')];
   delete require.cache[require.resolve('../src/lib/identity')];

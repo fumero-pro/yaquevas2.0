@@ -15,9 +15,9 @@ function register(router, db) {
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
       const bookingId = session.metadata && session.metadata.booking_id;
-      const booking = bookingId ? db.prepare('SELECT * FROM bookings WHERE id = ?').get(bookingId) : null;
+      const booking = bookingId ? await db.prepare('SELECT * FROM bookings WHERE id = ?').get(bookingId) : null;
       if (booking && booking.status === 'aceptado') {
-        markPaymentReceived(db, booking, { provider: 'stripe', providerRef: session.payment_intent || session.id, isDemo: false });
+        await markPaymentReceived(db, booking, { provider: 'stripe', providerRef: session.payment_intent || session.id, isDemo: false });
       }
     }
 
@@ -25,7 +25,7 @@ function register(router, db) {
       const session = event.data.object;
       const userId = session.metadata && session.metadata.user_id;
       if (userId) {
-        db.prepare('UPDATE users SET identity_verified = 1, identity_provider_ref = ? WHERE id = ?').run(session.id, userId);
+        await db.prepare('UPDATE users SET identity_verified = 1, identity_provider_ref = ? WHERE id = ?').run(session.id, userId);
       }
     }
 

@@ -12,25 +12,25 @@ function hashToken(rawToken) {
   return crypto.createHash('sha256').update(rawToken).digest('hex');
 }
 
-function createVerificationToken(db, userId) {
+async function createVerificationToken(db, userId) {
   const rawToken = crypto.randomBytes(32).toString('base64url');
   const now = new Date();
   const expiresAt = new Date(now.getTime() + VERIFY_TOKEN_TTL_MS);
-  db.prepare(
+  await db.prepare(
     `INSERT INTO email_verifications (id, user_id, token_hash, expires_at, used, created_at)
      VALUES (?, ?, ?, ?, 0, ?)`
   ).run(newId('everify'), userId, hashToken(rawToken), expiresAt.toISOString(), now.toISOString());
   return rawToken;
 }
 
-function consumeVerificationToken(db, rawToken) {
+async function consumeVerificationToken(db, rawToken) {
   if (!rawToken || typeof rawToken !== 'string') return null;
-  const row = db.prepare(
+  const row = await db.prepare(
     'SELECT * FROM email_verifications WHERE token_hash = ? AND used = 0'
   ).get(hashToken(rawToken));
   if (!row) return null;
   if (new Date(row.expires_at).getTime() < Date.now()) return null;
-  db.prepare('UPDATE email_verifications SET used = 1 WHERE id = ?').run(row.id);
+  await db.prepare('UPDATE email_verifications SET used = 1 WHERE id = ?').run(row.id);
   return row;
 }
 

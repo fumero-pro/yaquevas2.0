@@ -52,8 +52,8 @@ function matchScore(shipment, trip, shipmentItems) {
   return { score, fit };
 }
 
-function findMatchesForShipment(db, shipment, shipmentItems, { limit = 20 } = {}) {
-  const trips = db
+async function findMatchesForShipment(db, shipment, shipmentItems, { limit = 20 } = {}) {
+  const trips = await db
     .prepare(
       "SELECT * FROM trips WHERE origin_island = ? AND destination_island = ? AND status = 'publicado'"
     )
@@ -68,8 +68,8 @@ function findMatchesForShipment(db, shipment, shipmentItems, { limit = 20 } = {}
   return results.slice(0, limit);
 }
 
-function findMatchesForTrip(db, trip, { limit = 20 } = {}) {
-  const shipments = db
+async function findMatchesForTrip(db, trip, { limit = 20 } = {}) {
+  const shipments = await db
     .prepare(
       "SELECT * FROM shipments WHERE origin_island = ? AND destination_island = ? AND status IN ('publicado','buscando_viajero')"
     )
@@ -77,7 +77,7 @@ function findMatchesForTrip(db, trip, { limit = 20 } = {}) {
 
   const results = [];
   for (const shipment of shipments) {
-    const items = db.prepare('SELECT * FROM shipment_items WHERE shipment_id = ?').all(shipment.id);
+    const items = await db.prepare('SELECT * FROM shipment_items WHERE shipment_id = ?').all(shipment.id);
     const m = matchScore(shipment, trip, items);
     if (m) results.push({ shipment, score: m.score });
   }

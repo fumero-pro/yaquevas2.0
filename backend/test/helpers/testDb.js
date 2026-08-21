@@ -5,18 +5,20 @@
 const path = require('path');
 const fs = require('fs');
 const { DatabaseSync } = require('node:sqlite');
+const { wrapSyncDb } = require('../../src/lib/dbAdapter');
 
-function createTestDb() {
-  const db = new DatabaseSync(':memory:');
-  db.exec('PRAGMA foreign_keys = ON;');
+async function createTestDb() {
+  const rawDb = new DatabaseSync(':memory:');
+  rawDb.exec('PRAGMA foreign_keys = ON;');
+  const db = wrapSyncDb(rawDb);
   for (const file of ['001_init.sql', '002_geo.sql']) {
     const sql = fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'migrations', file), 'utf8');
-    db.exec(sql);
+    await db.exec(sql);
   }
   // Misma lista de ALTER que usa la BD real (backend/src/db.js) — una sola fuente de verdad
   // en migrations/alters.js para que nunca puedan desincronizarse.
-  require('../../src/migrations/alters').applyAlters(db);
-  require('../../src/lib/geo').seedGeo(db);
+  await require('../../src/migrations/alters').applyAlters(db);
+  await require('../../src/lib/geo').seedGeo(db);
   return db;
 }
 
