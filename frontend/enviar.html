@@ -24,47 +24,72 @@
     <div id="formError"></div>
 
     <form id="shipForm" class="card">
+      <fieldset class="route-fieldset">
+        <legend>Ruta</legend>
+        <div class="route-tabs" role="tablist">
+          <button type="button" class="route-tab active" data-route="misma_zona">Dentro de mi isla</button>
+          <button type="button" class="route-tab" data-route="interinsular">Entre islas</button>
+          <button type="button" class="route-tab" data-route="internacional">A Cuba</button>
+        </div>
+
+        <div class="route-panels">
+        <div class="route-panel" data-panel="misma_zona">
+          <label class="first">Tu isla</label>
+          <select id="same_island" required></select>
+          <div class="field-row cols-2" style="margin-top:10px;">
+            <div class="address-search" data-role="origin">
+              <label>Punto de recogida — escribe una calle, un barrio o el código postal</label>
+              <input type="text" class="address-search-input" placeholder="Ej. Calle La Marina 12 o 38001" autocomplete="off">
+              <div class="address-search-results"></div>
+              <div class="address-search-picked muted" style="font-size:0.82rem; margin-top:4px; display:none;"></div>
+            </div>
+            <div class="address-search" data-role="destination">
+              <label>Punto de entrega — escribe una calle, un barrio o el código postal</label>
+              <input type="text" class="address-search-input" placeholder="Ej. Avenida Marítima 5 o 38650" autocomplete="off">
+              <div class="address-search-results"></div>
+              <div class="address-search-picked muted" style="font-size:0.82rem; margin-top:4px; display:none;"></div>
+            </div>
+          </div>
+          <p class="muted" style="font-size:0.78rem; margin-top:6px;">Búsqueda vía OpenStreetMap (© OpenStreetMap contributors) — el precio se ajusta a la distancia real entre las dos direcciones. Si no encuentras el punto exacto, <button type="button" id="sameZoneGenericToggle" class="btn-link-inline">usa un punto de encuentro genérico</button>.</p>
+          <div class="field-row cols-2" id="sameZoneGenericRow" style="display:none; margin-top:6px;">
+            <div><label>Punto de recogida</label><select id="same_origin_place"></select></div>
+            <div><label>Punto de entrega</label><select id="same_destination_place"></select></div>
+          </div>
+        </div>
+
+        <div class="route-panel" data-panel="interinsular" hidden>
+          <div class="field-row cols-2">
+            <div><label class="first">Isla de origen</label><select id="inter_origin_island" required></select></div>
+            <div><label class="first">Isla de destino</label><select id="inter_destination_island" required></select></div>
+          </div>
+          <div class="field-row cols-2" style="margin-top:10px;">
+            <div><label>Punto de recogida</label><select id="inter_origin_place" required></select></div>
+            <div><label>Punto de entrega</label><select id="inter_destination_place" required></select></div>
+          </div>
+        </div>
+
+        <div class="route-panel" data-panel="internacional" hidden>
+          <div class="field-row cols-2">
+            <div><label class="first">Isla de origen (Canarias)</label><select id="cuba_origin_island" required></select></div>
+            <div><label class="first">Provincia de destino (Cuba)</label><select id="cuba_destination_province" required></select></div>
+          </div>
+          <div class="field-row cols-2" style="margin-top:10px;">
+            <div><label>Punto de recogida</label><select id="cuba_origin_place" required></select></div>
+            <div><label>Punto de entrega</label><select id="cuba_destination_place" required></select></div>
+          </div>
+        </div>
+        </div>
+
+        <label style="margin-top:14px;">Fecha deseada</label>
+        <input id="desired_date" type="date" required>
+      </fieldset>
+
       <fieldset>
         <legend>Destinatario</legend>
         <label class="first">Nombre de quien recibe</label>
         <input id="recipient_name" required placeholder="Ej. Ana (mi madre)">
         <label>Teléfono del destinatario (opcional)</label>
         <input id="recipient_phone" type="tel" placeholder="+34 600 000 000">
-      </fieldset>
-
-      <fieldset>
-        <legend>Ruta</legend>
-        <div class="field-row cols-2">
-          <div>
-            <label class="first">Isla de origen</label>
-            <select id="origin_island" required></select>
-          </div>
-          <div>
-            <label class="first">Isla de destino</label>
-            <select id="destination_island" required></select>
-          </div>
-        </div>
-        <div class="field-row cols-2">
-          <div><label>Punto de recogida</label><select id="origin_place" required></select></div>
-          <div><label>Punto de entrega</label><select id="destination_place" required></select></div>
-        </div>
-        <div class="field-row cols-2" style="margin-top:10px;">
-          <div class="address-search" data-role="origin">
-            <label>¿Prefieres indicar la dirección exacta de recogida? <span class="muted" style="font-weight:400;">(opcional)</span></label>
-            <input type="text" class="address-search-input" placeholder="Ej. Calle La Marina 12, Santa Cruz de Tenerife" autocomplete="off">
-            <div class="address-search-results"></div>
-            <div class="address-search-picked muted" style="font-size:0.82rem; margin-top:4px; display:none;"></div>
-          </div>
-          <div class="address-search" data-role="destination">
-            <label>¿Prefieres indicar la dirección exacta de entrega? <span class="muted" style="font-weight:400;">(opcional)</span></label>
-            <input type="text" class="address-search-input" placeholder="Ej. Avenida Marítima 5, Los Cristianos" autocomplete="off">
-            <div class="address-search-results"></div>
-            <div class="address-search-picked muted" style="font-size:0.82rem; margin-top:4px; display:none;"></div>
-          </div>
-        </div>
-        <p class="muted" style="font-size:0.78rem; margin-top:6px;">Búsqueda de direcciones vía OpenStreetMap (© OpenStreetMap contributors). Útil sobre todo para envíos en coche dentro de tu misma isla — el precio se ajusta a la distancia real entre las dos direcciones.</p>
-        <label style="margin-top:14px;">Fecha deseada</label>
-        <input id="desired_date" type="date" required>
       </fieldset>
 
       <fieldset>
@@ -182,15 +207,50 @@ function initAddressSearch(role) {
 initAddressSearch('origin');
 initAddressSearch('destination');
 
+// Pestañas de tipo de ruta: cada una solo muestra los campos que aplican (petición explícita
+// del usuario para reducir desplegables) — la categoría de precio (misma_zona/interinsular/
+// internacional) ya la deriva sola el backend a partir de isla origen/destino (ver geo.js), así
+// que activar una pestaña u otra no requiere lógica de precio nueva, solo rellenar los campos
+// reales (origin_island/destination_island/origin_place/destination_place) al enviar.
+let activeRoute = 'misma_zona';
+document.querySelectorAll('.route-tab').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    activeRoute = btn.dataset.route;
+    document.querySelectorAll('.route-tab').forEach((b) => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.route-panel').forEach((p) => { p.hidden = p.dataset.panel !== activeRoute; });
+  });
+});
+document.getElementById('sameZoneGenericToggle').addEventListener('click', () => {
+  document.getElementById('sameZoneGenericRow').style.display = 'grid';
+  document.getElementById('sameZoneGenericToggle').closest('p').style.display = 'none';
+});
+
 async function renderIslandOptions() {
-  const origin = document.getElementById('origin_island');
-  const destination = document.getElementById('destination_island');
-  const groups = await YQV.populateLocationSelects([origin, destination]);
-  const canarias = groups.find(g => g.country.id === 'ES');
-  if (canarias && canarias.locations[0]) origin.value = canarias.locations[0].name;
-  if (canarias && canarias.locations[1]) destination.value = canarias.locations[1].name;
-  document.getElementById('origin_place').innerHTML = YQV.meetingPointOptionsHtml();
-  document.getElementById('destination_place').innerHTML = YQV.meetingPointOptionsHtml();
+  const groups = await YQV.fetchLocationGroups();
+  const es = groups.find((g) => g.country.id === 'ES');
+  const cu = groups.find((g) => g.country.id === 'CU');
+  const islandHtml = (es ? es.locations : []).map((l) => `<option value="${YQV.escapeHtml(l.name)}">${YQV.escapeHtml(l.name)}</option>`).join('');
+  const cubaHtml = (cu ? cu.locations : []).map((l) => `<option value="${YQV.escapeHtml(l.name)}">${YQV.escapeHtml(l.name)}</option>`).join('');
+
+  document.getElementById('same_island').innerHTML = islandHtml;
+  document.getElementById('inter_origin_island').innerHTML = islandHtml;
+  document.getElementById('inter_destination_island').innerHTML = islandHtml;
+  document.getElementById('cuba_origin_island').innerHTML = islandHtml;
+  document.getElementById('cuba_destination_province').innerHTML = cubaHtml;
+
+  if (es && es.locations[0]) {
+    document.getElementById('inter_origin_island').value = es.locations[0].name;
+    document.getElementById('cuba_origin_island').value = es.locations[0].name;
+  }
+  if (es && es.locations[1]) document.getElementById('inter_destination_island').value = es.locations[1].name;
+
+  for (const id of ['same_origin_place', 'same_destination_place', 'inter_origin_place', 'inter_destination_place', 'cuba_origin_place', 'cuba_destination_place']) {
+    document.getElementById(id).innerHTML = YQV.meetingPointOptionsHtml();
+  }
+  // En "dentro de mi isla" el punto real lo da la búsqueda de dirección — el genérico solo es
+  // un respaldo, así que se deja preseleccionado en "Acordar punto" para no bloquear el envío.
+  document.getElementById('same_origin_place').value = 'Acordar punto';
+  document.getElementById('same_destination_place').value = 'Acordar punto';
 }
 
 function renderItems() {
@@ -266,13 +326,28 @@ document.getElementById('shipForm').addEventListener('submit', async (e) => {
     return;
   }
 
+  let origin_island, destination_island, origin_place, destination_place;
+  if (activeRoute === 'misma_zona') {
+    origin_island = destination_island = document.getElementById('same_island').value;
+    origin_place = document.getElementById('same_origin_place').value || 'Acordar punto';
+    destination_place = document.getElementById('same_destination_place').value || 'Acordar punto';
+  } else if (activeRoute === 'interinsular') {
+    origin_island = document.getElementById('inter_origin_island').value;
+    destination_island = document.getElementById('inter_destination_island').value;
+    origin_place = document.getElementById('inter_origin_place').value;
+    destination_place = document.getElementById('inter_destination_place').value;
+  } else {
+    origin_island = document.getElementById('cuba_origin_island').value;
+    destination_island = document.getElementById('cuba_destination_province').value;
+    origin_place = document.getElementById('cuba_origin_place').value;
+    destination_place = document.getElementById('cuba_destination_place').value;
+  }
+
   const body = {
     recipient_name: document.getElementById('recipient_name').value.trim(),
     recipient_phone: document.getElementById('recipient_phone').value.trim(),
-    origin_island: document.getElementById('origin_island').value,
-    origin_place: document.getElementById('origin_place').value.trim(),
-    destination_island: document.getElementById('destination_island').value,
-    destination_place: document.getElementById('destination_place').value.trim(),
+    origin_island, origin_place,
+    destination_island, destination_place,
     desired_date: document.getElementById('desired_date').value,
     weight_kg: Number(document.getElementById('weight_kg').value || 0),
     dimensions: document.getElementById('dimensions').value.trim(),

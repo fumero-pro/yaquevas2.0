@@ -17,8 +17,16 @@ const USER_AGENT = 'YaQueVas/1.0 (contacto@yaquevas.es)';
 // plataforma hoy) — evita resultados irrelevantes y reduce la carga sobre el servicio gratuito.
 async function searchAddress(query) {
   if (!query || query.trim().length < 3) return [];
+  const trimmed = query.trim();
   const url = new URL(NOMINATIM_URL);
-  url.searchParams.set('q', query.trim());
+  // Si la persona escribe solo dígitos (código postal), se usa la búsqueda estructurada de
+  // Nominatim por `postalcode` en vez de texto libre — más fiable que esperar que "38001" por
+  // sí solo encaje como texto libre (petición explícita: "buscar por código postal si se sabe").
+  if (/^\d{4,5}$/.test(trimmed)) {
+    url.searchParams.set('postalcode', trimmed);
+  } else {
+    url.searchParams.set('q', trimmed);
+  }
   url.searchParams.set('format', 'jsonv2');
   url.searchParams.set('addressdetails', '1');
   url.searchParams.set('countrycodes', 'es,cu');

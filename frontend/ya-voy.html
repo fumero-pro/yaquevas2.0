@@ -25,28 +25,60 @@
     <div id="formError"></div>
 
     <form id="tripForm" class="card">
-      <fieldset>
+      <fieldset class="route-fieldset">
         <legend>Ruta y fecha</legend>
-        <div class="field-row cols-2">
-          <div><label class="first">Isla de origen</label><select id="origin_island" required></select></div>
-          <div><label class="first">Isla de destino</label><select id="destination_island" required></select></div>
+        <div class="route-tabs" role="tablist">
+          <button type="button" class="route-tab active" data-route="misma_zona">Dentro de mi isla</button>
+          <button type="button" class="route-tab" data-route="interinsular">Entre islas</button>
+          <button type="button" class="route-tab" data-route="internacional">A Cuba</button>
         </div>
-        <div class="field-row cols-2">
-          <div><label>Punto de recogida</label><select id="origin_place" required></select></div>
-          <div><label>Punto de entrega</label><select id="destination_place" required></select></div>
+
+        <div class="route-panels">
+        <div class="route-panel" data-panel="misma_zona">
+          <label class="first">Tu isla</label>
+          <select id="same_island" required></select>
+          <p class="muted" style="font-size:0.82rem; margin-top:4px;"><span data-yqv-icon="car" data-yqv-icon-size="14"></span> En coche por tu isla — cubre de sobra el combustible real, se muestra el desglose al buscar envíos.</p>
         </div>
-        <div class="field-row cols-3">
+
+        <div class="route-panel" data-panel="interinsular" hidden>
+          <div class="field-row cols-2">
+            <div><label class="first">Isla de origen</label><select id="inter_origin_island" required></select></div>
+            <div><label class="first">Isla de destino</label><select id="inter_destination_island" required></select></div>
+          </div>
+          <div class="field-row cols-2" style="margin-top:10px;">
+            <div><label>Punto de recogida</label><select id="inter_origin_place" required></select></div>
+            <div><label>Punto de entrega</label><select id="inter_destination_place" required></select></div>
+          </div>
+          <label style="margin-top:10px;">Medio de transporte</label>
+          <select id="inter_transport_mode">
+            <option value="avion">Avión</option>
+            <option value="barco">Barco (ferry)</option>
+          </select>
+          <p id="ferryTipInter" class="muted" style="font-size:0.85rem; display:none; margin-top:6px;"><span data-yqv-icon="car" data-yqv-icon-size="15"></span> Si vas en ferry con el coche, puedes meter bultos grandes en el maletero — indícalo en el espacio disponible de abajo.</p>
+        </div>
+
+        <div class="route-panel" data-panel="internacional" hidden>
+          <div class="field-row cols-2">
+            <div><label class="first">Isla de origen (Canarias)</label><select id="cuba_origin_island" required></select></div>
+            <div><label class="first">Provincia de destino (Cuba)</label><select id="cuba_destination_province" required></select></div>
+          </div>
+          <div class="field-row cols-2" style="margin-top:10px;">
+            <div><label>Punto de recogida</label><select id="cuba_origin_place" required></select></div>
+            <div><label>Punto de entrega</label><select id="cuba_destination_place" required></select></div>
+          </div>
+          <label style="margin-top:10px;">Medio de transporte</label>
+          <select id="cuba_transport_mode">
+            <option value="avion">Avión</option>
+            <option value="barco">Barco (ferry)</option>
+          </select>
+        </div>
+        </div>
+
+        <div class="field-row cols-3" style="margin-top:14px;">
           <div><label class="first">Fecha</label><input id="trip_date" type="date" required></div>
           <div><label class="first">Hora salida (opcional)</label><input id="departure_time" type="time"></div>
           <div><label class="first">Hora llegada aprox. (opcional)</label><input id="arrival_time" type="time"></div>
         </div>
-        <label>Medio de transporte</label>
-        <select id="transport_mode">
-          <option value="avion">Avión</option>
-          <option value="barco">Barco (ferry)</option>
-          <option value="coche">Coche</option>
-        </select>
-        <p id="ferryTip" class="muted" style="font-size:0.85rem; display:none; margin-top:6px;"><span data-yqv-icon="car" data-yqv-icon-size="15"></span> Si vas en ferry con el coche, puedes meter bultos grandes en el maletero — indícalo en el espacio disponible de abajo.</p>
       </fieldset>
 
       <fieldset>
@@ -83,15 +115,40 @@
 <script src="/js/icons.js"></script>
 <script src="/js/nav.js"></script>
 <script>
+// Pestañas de tipo de ruta (misma idea que en enviar.html): cada una solo pide lo que aplica.
+// "Dentro de mi isla" fuerza transport_mode='coche' (ya es el único caso real de misma_zona,
+// ver geo.js) y no necesita puntos de encuentro Aeropuerto/Puerto.
+let activeRoute = 'misma_zona';
+document.querySelectorAll('.route-tab').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    activeRoute = btn.dataset.route;
+    document.querySelectorAll('.route-tab').forEach((b) => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.route-panel').forEach((p) => { p.hidden = p.dataset.panel !== activeRoute; });
+  });
+});
+
 async function renderIslandOptions() {
-  const origin = document.getElementById('origin_island');
-  const destination = document.getElementById('destination_island');
-  const groups = await YQV.populateLocationSelects([origin, destination]);
-  const canarias = groups.find(g => g.country.id === 'ES');
-  if (canarias && canarias.locations[0]) origin.value = canarias.locations[0].name;
-  if (canarias && canarias.locations[1]) destination.value = canarias.locations[1].name;
-  document.getElementById('origin_place').innerHTML = YQV.meetingPointOptionsHtml();
-  document.getElementById('destination_place').innerHTML = YQV.meetingPointOptionsHtml();
+  const groups = await YQV.fetchLocationGroups();
+  const es = groups.find((g) => g.country.id === 'ES');
+  const cu = groups.find((g) => g.country.id === 'CU');
+  const islandHtml = (es ? es.locations : []).map((l) => `<option value="${YQV.escapeHtml(l.name)}">${YQV.escapeHtml(l.name)}</option>`).join('');
+  const cubaHtml = (cu ? cu.locations : []).map((l) => `<option value="${YQV.escapeHtml(l.name)}">${YQV.escapeHtml(l.name)}</option>`).join('');
+
+  document.getElementById('same_island').innerHTML = islandHtml;
+  document.getElementById('inter_origin_island').innerHTML = islandHtml;
+  document.getElementById('inter_destination_island').innerHTML = islandHtml;
+  document.getElementById('cuba_origin_island').innerHTML = islandHtml;
+  document.getElementById('cuba_destination_province').innerHTML = cubaHtml;
+
+  if (es && es.locations[0]) {
+    document.getElementById('inter_origin_island').value = es.locations[0].name;
+    document.getElementById('cuba_origin_island').value = es.locations[0].name;
+  }
+  if (es && es.locations[1]) document.getElementById('inter_destination_island').value = es.locations[1].name;
+
+  for (const id of ['inter_origin_place', 'inter_destination_place', 'cuba_origin_place', 'cuba_destination_place']) {
+    document.getElementById(id).innerHTML = YQV.meetingPointOptionsHtml();
+  }
 }
 renderIslandOptions();
 {
@@ -114,10 +171,10 @@ function updatePreview() {
 updatePreview();
 
 function updateFerryTip() {
-  const mode = document.getElementById('transport_mode').value;
-  document.getElementById('ferryTip').style.display = mode === 'barco' ? 'block' : 'none';
+  const mode = document.getElementById('inter_transport_mode').value;
+  document.getElementById('ferryTipInter').style.display = mode === 'barco' ? 'block' : 'none';
 }
-document.getElementById('transport_mode').addEventListener('change', updateFerryTip);
+document.getElementById('inter_transport_mode').addEventListener('change', updateFerryTip);
 updateFerryTip();
 
 document.getElementById('tripForm').addEventListener('submit', async (e) => {
@@ -126,15 +183,33 @@ document.getElementById('tripForm').addEventListener('submit', async (e) => {
   const errBox = document.getElementById('formError');
   errBox.innerHTML = '';
 
+  let origin_island, destination_island, origin_place, destination_place, transport_mode;
+  if (activeRoute === 'misma_zona') {
+    origin_island = destination_island = document.getElementById('same_island').value;
+    origin_place = 'Acordar punto';
+    destination_place = 'Acordar punto';
+    transport_mode = 'coche';
+  } else if (activeRoute === 'interinsular') {
+    origin_island = document.getElementById('inter_origin_island').value;
+    destination_island = document.getElementById('inter_destination_island').value;
+    origin_place = document.getElementById('inter_origin_place').value;
+    destination_place = document.getElementById('inter_destination_place').value;
+    transport_mode = document.getElementById('inter_transport_mode').value;
+  } else {
+    origin_island = document.getElementById('cuba_origin_island').value;
+    destination_island = document.getElementById('cuba_destination_province').value;
+    origin_place = document.getElementById('cuba_origin_place').value;
+    destination_place = document.getElementById('cuba_destination_place').value;
+    transport_mode = document.getElementById('cuba_transport_mode').value;
+  }
+
   const body = {
-    origin_island: document.getElementById('origin_island').value,
-    origin_place: document.getElementById('origin_place').value.trim(),
-    destination_island: document.getElementById('destination_island').value,
-    destination_place: document.getElementById('destination_place').value.trim(),
+    origin_island, origin_place,
+    destination_island, destination_place,
     trip_date: document.getElementById('trip_date').value,
     departure_time: document.getElementById('departure_time').value || null,
     arrival_time: document.getElementById('arrival_time').value || null,
-    transport_mode: document.getElementById('transport_mode').value,
+    transport_mode,
     capacity: {
       maletas_grandes: Number(document.getElementById('cap_maletas_grandes').value || 0),
       maletas_pequenas: Number(document.getElementById('cap_maletas_pequenas').value || 0),
