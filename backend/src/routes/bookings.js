@@ -215,7 +215,10 @@ function register(router, db) {
     if (booking.status !== 'aceptado') return res.status(400).json({ error: `No se puede pagar una operación en estado "${booking.status}".` });
 
     if (isPaymentsConfigured()) {
-      const baseUrl = `${req.headers.origin || ''}`;
+      // PUBLIC_APP_URL primero: req.headers.origin no siempre llega (curl, algunos clientes sin
+      // fetch same-origin) y Stripe exige que success_url/cancel_url sean URLs absolutas — sin
+      // esto, createCheckoutSession fallaba con "Not a valid URL" en vez de dar una sesión real.
+      const baseUrl = process.env.PUBLIC_APP_URL || req.headers.origin || '';
       const { checkout_url } = await createCheckoutSession(booking, {
         successUrl: `${baseUrl}/operacion.html?id=${booking.id}&pago=ok`,
         cancelUrl: `${baseUrl}/operacion.html?id=${booking.id}&pago=cancelado`,

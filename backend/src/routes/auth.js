@@ -274,7 +274,9 @@ function register(router, db) {
     if (user.identity_verified) return res.json({ ya_verificado: true });
 
     if (isIdentityConfigured()) {
-      const baseUrl = `${req.headers.origin || ''}`;
+      // Mismo motivo que en /api/bookings/:id/pay: Stripe exige una URL absoluta y
+      // req.headers.origin no siempre está presente.
+      const baseUrl = process.env.PUBLIC_APP_URL || req.headers.origin || '';
       const { url } = await createVerificationSession(user, { returnUrl: `${baseUrl}/mi-cuenta.html?verificacion=completada` });
       return res.json({ modo_demo: false, verification_url: url });
     }
