@@ -88,7 +88,7 @@ completo con el desglose por talla en el análisis financiero — ver artefacto 
 | Madurez (30% Cuba, más peso XL-XXXL) | 75,56 € | 15,11 € | ~99.300 (~272/día) | ~19.850 (~54/día) |
 
 **Conclusión honesta**: ni la comisión ni el precio por sí solos resuelven el objetivo de 1,5M€ a
-corto plazo — el escenario "base" exige un volumen que un marketplace de dos islas no alcanza
+corto plazo — el escenario "base" exige un volumen que un marketplace de 8 islas no alcanza
 pronto. La palanca real es la **mezcla**: empujar hacia la ruta Cuba (ticket medio ~3× mayor) y
 hacia los tamaños grandes (XL-XXXL, que son exactamente los que más comisión dejan tras la subida
 de precio de hoy) recorta el volumen necesario a una cuarta parte. Competir solo por sobres y

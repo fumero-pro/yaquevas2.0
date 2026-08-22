@@ -143,7 +143,7 @@ sesión, ese supuesto no aguanta el cálculo (ver sección 1.2).
    anterior, sigue vigente).
 
 ### Amenazas
-1. **El volumen necesario para 1,5M€/año es alto para una plataforma de dos islas + un corredor
+1. **El volumen necesario para 1,5M€/año es alto para una plataforma de 8 islas + un corredor
    pequeño** — si la adquisición de usuarios no despega, el negocio puede quedarse en un tamaño
    mucho menor de forma sostenida, no solo temporalmente al principio.
 2. **Complejidad regulatoria Cuba-EEUU (sanciones, GAESA) puede afectar la capacidad de formalizar
