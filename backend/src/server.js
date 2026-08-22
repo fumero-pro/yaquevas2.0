@@ -17,6 +17,7 @@ require('./routes/chat').register(router, db);
 require('./routes/trust').register(router, db);
 require('./routes/misc').register(router, db);
 require('./routes/admin').register(router, db);
+require('./routes/payouts').register(router, db);
 require('./routes/webhooks').register(router, db);
 
 // Rutas que necesitan el cuerpo de la petición SIN parsear (verificación de firma de
@@ -130,7 +131,10 @@ initDb()
   .then(() => {
     server.listen(PORT, () => {
       console.log(`YaQueVas backend escuchando en http://localhost:${PORT}`);
-      console.log('Modo DEMOSTRACIÓN activo: pagos, KYC y WhatsApp están simulados.');
+      const pagosReales = !!process.env.STRIPE_SECRET_KEY;
+      console.log(pagosReales
+        ? 'Pagos y KYC vía Stripe REAL (modo test). SMS sigue simulado.'
+        : 'Modo DEMOSTRACIÓN activo: pagos, KYC y SMS están simulados.');
     });
   })
   .catch((err) => {

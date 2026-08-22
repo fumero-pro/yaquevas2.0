@@ -35,6 +35,8 @@ function publicUser(u) {
     email_verified: !!u.email_verified,
     phone_verified: !!u.phone_verified,
     identity_verified: !!u.identity_verified,
+    payout_connected: !!u.stripe_connect_account_id,
+    payout_enabled: !!u.stripe_connect_payouts_enabled,
     notif_prefs: JSON.parse(u.notif_prefs_json),
     referral_code: u.referral_code,
     created_at: u.created_at,

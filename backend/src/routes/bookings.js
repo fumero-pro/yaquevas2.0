@@ -6,7 +6,7 @@ const { calculateOrientativePrice } = require('../lib/pricing');
 const { getConfig } = require('../lib/config');
 const { addUsage, fitsInTrip } = require('../lib/tetris');
 const { generateQrToken, generateBackupCode, renderQrDataUrl } = require('../lib/qr');
-const { isPaymentsConfigured, createCheckoutSession, createRefund } = require('../lib/payments');
+const { isPaymentsConfigured, createCheckoutSession, createRefund, createTransfer } = require('../lib/payments');
 const { validatePhoto } = require('../lib/photo');
 const { awardReferralIfEligible, consumeDiscountCredit } = require('../lib/referral');
 const { notify } = require('../lib/notify');
@@ -305,20 +305,36 @@ function register(router, db) {
     await db.prepare("UPDATE bookings SET status = 'entregado', qr_used = 1, delivered_at = ?, delivery_photo_url = ? WHERE id = ?").run(now, photoCheck.value, booking.id);
     await db.prepare("UPDATE shipments SET status = 'entregado' WHERE id = ?").run(booking.shipment_id);
 
-    // Liberación del pago (demo): se registra el payout al viajero y la comisión de la plataforma.
+    // Liberación del pago: si el viajero tiene su cuenta Stripe Connect ya habilitada para
+    // cobrar, se hace una transferencia real (patrón "separate charges and transfers" — el cobro
+    // del remitente ya está en la cuenta de la plataforma desde /api/bookings/:id/pay, aquí solo
+    // se transfiere la parte del viajero; la comisión se queda sola en el balance de la
+    // plataforma, sin necesidad de un movimiento aparte). Sin cuenta Connect activa (todavía no
+    // se dio de alta, o Stripe no está configurado), sigue el registro demo de siempre — la
+    // entrega nunca se bloquea por esto.
+    const traveler = await db.prepare('SELECT * FROM users WHERE id = ?').get(booking.traveler_id);
+    let payoutIsReal = false;
+    let payoutRef = `DEMO-${newId('ref')}`;
+    if (isPaymentsConfigured() && traveler.stripe_connect_account_id && traveler.stripe_connect_payouts_enabled) {
+      const { transfer_id } = await createTransfer(traveler.stripe_connect_account_id, booking.traveler_net, booking.id);
+      payoutIsReal = true;
+      payoutRef = transfer_id;
+    }
     await db.prepare(
       `INSERT INTO payments (id, booking_id, type, amount, status, provider, provider_ref, is_demo, created_at)
-       VALUES (?, ?, 'payout_viajero', ?, 'completado', 'demo', ?, 1, ?)`
-    ).run(newId('pay'), booking.id, booking.traveler_net, `DEMO-${newId('ref')}`, now);
+       VALUES (?, ?, 'payout_viajero', ?, 'completado', ?, ?, ?, ?)`
+    ).run(newId('pay'), booking.id, booking.traveler_net, payoutIsReal ? 'stripe' : 'demo', payoutRef, payoutIsReal ? 0 : 1, now);
     await db.prepare(
       `INSERT INTO payments (id, booking_id, type, amount, status, provider, provider_ref, is_demo, created_at)
-       VALUES (?, ?, 'comision_yaquevas', ?, 'completado', 'demo', ?, 1, ?)`
-    ).run(newId('pay'), booking.id, booking.platform_commission, `DEMO-${newId('ref')}`, now);
+       VALUES (?, ?, 'comision_yaquevas', ?, 'completado', ?, ?, ?, ?)`
+    ).run(newId('pay'), booking.id, booking.platform_commission, payoutIsReal ? 'stripe' : 'demo', payoutIsReal ? null : `DEMO-${newId('ref')}`, payoutIsReal ? 0 : 1, now);
 
     await db.prepare("UPDATE bookings SET status = 'pago_liberado' WHERE id = ?").run(booking.id);
 
     await notify(db, booking.sender_id, 'entrega', 'Entrega confirmada', 'Tu envío ha llegado a su destino.', booking.id);
-    await notify(db, booking.traveler_id, 'pago_liberado', 'Pago liberado', `Se ha liberado tu compensación de ${booking.traveler_net} € (modo demo).`, booking.id);
+    await notify(db, booking.traveler_id, 'pago_liberado', 'Pago liberado', payoutIsReal
+      ? `Se han transferido ${booking.traveler_net} € a tu cuenta.`
+      : `Se ha liberado tu compensación de ${booking.traveler_net} € (modo demo).`, booking.id);
 
     // Programa de referidos: se paga solo aquí, al completar la primera operación real de
     // cada parte — nunca en el registro (ver docs/VIRALIDAD_REFERIDOS.md). Se comprueba tanto

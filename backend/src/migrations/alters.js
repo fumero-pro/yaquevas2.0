@@ -87,6 +87,12 @@ const ALTERS = [
   'ALTER TABLE shipments ADD COLUMN origin_lon REAL',
   'ALTER TABLE shipments ADD COLUMN destination_lat REAL',
   'ALTER TABLE shipments ADD COLUMN destination_lon REAL',
+  // Stripe Connect (cuentas Express) para pagar de verdad al viajero en la entrega, en vez del
+  // registro "demo" de siempre — ver lib/payments.js. payouts_enabled se actualiza por webhook
+  // (account.updated) cuando Stripe confirma que la cuenta ya puede recibir transferencias; sin
+  // ninguna de las dos columnas rellenas, el payout sigue cayendo al modo demo sin bloquear nada.
+  'ALTER TABLE users ADD COLUMN stripe_connect_account_id TEXT',
+  'ALTER TABLE users ADD COLUMN stripe_connect_payouts_enabled INTEGER NOT NULL DEFAULT 0',
 ];
 
 async function applyAlters(db) {

@@ -46,3 +46,34 @@ test('isIdentityConfigured es false sin STRIPE_SECRET_KEY', async () => {
   const { isIdentityConfigured } = require('../src/lib/identity');
   assert.equal(isIdentityConfigured(), false);
 });
+
+test('createConnectAccount lanza un error claro si Stripe no está configurado', async () => {
+  delete process.env.STRIPE_SECRET_KEY;
+  delete require.cache[require.resolve('../src/lib/payments')];
+  const { createConnectAccount } = require('../src/lib/payments');
+  await assert.rejects(() => createConnectAccount({ id: 'usr_1', email: 'a@b.com' }), /Stripe no está configurado/);
+});
+
+test('createConnectOnboardingLink lanza un error claro si Stripe no está configurado', async () => {
+  delete process.env.STRIPE_SECRET_KEY;
+  delete require.cache[require.resolve('../src/lib/payments')];
+  const { createConnectOnboardingLink } = require('../src/lib/payments');
+  await assert.rejects(
+    () => createConnectOnboardingLink('acct_fake', { returnUrl: 'https://x', refreshUrl: 'https://x' }),
+    /Stripe no está configurado/
+  );
+});
+
+test('getConnectAccountStatus lanza un error claro si Stripe no está configurado', async () => {
+  delete process.env.STRIPE_SECRET_KEY;
+  delete require.cache[require.resolve('../src/lib/payments')];
+  const { getConnectAccountStatus } = require('../src/lib/payments');
+  await assert.rejects(() => getConnectAccountStatus('acct_fake'), /Stripe no está configurado/);
+});
+
+test('createTransfer lanza un error claro si Stripe no está configurado', async () => {
+  delete process.env.STRIPE_SECRET_KEY;
+  delete require.cache[require.resolve('../src/lib/payments')];
+  const { createTransfer } = require('../src/lib/payments');
+  await assert.rejects(() => createTransfer('acct_fake', 12.5, 'book_1'), /Stripe no está configurado/);
+});

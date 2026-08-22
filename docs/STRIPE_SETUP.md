@@ -1,12 +1,14 @@
-# Activar Stripe (pagos + verificación de identidad) — gratis, modo test
+# Stripe (pagos + verificación de identidad + payout al viajero) — modo test
 
-El código ya está preparado para usar Stripe de verdad tanto para el cobro al remitente
-(Stripe Checkout) como para la verificación de identidad del DNI/pasaporte (Stripe Identity).
-**Sin hacer nada de esto, la plataforma sigue funcionando exactamente igual que hasta ahora, en
-modo simulado.** Activar Stripe es opcional y no cuesta dinero mientras uses el modo de prueba.
+**Estado real (2026-08-22): cobro al remitente, webhook y verificación de identidad ya están
+conectados y verificados en producción (yaquevas.es), en modo test.** `STRIPE_SECRET_KEY` y
+`STRIPE_WEBHOOK_SECRET` están puestos en Render; una operación real de extremo a extremo
+(pagar → webhook → estado actualizado) se probó con éxito. Sin ninguna de las dos variables, la
+plataforma sigue funcionando exactamente igual que antes, en modo simulado — no es obligatorio.
 
-Esto lo tienes que hacer tú (no una IA): crear la cuenta requiere tus propios datos y aceptar
-las condiciones de Stripe.
+Lo que queda pendiente y sí requiere que lo hagas tú (no una IA, ver el aviso de la sección
+Connect más abajo): **activar Stripe Connect en el dashboard**, un paso de aceptar condiciones
+que Stripe solo permite hacer a la persona dueña de la cuenta.
 
 ## 1. Crea la cuenta (gratis, sin tarjeta)
 
@@ -72,18 +74,41 @@ Stripe Identity simula la verificación de documentos sin coste. Actívala llama
 
 ## Aviso importante
 
-Este código se ha escrito siguiendo la documentación oficial de Stripe (Checkout Sessions,
-verificación de firma de webhooks, Identity Verification Sessions), pero **no se ha podido
-probar contra una cuenta Stripe real** durante su desarrollo — no había forma de crear la cuenta
-ni obtener claves desde ese entorno. Antes de confiar en este flujo para dinero real, complétalo
-en modo test tú mismo siguiendo los pasos de arriba y confirma que el ciclo completo (pagar →
-webhook → estado actualizado) funciona como se espera.
+El cobro al remitente y el webhook (secciones 1-3) se probaron con éxito en producción el
+2026-08-22: `checkout_url` real devuelto, pago confirmado por webhook, estado de la operación
+actualizado solo. Lo único que no se ha completado todavía por el motivo del punto 4 más abajo
+(entrar datos de tarjeta en un formulario de pago requiere tu permiso explícito, aunque sea con
+la tarjeta de test) es el paso 5.3 de arriba (pagar de verdad con `4242 4242 4242 4242` y
+comprobar que el webhook llega) — el código y la configuración ya están listos para que lo hagas
+tú en cualquier momento.
 
-## Lo que falta para producción (no cubierto todavía)
+## 6. Payout al viajero (Stripe Connect) — código listo, falta un paso tuyo
 
-El cobro al remitente ya está resuelto de esta forma. **El payout al viajero (pagarle a él) no
-está implementado con Stripe todavía** — sigue registrándose como pago simulado incluso con
-Stripe configurado. Para pagar de verdad a los viajeros hace falta **Stripe Connect** (cada
-viajero necesita su propia cuenta conectada, con su propio proceso de alta/KYC bancario), que es
-una pieza bastante más grande y no se ha abordado en esta pasada — es el siguiente paso lógico
-una vez que el cobro esté validado y funcionando.
+**Ya implementado en el código** (commit correspondiente, ver `backend/src/lib/payments.js`,
+`backend/src/routes/payouts.js`, `backend/src/routes/webhooks.js`, la liberación de pago en
+`backend/src/routes/bookings.js`): cada viajero puede darse de alta con una cuenta Stripe Connect
+Express (`POST /api/me/payout/start`, tarjeta en `mi-cuenta.html`) y, con la cuenta ya habilitada,
+la entrega transfiere de verdad su compensación (`stripe.transfers.create`, patrón "separate
+charges and transfers": el cobro del remitente ya está en la cuenta de la plataforma, en la
+entrega solo se transfiere la parte del viajero, la comisión se queda sola en el balance de la
+plataforma). El evento de webhook `account.updated` ya está añadido al endpoint de producción y
+mantiene `stripe_connect_payouts_enabled` al día.
+
+**Bloqueado en un paso que solo puede hacer el dueño de la cuenta**: al probar la creación de una
+cuenta Connect contra la cuenta real de Stripe, la API devolvió:
+
+> "You can only create new accounts if you've signed up for Connect, which you can do at
+> https://dashboard.stripe.com/connect."
+
+Stripe exige que la cuenta de la plataforma acepte las condiciones del Platform Agreement de
+Connect antes de poder crear cuentas conectadas — esto es aceptar términos legales/de facturación
+propios de Stripe Connect, así que lo tienes que hacer tú desde el dashboard, no una IA:
+
+1. Entra en [dashboard.stripe.com/connect](https://dashboard.stripe.com/connect) (con el modo de
+   prueba activado) y sigue el asistente de activación de Connect — en modo test no pide datos de
+   banco/negocio reales.
+2. Una vez activado, cualquier viajero podrá pulsar "Configurar cobro" en `mi-cuenta.html` y dar
+   de alta su cuenta conectada (en modo test, Stripe rellena los datos de KYC automáticamente si
+   se usa la opción de cuenta de prueba que ofrece su propio formulario).
+3. Avísame cuando esté activado y hago la prueba de extremo a extremo (alta de cuenta → entrega →
+   transferencia real) igual que se hizo con el cobro al remitente.

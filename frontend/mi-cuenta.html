@@ -16,6 +16,7 @@
     <div id="notifBox" style="margin-bottom:24px;"></div>
     <div id="contactVerifyBox" style="margin-bottom:24px;"></div>
     <div id="identityBox" style="margin-bottom:24px;"></div>
+    <div id="payoutBox" style="margin-bottom:24px;"></div>
     <div id="referralBox" style="margin-bottom:24px;"></div>
 
     <h2>Mis operaciones</h2>
@@ -94,6 +95,41 @@ async function load() {
           YQV.toast(res.aviso || 'Identidad verificada.', 'ok');
           load();
         } catch (err) { YQV.toast(err.message, 'error'); }
+      });
+    }
+
+    // Cobro para viajeros (Stripe Connect): solo tiene sentido si alguna vez vas a publicar
+    // viajes, así que no se muestra como bloqueante — es una tarjeta informativa que se puede
+    // ignorar si solo envías paquetes. Sin ella, la compensación se sigue liberando en modo demo.
+    // Al volver de Stripe (?cobro=completado) se consulta el estado en vivo en vez de esperar al
+    // webhook, que puede tardar unos segundos más que la redirección del propio usuario.
+    let payoutEnabled = me.user.payout_enabled;
+    if (new URLSearchParams(window.location.search).get('cobro') && me.user.payout_connected) {
+      try { const st = await YQV.api('/api/me/payout/status'); payoutEnabled = st.payouts_enabled; } catch {}
+    }
+    const payoutBox = document.getElementById('payoutBox');
+    if (payoutEnabled) {
+      payoutBox.innerHTML = `<div class="pill ok">${YQVIcons.svg('check', { size: 14 })} Cobro por Stripe activado — tus entregas se pagan directamente a tu cuenta</div>`;
+    } else {
+      payoutBox.innerHTML = `
+        <div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+          <div>
+            <h3 style="margin-bottom:4px;">${me.user.payout_connected ? 'Termina de activar tu cobro' : '¿Vas a llevar paquetes de otros?'}</h3>
+            <p class="muted" style="margin:0;">${me.user.payout_connected
+              ? 'Tu cuenta de cobro está creada pero Stripe todavía necesita algún dato más para activarla.'
+              : 'Conecta una cuenta de cobro (gestionada por Stripe) para que tu compensación se te transfiera directamente al confirmar cada entrega, en vez de quedar en modo simulado.'}</p>
+          </div>
+          <button class="btn btn-outline" id="payoutStartBtn">${me.user.payout_connected ? 'Continuar' : 'Configurar cobro'}</button>
+        </div>
+      `;
+      const payoutBtn = document.getElementById('payoutStartBtn');
+      if (payoutBtn) payoutBtn.addEventListener('click', async () => {
+        payoutBtn.disabled = true;
+        try {
+          const res = await YQV.api('/api/me/payout/start', { method: 'POST' });
+          if (res.onboarding_url) { window.location.href = res.onboarding_url; return; }
+          YQV.toast(res.aviso || 'Cobro configurado.', 'ok');
+        } catch (err) { YQV.toast(err.message, 'error'); payoutBtn.disabled = false; }
       });
     }
   } catch { /* si falla, no bloquea el resto de la página */ }

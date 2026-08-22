@@ -29,6 +29,15 @@ function register(router, db) {
       }
     }
 
+    // Stripe Connect: se dispara cada vez que cambia el estado de una cuenta conectada (alta
+    // completada, requisito nuevo pedido por Stripe, etc.) — payouts_enabled es lo único que
+    // nos importa para decidir si el payout de la entrega puede ser una transferencia real.
+    if (event.type === 'account.updated') {
+      const account = event.data.object;
+      await db.prepare('UPDATE users SET stripe_connect_payouts_enabled = ? WHERE stripe_connect_account_id = ?')
+        .run(account.payouts_enabled ? 1 : 0, account.id);
+    }
+
     res.json({ received: true });
   });
 }
