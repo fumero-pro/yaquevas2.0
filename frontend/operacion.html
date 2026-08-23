@@ -182,6 +182,14 @@ async function load() {
           <button type="button" class="btn btn-primary" id="shareEarningsBtn" style="margin-top:12px;">${YQVIcons.svg('link', { size: 16 })} Compartir</button>
         </div>
       `;
+    } else {
+      html += `
+        <div class="card" style="margin-top:16px; text-align:center; background:var(--marine-900); color:white;">
+          <p style="color:#D7E7FA; margin-bottom:4px;">Frente a la paquetería tradicional, ahorraste</p>
+          <div class="big-number" style="color:white;">≈40%</div>
+          <button type="button" class="btn btn-primary" id="shareEarningsBtn" style="margin-top:12px;">${YQVIcons.svg('link', { size: 16 })} Invita a alguien y ganad los dos</button>
+        </div>
+      `;
     }
     html += `<div id="reviewSection" style="margin-top:16px;"></div>`;
   }
@@ -337,11 +345,23 @@ async function load() {
   });
 
   const shareEarningsBtn = document.getElementById('shareEarningsBtn');
-  if (shareEarningsBtn) shareEarningsBtn.addEventListener('click', () => {
+  if (shareEarningsBtn) shareEarningsBtn.addEventListener('click', async () => {
+    // El momento justo después de cobrar o de ver el ahorro es donde más apetece compartir —
+    // por eso el enlace lleva el código de invitación real, no solo la home: si quien lo recibe
+    // se registra y completa su primera operación, gana un descuento quien invitó también.
+    let url = `${window.location.origin}/index.html`;
+    let extra = '';
+    try {
+      const ref = await YQV.api('/api/me/referral');
+      url = `${window.location.origin}/registro.html?ref=${ref.referral_code}`;
+      extra = ` Usa mi enlace y cuando completes tu primera operación ganamos los dos un ${ref.reward_pct}% de descuento.`;
+    } catch { /* si falla, se comparte igualmente sin el enlace de invitación */ }
     YQV.share({
       title: 'YaQueVas',
-      text: `Ya que iba a viajar, he ganado ${YQV.fmtEur(booking.traveler_net)} con YaQueVas`,
-      url: `${window.location.origin}/index.html`,
+      text: isSender
+        ? `Ya que alguien iba a viajar, ahorré frente a la paquetería tradicional con YaQueVas.${extra}`
+        : `Ya que iba a viajar, he ganado ${YQV.fmtEur(booking.traveler_net)} con YaQueVas.${extra}`,
+      url,
     });
   });
 

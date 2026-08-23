@@ -84,6 +84,7 @@ async function load() {
           <div>
             <h3 style="margin-bottom:4px;">Confirmemos quién eres</h3>
             <p class="muted" style="margin:0;">Necesaria para publicar envíos o aceptar transportar uno. Solo se pide una vez: tu documento y una foto se usan solo para esta verificación, nunca se comparten ni se vuelven a pedir por chat.</p>
+            <p class="muted" style="margin:6px 0 0; font-size:0.82rem;">Tarda unos 2 minutos. Te llevará fuera de YaQueVas, a Stripe Identity (nuestro proveedor de verificación), donde fotografiarás tu documento y tu cara — luego vuelves aquí automáticamente.</p>
           </div>
           <button class="btn btn-primary" id="verifyIdentityBtn">Verificar ahora</button>
         </div>
@@ -111,15 +112,19 @@ async function load() {
     if (payoutEnabled) {
       payoutBox.innerHTML = `<div class="pill ok">${YQVIcons.svg('check', { size: 14 })} Cobro por Stripe activado — tus entregas se pagan directamente a tu cuenta</div>`;
     } else {
+      // Tarjeta deliberadamente más discreta que la de identidad: configurar el cobro solo
+      // importa si algún día publicas un viaje, así que no debe competir en peso visual con
+      // pasos que sí son necesarios para cualquiera (email, identidad).
       payoutBox.innerHTML = `
-        <div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+        <div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; background:var(--mist-100); box-shadow:none; border:1px dashed var(--line);">
           <div>
-            <h3 style="margin-bottom:4px;">${me.user.payout_connected ? 'Termina de activar tu cobro' : '¿Vas a llevar paquetes de otros?'}</h3>
+            <h3 style="margin-bottom:4px; font-size:1rem;">${me.user.payout_connected ? 'Termina de activar tu cobro' : '¿Vas a llevar paquetes de otros?'}</h3>
             <p class="muted" style="margin:0;">${me.user.payout_connected
               ? 'Tu cuenta de cobro está creada pero Stripe todavía necesita algún dato más para activarla.'
-              : 'Conecta una cuenta de cobro (gestionada por Stripe) para que tu compensación se te transfiera directamente al confirmar cada entrega, en vez de quedar en modo simulado.'}</p>
+              : 'Conecta una cuenta de cobro (gestionada por Stripe) para que tu compensación se te transfiera directamente al confirmar cada entrega, en vez de quedar en modo simulado. Solo hace falta si vas a publicar viajes — si solo envías paquetes, puedes ignorar esto.'}</p>
+            <p class="muted" style="margin:6px 0 0; font-size:0.82rem;">Tarda unos 3-5 minutos y te pedirá algún dato bancario básico, gestionado directamente por Stripe.</p>
           </div>
-          <button class="btn btn-outline" id="payoutStartBtn">${me.user.payout_connected ? 'Continuar' : 'Configurar cobro'}</button>
+          <button class="btn btn-ghost" id="payoutStartBtn">${me.user.payout_connected ? 'Continuar' : 'Configurar cobro'}</button>
         </div>
       `;
       const payoutBtn = document.getElementById('payoutStartBtn');

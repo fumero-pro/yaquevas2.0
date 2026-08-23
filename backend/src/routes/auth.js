@@ -48,12 +48,15 @@ function register(router, db) {
     if (!registerLimiter(req)) {
       return res.status(429).json({ error: 'Demasiados intentos de registro. Inténtalo de nuevo en unos minutos.' });
     }
-    const { name, surname, email, phone, password, country, accepted_terms, referral_code } = body;
+    const { name, surname, email, phone, password, country, accepted_terms, age_confirmed, referral_code } = body;
     if (!name || !surname || !email || !password) {
       return res.status(400).json({ error: 'Faltan campos obligatorios: nombre, apellidos, email, contraseña.' });
     }
     if (!accepted_terms) {
       return res.status(400).json({ error: 'Debes aceptar los términos y la política de privacidad.' });
+    }
+    if (!age_confirmed) {
+      return res.status(400).json({ error: 'Debes confirmar que eres mayor de 18 años.' });
     }
     if (password.length < 8) {
       return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });

@@ -39,6 +39,10 @@
           <input id="terms" type="checkbox" required>
           <label for="terms">He leído y acepto los <a href="/legal.html?doc=terminos" target="_blank">términos y condiciones</a> y la <a href="/legal.html?doc=privacidad" target="_blank">política de privacidad</a>.</label>
         </div>
+        <div class="checkbox-row">
+          <input id="ageConfirmed" type="checkbox" required>
+          <label for="ageConfirmed">Confirmo que soy mayor de 18 años.</label>
+        </div>
         <button class="btn btn-primary btn-block" type="submit">Crear cuenta</button>
       </form>
     </div>
@@ -75,6 +79,7 @@ document.getElementById('regForm').addEventListener('submit', async (e) => {
     password: document.getElementById('password').value,
     country: document.getElementById('country').value,
     accepted_terms: document.getElementById('terms').checked,
+    age_confirmed: document.getElementById('ageConfirmed').checked,
     referral_code: referralCode || undefined,
   };
   try {

@@ -38,19 +38,20 @@
           <select id="same_island" required></select>
           <div class="field-row cols-2" style="margin-top:10px;">
             <div class="address-search" data-role="origin">
-              <label>Punto de recogida — escribe una calle, un barrio o el código postal</label>
+              <label>Punto de recogida (opcional) — escribe una calle, un barrio o el código postal</label>
               <input type="text" class="address-search-input" placeholder="Ej. Calle La Marina 12 o 38001" autocomplete="off">
               <div class="address-search-results"></div>
               <div class="address-search-picked muted" style="font-size:0.82rem; margin-top:4px; display:none;"></div>
             </div>
             <div class="address-search" data-role="destination">
-              <label>Punto de entrega — escribe una calle, un barrio o el código postal</label>
+              <label>Punto de entrega (opcional) — escribe una calle, un barrio o el código postal</label>
               <input type="text" class="address-search-input" placeholder="Ej. Avenida Marítima 5 o 38650" autocomplete="off">
               <div class="address-search-results"></div>
               <div class="address-search-picked muted" style="font-size:0.82rem; margin-top:4px; display:none;"></div>
             </div>
           </div>
-          <p class="muted" style="font-size:0.78rem; margin-top:6px;">Búsqueda vía OpenStreetMap (© OpenStreetMap contributors) — el precio se ajusta a la distancia real entre las dos direcciones. Si no encuentras el punto exacto, <button type="button" id="sameZoneGenericToggle" class="btn-link-inline">usa un punto de encuentro genérico</button>.</p>
+          <p class="muted" style="font-size:0.78rem; margin-top:6px;">Búsqueda vía OpenStreetMap (© OpenStreetMap contributors) — el precio se ajusta a la distancia real entre las dos direcciones.</p>
+          <button type="button" id="sameZoneGenericToggle" class="btn btn-outline" style="margin-top:8px; padding:8px 14px; font-size:0.85rem;">¿No encuentras el punto exacto? Usa un punto de encuentro genérico</button>
           <div class="field-row cols-2" id="sameZoneGenericRow" style="display:none; margin-top:6px;">
             <div><label>Punto de recogida</label><select id="same_origin_place"></select></div>
             <div><label>Punto de entrega</label><select id="same_destination_place"></select></div>
@@ -115,6 +116,7 @@
           <div><label class="first">Dimensiones (opcional)</label><input id="dimensions" placeholder="30x20x10 cm"></div>
           <div><label class="first">Valor declarado (€, opcional)</label><input id="declared_value" type="number" step="1" min="0"></div>
         </div>
+        <div id="cubaValueWarning" class="alert alert-warning" style="display:none;"></div>
         <div class="checkbox-row">
           <input id="fragile" type="checkbox">
           <label for="fragile">Es frágil</label>
@@ -123,6 +125,10 @@
         <textarea id="notes" rows="2" placeholder="Cualquier detalle que el viajero deba saber"></textarea>
       </fieldset>
 
+      <details id="prohibitedItemsBox" style="margin:14px 0;">
+        <summary style="cursor:pointer; font-weight:600; color:var(--marine-800);">Ver qué no se puede enviar</summary>
+        <div id="prohibitedItemsList" class="muted" style="font-size:0.88rem; margin-top:8px;">Cargando…</div>
+      </details>
       <div class="alert alert-info">
         Declaro que la información proporcionada sobre el contenido del envío es correcta y que el envío es legal y admisible para el medio de transporte seleccionado.
       </div>
@@ -218,12 +224,60 @@ document.querySelectorAll('.route-tab').forEach((btn) => {
     activeRoute = btn.dataset.route;
     document.querySelectorAll('.route-tab').forEach((b) => b.classList.toggle('active', b === btn));
     document.querySelectorAll('.route-panel').forEach((p) => { p.hidden = p.dataset.panel !== activeRoute; });
+    updateCubaValueWarning();
   });
 });
 document.getElementById('sameZoneGenericToggle').addEventListener('click', () => {
   document.getElementById('sameZoneGenericRow').style.display = 'grid';
-  document.getElementById('sameZoneGenericToggle').closest('p').style.display = 'none';
+  document.getElementById('sameZoneGenericToggle').style.display = 'none';
 });
+
+// Aviso de aduana para envíos a Cuba: la aduana cubana distingue equipaje acompañado (hasta
+// 1.000 USD) de envío no acompañado por persona natural (200 USD / 20 kg) — un envío gestionado
+// y pagado a través de una plataforma podría clasificarse con el límite más bajo. No es un bloqueo
+// duro (la calificación exacta sigue pendiente de validación legal, ver docs/REVISION_LEGAL_PARA_ABOGADO.md
+// punto 25), solo un aviso para que quien envía declare un valor realista y no se lleve una sorpresa.
+const CUBA_CUSTOMS_VALUE_EUR = 185; // aprox. 200 USD, umbral de envío no acompañado
+const CUBA_CUSTOMS_WEIGHT_KG = 20;
+function updateCubaValueWarning() {
+  const box = document.getElementById('cubaValueWarning');
+  if (activeRoute !== 'internacional') { box.style.display = 'none'; return; }
+  const value = Number(document.getElementById('declared_value').value || 0);
+  const weight = Number(document.getElementById('weight_kg').value || 0);
+  if (value > CUBA_CUSTOMS_VALUE_EUR || weight > CUBA_CUSTOMS_WEIGHT_KG) {
+    box.style.display = 'block';
+    box.textContent = `La aduana cubana limita a unos ${CUBA_CUSTOMS_VALUE_EUR}€ (≈200 USD) y ${CUBA_CUSTOMS_WEIGHT_KG} kg los envíos no acompañados por una persona. Declara un valor y peso realistas: un valor muy alto puede complicar el paso por aduana.`;
+  } else {
+    box.style.display = 'none';
+  }
+}
+document.getElementById('declared_value').addEventListener('input', updateCubaValueWarning);
+document.getElementById('weight_kg').addEventListener('input', updateCubaValueWarning);
+
+async function renderProhibitedItems() {
+  const box = document.getElementById('prohibitedItemsList');
+  try {
+    const { prohibited_items } = await YQV.api('/api/prohibited-items', { auth: false });
+    if (!prohibited_items.length) { box.textContent = 'Sin restricciones específicas registradas por ahora.'; return; }
+    const byCategory = {};
+    for (const it of prohibited_items) {
+      (byCategory[it.category] = byCategory[it.category] || []).push(it);
+    }
+    const categoryLabels = {
+      prohibido: 'No se puede enviar nunca',
+      permitido_aceptacion_expresa: 'Solo si el viajero lo acepta expresamente',
+    };
+    box.innerHTML = Object.entries(byCategory).map(([cat, list]) => `
+      <p style="margin:8px 0 2px;"><strong>${YQV.escapeHtml(categoryLabels[cat] || cat)}</strong></p>
+      <ul style="margin:0; padding-left:18px;">
+        ${list.map((it) => `<li>${YQV.escapeHtml(it.name)}${it.note ? ` — <span class="muted">${YQV.escapeHtml(it.note)}</span>` : ''}</li>`).join('')}
+      </ul>
+    `).join('');
+  } catch (err) {
+    box.textContent = 'No se ha podido cargar la lista ahora mismo. Recuerda: nada ilegal, peligroso ni prohibido por el medio de transporte elegido.';
+  }
+}
+renderProhibitedItems();
 
 async function renderIslandOptions() {
   const groups = await YQV.fetchLocationGroups();

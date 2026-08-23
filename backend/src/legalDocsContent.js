@@ -54,8 +54,8 @@ código de respaldo. El pago queda retenido por YaQueVas desde el cobro hasta la
 entrega, momento en el que se libera al viajero.</p>
 
 <h2>5. Condiciones económicas</h2>
-<p>YaQueVas cobra una comisión sobre cada operación: actualmente un 6% adicional al remitente sobre
-el precio acordado y un 6% descontado de lo que recibe el viajero (12% total para YaQueVas). Estos
+<p>YaQueVas cobra una comisión sobre cada operación: actualmente un 10% adicional al remitente sobre
+el precio acordado y un 10% descontado de lo que recibe el viajero (20% total para YaQueVas). Estos
 porcentajes son configurables por YaQueVas y se muestran siempre antes de confirmar una operación —
 nunca se aplican de forma oculta. El precio orientativo que ve el remitente antes de publicar se
 calcula a partir de referencias de mercado (ver <code>docs/BENCHMARK_RESEARCH.md</code>) y de un

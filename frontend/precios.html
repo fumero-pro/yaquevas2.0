@@ -66,7 +66,11 @@ async function load() {
     `;
 
     const pricesByType = {};
-    for (const pt of package_types) {
+    // Las 6 tallas × 2 rutas se piden todas a la vez (12 peticiones en paralelo) en vez de
+    // esperar a que cada talla termine antes de pedir la siguiente — en local no se nota, pero
+    // contra la base de datos real la diferencia es la que separa una carga instantánea de una
+    // visiblemente escalonada, justo en la página que más pesa en decidir si compensa usar YaQueVas.
+    await Promise.all(package_types.map(async (pt) => {
       pricesByType[pt.key] = await Promise.all(ROUTES.map(async (route) => {
         const { precio_orientativo } = await YQV.api('/api/pricing/estimate', {
           method: 'POST',
@@ -75,7 +79,7 @@ async function load() {
         });
         return { route, precio: precio_orientativo };
       }));
-    }
+    }));
 
     document.getElementById('sizesBox').innerHTML = `
       <h2>Tamaños de bulto</h2>
