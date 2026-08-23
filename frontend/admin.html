@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Administración — YaQueVas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap">
 <link rel="stylesheet" href="/css/styles.css">
 <style>
   .admin-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 20px 0; }
@@ -103,7 +106,7 @@ async function loadDashboard() {
         ${bigStat('Comisión YaQueVas', YQV.fmtEur(stats.comision_yaquevas_total))}
         ${bigStat('Pagado a viajeros', YQV.fmtEur(stats.payouts_viajeros_total))}
       </div>
-      <h3 style="margin-top:24px;">Rutas más usadas</h3>
+      <h2 style="margin-top:24px; font-size:1.25rem;">Rutas más usadas</h2>
       <div class="table-wrap"><table>
         <tr><th>Ruta</th><th>Envíos</th></tr>
         ${rutas_mas_usadas.map(r => `<tr><td>${r.ruta}</td><td>${r.total}</td></tr>`).join('') || '<tr><td colspan="2" class="muted">Sin datos todavía.</td></tr>'}
@@ -121,34 +124,34 @@ async function loadConfig() {
     const { config } = await YQV.api('/api/admin/config');
     panel.innerHTML = `
       <div class="card">
-        <h3>Comisiones y baremo</h3>
+        <h2 style="font-size:1.25rem;">Comisiones y baremo</h2>
         <p class="muted">La comisión total de YaQueVas es la suma de ambos porcentajes. Por defecto 10% + 10% = 20%.</p>
         <div class="field-row cols-2">
-          <div><label class="first">Comisión al remitente (%)</label><input id="cfg_commission_sender_pct" type="number" step="0.1" value="${config.commission_sender_pct}"></div>
-          <div><label class="first">Comisión al viajero (%)</label><input id="cfg_commission_traveler_pct" type="number" step="0.1" value="${config.commission_traveler_pct}"></div>
+          <div><label class="first" for="cfg_commission_sender_pct">Comisión al remitente (%)</label><input id="cfg_commission_sender_pct" type="number" step="0.1" value="${config.commission_sender_pct}"></div>
+          <div><label class="first" for="cfg_commission_traveler_pct">Comisión al viajero (%)</label><input id="cfg_commission_traveler_pct" type="number" step="0.1" value="${config.commission_traveler_pct}"></div>
         </div>
         <div class="field-row cols-2">
-          <div><label class="first">Descuento del baremo (%)</label><input id="cfg_baremo_discount_pct" type="number" step="1" value="${config.baremo_discount_pct}"></div>
-          <div><label class="first">Precio mínimo (€)</label><input id="cfg_min_price" type="number" step="1" value="${config.min_price}"></div>
+          <div><label class="first" for="cfg_baremo_discount_pct">Descuento del baremo (%)</label><input id="cfg_baremo_discount_pct" type="number" step="1" value="${config.baremo_discount_pct}"></div>
+          <div><label class="first" for="cfg_min_price">Precio mínimo (€)</label><input id="cfg_min_price" type="number" step="1" value="${config.min_price}"></div>
         </div>
         <div class="field-row cols-2">
-          <div><label class="first">Precio máximo (€)</label><input id="cfg_max_price" type="number" step="1" value="${config.max_price}"></div>
+          <div><label class="first" for="cfg_max_price">Precio máximo (€)</label><input id="cfg_max_price" type="number" step="1" value="${config.max_price}"></div>
         </div>
         <div class="field-row cols-2">
-          <div><label class="first">Recargo frágil (€)</label><input id="cfg_fragile_surcharge" type="number" step="0.5" value="${config.fragile_surcharge}"></div>
-          <div><label class="first">Recargo equipaje extra (€)</label><input id="cfg_extra_luggage_surcharge" type="number" step="0.5" value="${config.extra_luggage_surcharge}"></div>
+          <div><label class="first" for="cfg_fragile_surcharge">Recargo frágil (€)</label><input id="cfg_fragile_surcharge" type="number" step="0.5" value="${config.fragile_surcharge}"></div>
+          <div><label class="first" for="cfg_extra_luggage_surcharge">Recargo equipaje extra (€)</label><input id="cfg_extra_luggage_surcharge" type="number" step="0.5" value="${config.extra_luggage_surcharge}"></div>
         </div>
         <div class="field-row cols-2">
-          <div><label class="first">Margen de ajuste del precio (%, patrón Sherpa)</label><input id="cfg_price_adjustment_margin_pct" type="number" step="1" min="0" max="100" value="${config.price_adjustment_margin_pct}"></div>
+          <div><label class="first" for="cfg_price_adjustment_margin_pct">Margen de ajuste del precio (%, patrón Sherpa)</label><input id="cfg_price_adjustment_margin_pct" type="number" step="1" min="0" max="100" value="${config.price_adjustment_margin_pct}"></div>
         </div>
         <p class="field-hint">Cuánto puede subir o bajar el remitente el precio orientativo con la barra deslizable antes de solicitar una operación (hoy ±${config.price_adjustment_margin_pct}%).</p>
         <button class="btn btn-primary" id="saveConfigBtn" style="margin-top:14px;">Guardar cambios</button>
       </div>
       <div class="card" style="margin-top:16px;">
-        <h3>Programa de referidos</h3>
+        <h2 style="font-size:1.25rem;">Programa de referidos</h2>
         <p class="muted">Descuento en la comisión de la PRÓXIMA operación de cada parte (quien invita y quien es invitado) cuando el invitado completa su primera operación real. No es dinero en efectivo — no hay forma de pagar a un usuario sin Stripe Connect. Nunca se concede solo por registrarse — ver docs/VIRALIDAD_REFERIDOS.md.</p>
         <div class="field-row cols-2">
-          <div><label class="first">Descuento por referido (%, cada parte)</label><input id="cfg_referral_reward_pct" type="number" step="0.5" min="0" max="100" value="${config.referral_reward_pct}"></div>
+          <div><label class="first" for="cfg_referral_reward_pct">Descuento por referido (%, cada parte)</label><input id="cfg_referral_reward_pct" type="number" step="0.5" min="0" max="100" value="${config.referral_reward_pct}"></div>
         </div>
         <button class="btn btn-primary" id="saveReferralConfigBtn" style="margin-top:14px;">Guardar cambios</button>
       </div>
@@ -175,13 +178,13 @@ async function loadProhibited() {
     const { prohibited_items } = await YQV.api('/api/admin/prohibited-items');
     panel.innerHTML = `
       <div class="card">
-        <h3>Añadir objeto</h3>
+        <h2 style="font-size:1.25rem;">Añadir objeto</h2>
         <div class="field-row cols-3">
-          <div><label class="first">Nombre</label><input id="p_name"></div>
-          <div><label class="first">Categoría</label>
+          <div><label class="first" for="p_name">Nombre</label><input id="p_name"></div>
+          <div><label class="first" for="p_category">Categoría</label>
             <select id="p_category"><option value="prohibido">Prohibido</option><option value="permitido_aceptacion_expresa">Permitido con aceptación expresa</option></select>
           </div>
-          <div><label class="first">Nota</label><input id="p_note"></div>
+          <div><label class="first" for="p_note">Nota</label><input id="p_note"></div>
         </div>
         <button class="btn btn-primary" id="addProhibitedBtn" style="margin-top:12px;">Añadir</button>
       </div>
@@ -208,18 +211,18 @@ async function loadPricing() {
     panel.innerHTML = `
       <div class="alert alert-info">Las tarifas externas son una referencia de mercado, nunca la tarifa de YaQueVas. Añade solo precios que puedas verificar tú mismo (ver <code>docs/BENCHMARK_RESEARCH.md</code>).</div>
       <div class="card">
-        <h3>Añadir muestra de precio</h3>
+        <h2 style="font-size:1.25rem;">Añadir muestra de precio</h2>
         <div class="field-row cols-3">
-          <div><label class="first">Isla/ubicación de origen</label><input id="ps_origin" placeholder="Ej. Tenerife"></div>
-          <div><label class="first">Isla/ubicación de destino</label><input id="ps_destination" placeholder="Ej. Gran Canaria"></div>
-          <div><label class="first">Fuente</label><input id="ps_source" placeholder="Ej. Correos Z6 2025"></div>
+          <div><label class="first" for="ps_origin">Isla/ubicación de origen</label><input id="ps_origin" placeholder="Ej. Tenerife"></div>
+          <div><label class="first" for="ps_destination">Isla/ubicación de destino</label><input id="ps_destination" placeholder="Ej. Gran Canaria"></div>
+          <div><label class="first" for="ps_source">Fuente</label><input id="ps_source" placeholder="Ej. Correos Z6 2025"></div>
         </div>
         <div class="field-row cols-3">
-          <div><label class="first">Precio (€)</label><input id="ps_price" type="number" step="0.01"></div>
-          <div><label class="first">Peso mín. (kg, opcional)</label><input id="ps_weight_min" type="number" step="0.1"></div>
-          <div><label class="first">Peso máx. (kg, opcional)</label><input id="ps_weight_max" type="number" step="0.1"></div>
+          <div><label class="first" for="ps_price">Precio (€)</label><input id="ps_price" type="number" step="0.01"></div>
+          <div><label class="first" for="ps_weight_min">Peso mín. (kg, opcional)</label><input id="ps_weight_min" type="number" step="0.1"></div>
+          <div><label class="first" for="ps_weight_max">Peso máx. (kg, opcional)</label><input id="ps_weight_max" type="number" step="0.1"></div>
         </div>
-        <label>Válida hasta (opcional — vacío = sin caducidad)</label>
+        <label for="ps_valid_until">Válida hasta (opcional — vacío = sin caducidad)</label>
         <input id="ps_valid_until" type="date">
         <button class="btn btn-primary" id="addPricingBtn" style="margin-top:12px;">Añadir muestra</button>
       </div>
@@ -272,7 +275,7 @@ async function loadDisputes() {
     const { disputes } = await YQV.api('/api/admin/disputes');
     panel.innerHTML = `<div class="table-wrap"><table>
       <tr><th>ID</th><th>Tipo</th><th>Estado</th><th>Descripción</th><th>Acción</th></tr>
-      ${disputes.map(d => `<tr><td>${d.id}</td><td>${d.dispute_type}</td><td>${d.status}</td><td>${d.description || ''}</td>
+      ${disputes.map(d => `<tr><td>${d.id}</td><td>${d.dispute_type}</td><td>${d.status}</td><td>${YQV.escapeHtml(d.description || '')}</td>
         <td><select data-id="${d.id}" class="disputeStatus"><option ${d.status==='abierta'?'selected':''}>abierta</option><option ${d.status==='en_revision'?'selected':''}>en_revision</option><option ${d.status==='esperando_informacion'?'selected':''}>esperando_informacion</option><option ${d.status==='resuelta'?'selected':''}>resuelta</option><option ${d.status==='cerrada'?'selected':''}>cerrada</option></select></td>
       </tr>`).join('') || '<tr><td colspan="5" class="muted">Sin incidencias.</td></tr>'}
     </table></div>`;

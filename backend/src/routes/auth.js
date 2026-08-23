@@ -21,6 +21,11 @@ const registerLimiter = rateLimiter({ windowMs: 5 * 60_000, max: 10, keyPrefix: 
 const identityLimiter = rateLimiter({ windowMs: 10 * 60_000, max: 5, keyPrefix: 'identity' });
 const forgotPasswordLimiter = rateLimiter({ windowMs: 15 * 60_000, max: 5, keyPrefix: 'forgot_password' });
 const resendVerificationLimiter = rateLimiter({ windowMs: 15 * 60_000, max: 5, keyPrefix: 'resend_verification' });
+// Los tokens de estos dos son largos y de un solo uso (fuerza bruta ya poco práctica), pero sin
+// límite quedaban como el único par de endpoints públicos sin ningún freno — defensa en
+// profundidad frente a DoS/abuso, encontrado en la auditoría de seguridad.
+const resetPasswordLimiter = rateLimiter({ windowMs: 15 * 60_000, max: 10, keyPrefix: 'reset_password' });
+const verifyEmailLimiter = rateLimiter({ windowMs: 15 * 60_000, max: 10, keyPrefix: 'verify_email' });
 // Cada código de SMS real tiene coste con Twilio configurado — igual de estricto que identityLimiter.
 const phoneCodeLimiter = rateLimiter({ windowMs: 10 * 60_000, max: 5, keyPrefix: 'phone_code' });
 
@@ -100,6 +105,9 @@ function register(router, db) {
   // Confirma el email a partir del enlace de la sección anterior. Público (el propio token,
   // largo y de un solo uso, es la prueba de identidad — igual que reset-password).
   router.post('/api/auth/verify-email', async (req, res, body) => {
+    if (!verifyEmailLimiter(req)) {
+      return res.status(429).json({ error: 'Demasiados intentos. Inténtalo de nuevo en unos minutos.' });
+    }
     const { token } = body;
     if (!token) return res.status(400).json({ error: 'Falta el token de confirmación.' });
     const row = await consumeVerificationToken(db, token);
@@ -252,6 +260,9 @@ function register(router, db) {
   });
 
   router.post('/api/auth/reset-password', async (req, res, body) => {
+    if (!resetPasswordLimiter(req)) {
+      return res.status(429).json({ error: 'Demasiados intentos. Inténtalo de nuevo en unos minutos.' });
+    }
     const { token, password } = body;
     if (!token || !password) return res.status(400).json({ error: 'Faltan datos.' });
     if (password.length < 8) return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });

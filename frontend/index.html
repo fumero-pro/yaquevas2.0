@@ -13,6 +13,9 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="YaQueVas — Ya que vas, gana.">
 <meta name="twitter:description" content="Conectamos viajes que ya existen con envíos que necesitan llegar, entre las Islas Canarias. Cero trayectos nuevos, cero huella de carbono extra.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap">
 <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
@@ -77,8 +80,11 @@
 
 <section class="section">
   <div class="container">
-    <h2 class="center">Por aire o por mar, tú eliges</h2>
+    <h2 class="center">Dentro de tu isla, entre islas, o hasta Cuba</h2>
     <p class="lead section-lead center">Avión, barco o coche: el motor de YaQueVas calcula el precio y la capacidad igual, sea cual sea el trayecto que ya tenías pensado.</p>
+    <div class="row item-tags" style="justify-content:center; margin:24px 0 8px;">
+      <span class="pill item-pill"><span data-yqv-icon="car" data-yqv-icon-size="15"></span> Dentro de tu isla: precio por la distancia real entre las dos direcciones, no un precio plano</span>
+    </div>
     <div class="photo-duo">
       <div class="photo-duo-item"><img src="/images/avion-binter.jpg" alt="Avión de Binter Canarias, la aerolínea regional, volando sobre las islas" loading="lazy" width="900" height="718"></div>
       <div class="photo-duo-item"><img src="/images/ferry-canarias.jpg" alt="Ferry interinsular navegando por aguas de Canarias, dejando estela" loading="lazy" width="900" height="506"></div>
@@ -243,9 +249,9 @@
   </div>
 </section>
 
-<section class="section section-tinted" id="ecologico">
+<section class="section section-dark" id="ecologico">
   <div class="container">
-    <h2><span data-yqv-icon="leaf" data-yqv-icon-size="26" style="color:var(--teal-dark); vertical-align:-4px; margin-right:8px;"></span>Tu envío no genera ni un kilómetro extra</h2>
+    <h2><span data-yqv-icon="leaf" data-yqv-icon-size="26" style="color:var(--teal-on-dark); vertical-align:-4px; margin-right:8px;"></span>Tu envío no genera ni un kilómetro extra</h2>
     <p class="lead section-lead">No es solo una frase de marketing — es la misma razón por la que te sale un 40% más barato que Correos (arriba ↑). En un archipiélago, cada eslabón de logística de más se paga en euros y se recorre en kilómetros.</p>
     <div class="card-grid cols-3" style="margin-top:24px;">
       <div class="card">
@@ -277,8 +283,23 @@
 <script src="/js/nav.js"></script>
 <script src="/js/islandGallery.js"></script>
 <script>
-document.getElementById('downloadAppBtn').addEventListener('click', () => {
-  YQV.toast('La app para Android e iPhone está en desarrollo. De momento, usa la web — funciona igual de bien en el móvil.', 'info');
+document.getElementById('downloadAppBtn').addEventListener('click', async () => {
+  // Chrome/Edge/Android: si el navegador ya decidió que la web es instalable (manifest +
+  // service worker, ver nav.js), dispara el diálogo nativo de instalación en vez de un aviso
+  // de "próximamente" — ya no hace falta subir nada a Play Store para esto.
+  const prompt = window.YQV && YQV.getInstallPrompt && YQV.getInstallPrompt();
+  if (prompt) {
+    prompt.prompt();
+    await prompt.userChoice;
+    YQV.clearInstallPrompt();
+    return;
+  }
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if (isIos) {
+    YQV.toast('En iPhone: pulsa el botón Compartir de Safari y elige "Añadir a pantalla de inicio".', 'info');
+    return;
+  }
+  YQV.toast('Tu navegador ya puede instalar YaQueVas como app desde su menú (⋮ → Instalar app). Si no aparece, sigue usando la web — funciona igual en el móvil.', 'info');
 });
 
 // Juego de palabras en la cabecera: "Ya que vas," se queda fija, lo de después va cambiando

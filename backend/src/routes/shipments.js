@@ -1,5 +1,5 @@
 'use strict';
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, getUserFromRequest } = require('../middleware/auth');
 const { newId } = require('../lib/auth');
 const { itemsToUsage, ITEM_TYPES: TETRIS_ITEM_TYPES } = require('../lib/tetris');
 const { resolveLocation } = require('../lib/geo');
@@ -12,6 +12,8 @@ const { validatePhoto } = require('../lib/photo');
 // vuelvan a desincronizarse.
 const ITEM_TYPES = Object.keys(TETRIS_ITEM_TYPES);
 
+// Versión completa — solo para el propio remitente o un viajero que ya tiene una operación
+// (booking) sobre este envío. Incluye datos personales del destinatario y ubicación exacta.
 function serializeShipment(s, items) {
   return {
     id: s.id,
@@ -39,6 +41,43 @@ function serializeShipment(s, items) {
     created_at: s.created_at,
     items: (items || []).map((i) => ({ id: i.id, item_type: i.item_type, quantity: i.quantity, description: i.description, photo_url: i.photo_url || null })),
   };
+}
+
+// Versión pública — para navegar/buscar envíos sin haber iniciado nada todavía (buscar.html,
+// envio.html antes de aceptar). Nunca lleva nombre/teléfono del destinatario, coordenadas
+// exactas, valor declarado ni observaciones — nada que identifique o localice a un tercero que
+// nunca dio su consentimiento para que su dirección/datos fueran públicos. Bug real corregido:
+// antes GET /api/shipments y GET /api/shipments/:id devolvían serializeShipment() completo a
+// cualquiera, sin login, exponiendo esos datos de terceros.
+function serializePublicShipment(s, items) {
+  return {
+    id: s.id,
+    sender_id: s.sender_id,
+    origin_island: s.origin_island,
+    origin_location_id: s.origin_location_id || null,
+    origin_place: s.origin_place,
+    destination_island: s.destination_island,
+    destination_location_id: s.destination_location_id || null,
+    destination_place: s.destination_place,
+    desired_date: s.desired_date,
+    category: s.category,
+    weight_kg: s.weight_kg,
+    dimensions: s.dimensions,
+    fragile: !!s.fragile,
+    status: s.status,
+    created_at: s.created_at,
+    items: (items || []).map((i) => ({ id: i.id, item_type: i.item_type, quantity: i.quantity, description: i.description, photo_url: i.photo_url || null })),
+  };
+}
+
+// ¿Puede este usuario (o "nadie", si no hay sesión) ver los datos completos del envío?
+// Solo el propio remitente, o un viajero que ya tiene una operación (booking) sobre este envío
+// — no basta con estar logueado, ni con conocer el id.
+async function canViewFullShipment(db, shipment, user) {
+  if (!user) return false;
+  if (shipment.sender_id === user.id) return true;
+  const booking = await db.prepare('SELECT id FROM bookings WHERE shipment_id = ? AND traveler_id = ? LIMIT 1').get(shipment.id, user.id);
+  return !!booking;
 }
 
 // Comprueba el nombre/descripcion declarado contra la lista de objetos prohibidos (coincidencia simple).
@@ -141,7 +180,9 @@ function register(router, db) {
     }
     sql += ' ORDER BY desired_date ASC LIMIT 100';
     const rows = await db.prepare(sql).all(...args);
-    const result = await Promise.all(rows.map(async (s) => serializeShipment(s, await db.prepare('SELECT * FROM shipment_items WHERE shipment_id = ?').all(s.id))));
+    // Listado siempre en versión pública, aunque quien pregunte esté logueado — navegar/buscar
+    // envíos de otras personas no da derecho a ver datos del destinatario de cada uno.
+    const result = await Promise.all(rows.map(async (s) => serializePublicShipment(s, await db.prepare('SELECT * FROM shipment_items WHERE shipment_id = ?').all(s.id))));
     res.json({ shipments: result });
   });
 
@@ -149,8 +190,10 @@ function register(router, db) {
     const shipment = await db.prepare('SELECT * FROM shipments WHERE id = ?').get(params.id);
     if (!shipment) return res.status(404).json({ error: 'Envío no encontrado.' });
     const items = await db.prepare('SELECT * FROM shipment_items WHERE shipment_id = ?').all(params.id);
-    res.json({ shipment: serializeShipment(shipment, items) });
+    const user = await getUserFromRequest(req, db);
+    const full = await canViewFullShipment(db, shipment, user);
+    res.json({ shipment: full ? serializeShipment(shipment, items) : serializePublicShipment(shipment, items) });
   });
 }
 
-module.exports = { register, serializeShipment, checkProhibited, ITEM_TYPES };
+module.exports = { register, serializeShipment, serializePublicShipment, canViewFullShipment, checkProhibited, ITEM_TYPES };

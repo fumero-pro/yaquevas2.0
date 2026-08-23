@@ -9,6 +9,9 @@
 <meta property="og:title" content="Ya que vas, gana — YaQueVas">
 <meta property="og:description" content="Ha ganado dinero con un viaje que ya iba a hacer. Descubre cuánto puedes ganar tú.">
 <meta name="twitter:card" content="summary">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap">
 <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
@@ -147,9 +150,9 @@ async function load() {
       <div class="card" style="margin-top:16px;">
         <h3>Confirmar entrega</h3>
         <p>Escanea el QR del destinatario o introduce el código numérico de respaldo de 6 dígitos. Necesitas además una foto del envío entregado, como prueba.</p>
-        <label class="first">Código numérico de respaldo</label>
+        <label class="first" for="deliverCode">Código numérico de respaldo</label>
         <input id="deliverCode" maxlength="6" placeholder="000000">
-        <label>Foto de entrega (obligatoria)</label>
+        <label for="deliverPhoto">Foto de entrega (obligatoria)</label>
         <label class="btn btn-outline" for="deliverPhoto" style="cursor:pointer; display:inline-flex;">${YQVIcons.svg('camera', { size: 16 })} Hacer/adjuntar foto</label>
         <input id="deliverPhoto" type="file" accept="image/png,image/jpeg,image/webp" capture="environment" style="display:none;">
         <div id="deliverPhotoPreview" class="muted" style="font-size:0.8rem; margin-top:6px;"></div>
@@ -219,21 +222,24 @@ async function load() {
   if (shipmentBtn) shipmentBtn.addEventListener('click', async (e) => {
     e.preventDefault();
     try {
-      const s = await YQV.api(`/api/shipments/${booking.shipment_id}`, { auth: false });
+      // Sin { auth: false } — hace falta enviar el token para que el backend compruebe que
+      // somos el remitente o el viajero de esta operación antes de devolver datos completos
+      // (nombre/teléfono del destinatario, valor declarado, observaciones); ver shipments.js.
+      const s = await YQV.api(`/api/shipments/${booking.shipment_id}`);
       const sh = s.shipment;
       const photos = sh.items.filter(i => i.photo_url);
       document.getElementById('shipmentPreview').innerHTML = `
         <div class="alert alert-info">
-          <strong>Destinatario:</strong> ${sh.recipient_name}<br>
-          <strong>Peso:</strong> ${sh.weight_kg} kg · <strong>Dimensiones:</strong> ${sh.dimensions || 'no indicadas'}<br>
+          <strong>Destinatario:</strong> ${YQV.escapeHtml(sh.recipient_name || '')}<br>
+          <strong>Peso:</strong> ${sh.weight_kg} kg · <strong>Dimensiones:</strong> ${YQV.escapeHtml(sh.dimensions || 'no indicadas')}<br>
           <strong>Valor declarado:</strong> ${sh.declared_value != null ? YQV.fmtEur(sh.declared_value) : 'no indicado'} · <strong>Frágil:</strong> ${sh.fragile ? 'Sí' : 'No'}<br>
-          <strong>Bultos:</strong> ${sh.items.map(i => `${i.item_type} (${i.description || 'sin descripción'})`).join(', ')}<br>
-          <strong>Observaciones:</strong> ${sh.notes || 'ninguna'}
+          <strong>Bultos:</strong> ${sh.items.map(i => `${YQV.escapeHtml(i.item_type)} (${YQV.escapeHtml(i.description || 'sin descripción')})`).join(', ')}<br>
+          <strong>Observaciones:</strong> ${YQV.escapeHtml(sh.notes || 'ninguna')}
           ${photos.length > 0 ? `
             <div style="margin-top:10px;">
               <strong>Fotos:</strong>
               <div class="row" style="gap:8px; margin-top:6px; flex-wrap:wrap;">
-                ${photos.map(i => `<img src="${i.photo_url}" alt="Foto de ${i.item_type}" style="width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid var(--line);">`).join('')}
+                ${photos.map(i => `<img src="${YQV.escapeHtml(i.photo_url)}" alt="Foto de ${YQV.escapeHtml(i.item_type)}" style="width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid var(--line);">`).join('')}
               </div>
             </div>
           ` : ''}

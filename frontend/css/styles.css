@@ -1,13 +1,18 @@
 /* =========================================================
    YaQueVas — Sistema de diseño "Premium neutro"
-   Basado en cómo resuelven color/tipografía/contraste productos
-   que mueven dinero de verdad (Stripe, Linear, Cash App):
-   fondo casi blanco, texto casi negro, un único acento vivo
-   usado con moderación, tipografía sans-serif limpia (Inter) —
-   nunca fondo saturado ni texto de color sobre fondo de color.
+   Evolución hacia un tratamiento más Apple: una sola tipografía
+   sans-serif (Inter, con más peso/menos tracking para titulares
+   en vez de mezclar con un display serif), más aire entre
+   secciones, y bloques de negro profundo (--ink-950) alternados
+   con el blanco de siempre — nunca fondo saturado ni texto de
+   color sobre fondo de color.
    ========================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:ital,wght@0,500;0,600;0,700;0,900;1,500;1,600&display=swap');
+/* La fuente ya no se carga con @import (bloqueaba el renderizado — el navegador tenía que
+   descargar y parsear todo este CSS antes de enterarse de que hacía falta la fuente, un viaje
+   de red entero de más). Ahora cada página la carga con <link rel="preconnect"> + <link
+   rel="stylesheet"> directamente en el <head>, antes de este CSS — hallazgo real de la
+   auditoría de marketing/SEO. */
 
 :root {
   --marine-900: #14181F;
@@ -16,7 +21,11 @@
   --mist-100: #F2F3F5;
   --mist-50: #FFFFFF;
   --ash-600: #5B6472;
-  --ash-400: #8B93A0;
+  /* Antes #8B93A0 (3.10:1 sobre blanco, no pasa WCAG AA) — usado en .muted/.field-hint/avisos
+     legales, justo el texto que más necesita leerse bien. #6B7280 da ~4.83:1, sigue leyendo
+     como "gris apagado" pero ya es legible de verdad. Hallazgo real de la auditoría de
+     accesibilidad. */
+  --ash-400: #6B7280;
   --line: #E5E7EB;
   --coral: #FF6B4A;
   --coral-dark: #E2502F;
@@ -26,16 +35,25 @@
   --danger: #DC3545;
   --ok: #16A34A;
 
-  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  /* Bloques de sección oscura (hero, CTA final, ecológico) — texto/acentos
+     aclarados aparte porque el coral/teal normales no dan contraste AA sobre negro puro. */
+  --ink-950: #05060A;
+  --ink-text: #F5F6F8;
+  --ink-muted: #9AA1AD;
+  --ink-line: #22242B;
+  --coral-on-dark: #FF8A66;
+  --teal-on-dark: #3FE0CB;
+
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 20px;
-  --shadow-1: 0 1px 2px rgba(15,23,32,0.06), 0 1px 1px rgba(15,23,32,0.04);
-  --shadow-2: 0 8px 24px -4px rgba(15,23,32,0.12), 0 2px 8px rgba(15,23,32,0.06);
-  --shadow-3: 0 20px 50px -12px rgba(15,23,32,0.22), 0 4px 14px rgba(15,23,32,0.08);
-  --container: 1080px;
+  --shadow-1: 0 1px 2px rgba(15,23,32,0.05), 0 1px 1px rgba(15,23,32,0.03);
+  --shadow-2: 0 10px 28px -6px rgba(15,23,32,0.11), 0 2px 8px rgba(15,23,32,0.05);
+  --shadow-3: 0 24px 60px -14px rgba(15,23,32,0.20), 0 4px 14px rgba(15,23,32,0.07);
+  --container: 1120px;
 
   /* El sitio está pensado solo para tema claro; sin esto, un sistema en modo oscuro puede
      pintar controles nativos (selects, date pickers) en oscuro con nuestro texto oscuro
@@ -64,7 +82,7 @@ h1, h2, h3, .display {
   color: var(--marine-900);
   text-wrap: balance;
 }
-h1 { font-size: clamp(2rem, 5vw + 1rem, 3.4rem); font-weight: 700; letter-spacing: -0.03em; }
+h1 { font-size: clamp(2rem, 5vw + 1rem, 3.4rem); font-weight: 800; letter-spacing: -0.04em; }
 h2 { font-size: clamp(1.5rem, 2.6vw + 1rem, 2.2rem); }
 h3 { font-size: 1.2rem; letter-spacing: -0.01em; }
 p { margin: 0 0 1em; color: var(--ash-600); }
@@ -73,8 +91,28 @@ a:hover { text-decoration: underline; }
 strong { color: var(--marine-900); }
 
 .container { max-width: var(--container); margin: 0 auto; padding: 0 20px; }
-.section { padding: 80px 0; }
+.section { padding: clamp(64px, 9vw, 112px) 0; }
 .section-tight { padding: 32px 0; }
+
+/* Bloque de sección oscura (--ink-950) — hero, CTA final, franjas de refuerzo.
+   Invierte texto/enlaces automáticamente para lo que quede dentro. */
+.section-dark {
+  background: var(--ink-950); color: var(--ink-text);
+  border-top: 1px solid var(--ink-line); border-bottom: 1px solid var(--ink-line);
+}
+.section-dark h1, .section-dark h2, .section-dark h3, .section-dark .display { color: #fff; }
+.section-dark p { color: var(--ink-muted); }
+.section-dark a { color: var(--teal-on-dark); }
+
+/* "Saltar al contenido" — invisible hasta que se recibe el foco por teclado, para no obligar a
+   pasar por los 6 enlaces de navegación en cada página (auditoría de accesibilidad). Inyectado
+   como primer elemento del topbar en frontend/js/nav.js. */
+.skip-link {
+  position: absolute; left: 8px; top: -60px; z-index: 200;
+  background: var(--marine-900); color: #fff; padding: 10px 18px; border-radius: var(--radius-sm);
+  font-weight: 600; font-size: 0.9rem; text-decoration: none; transition: top 0.15s ease;
+}
+.skip-link:focus { top: 8px; }
 
 .empty-state {
   text-align: center; padding: 36px 20px; border: 1px dashed var(--line); border-radius: var(--radius-md);
@@ -224,15 +262,18 @@ strong { color: var(--marine-900); }
 
 /* ---------- Hero (inicio) ---------- */
 .hero {
-  background: radial-gradient(1200px 500px at 15% -10%, #2E6FE0 0%, #14181F 55%, #05070A 100%);
-  color: white; padding: 64px 0 88px; position: relative; overflow: hidden;
+  background: radial-gradient(1200px 500px at 15% -10%, #2E6FE0 0%, #14181F 55%, var(--ink-950) 100%);
+  color: white; padding: clamp(56px, 8vw, 96px) 0 clamp(64px, 9vw, 100px); position: relative; overflow: hidden;
 }
 .hero::after {
   content: ''; position: absolute; right: -80px; bottom: -120px; width: 420px; height: 420px;
   border-radius: 50%; background: radial-gradient(circle, rgba(255,107,74,0.28), transparent 70%);
 }
 .canary-map-section {
-  background: radial-gradient(1200px 400px at 85% 110%, #2E6FE0 0%, #14181F 60%, #05070A 100%);
+  /* Mismo azul→marine→negro que .hero (y el mismo negro final que --ink-950), para que las
+     secciones oscuras de una misma página no lean como dos sistemas distintos — hallazgo real
+     de la auditoría de diseño ("tres negros sin reconciliar en la misma página"). */
+  background: radial-gradient(1200px 400px at 85% 110%, #2E6FE0 0%, #14181F 60%, var(--ink-950) 100%);
 }
 .map-route {
   stroke: var(--coral); stroke-width: 2; opacity: 0.55; fill: none;
@@ -259,7 +300,7 @@ strong { color: var(--marine-900); }
   display: inline-block; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase;
   color: var(--sun); font-weight: 700; margin-bottom: 14px;
 }
-.hero h1 { color: white; max-width: 780px; }
+.hero h1 { color: white; max-width: 780px; font-size: clamp(2.4rem, 5.4vw + 1rem, 4.4rem); }
 .hero-rotator {
   display: inline-block; color: var(--sun); transition: opacity 0.22s ease, transform 0.22s ease;
 }
@@ -287,6 +328,12 @@ strong { color: var(--marine-900); }
   transition: transform .3s cubic-bezier(.2,.8,.2,1), box-shadow .3s cubic-bezier(.2,.8,.2,1), border-color .3s ease;
 }
 .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-2); border-color: rgba(15,23,32,0.14); }
+/* La tarjeta siempre es una isla de texto claro-sobre-blanco, aunque el fondo detrás sea
+   .section-dark — si no, el color blanco de titulares de sección oscura se hereda dentro
+   y el texto queda invisible sobre el fondo blanco de la propia tarjeta. */
+.card, .card h1, .card h2, .card h3, .card .display { color: var(--marine-900); }
+.card p { color: var(--ash-600); }
+.card a:not(.btn) { color: var(--teal-dark); }
 .card-grid { display: grid; gap: 18px; }
 @media (min-width: 640px) { .card-grid.cols-3 { grid-template-columns: repeat(3, 1fr); } }
 @media (min-width: 640px) { .card-grid.cols-2 { grid-template-columns: repeat(2, 1fr); } }
@@ -300,15 +347,20 @@ strong { color: var(--marine-900); }
 }
 .pill.demo { background: #FFF6DC; color: var(--coral-dark); }
 .pill.ok { background: #E6F5EC; color: var(--ok); }
-.pill.warn { background: #FDF2E3; color: #9A6A15; }
-.pill.danger { background: #FBE9E5; color: var(--danger); }
+/* #9A6A15/var(--danger) sobre estos fondos claros no llegaban a 4.5:1 (auditoría de
+   accesibilidad) — oscurecidos, siguen leyendo como "aviso"/"peligro", ya pasan AA. */
+.pill.warn { background: #FDF2E3; color: #7A5210; }
+.pill.danger { background: #FBE9E5; color: #B0362A; }
 
 /* ---------- Formularios ---------- */
 label { display: block; font-weight: 600; font-size: 0.88rem; margin: 14px 0 6px; color: var(--marine-800); }
 label.first { margin-top: 0; }
 input, select, textarea {
   width: 100%; padding: 12px 14px; border-radius: var(--radius-sm); border: 1.5px solid var(--line);
-  font-family: var(--font-body); font-size: 0.98rem; background: white; color: var(--marine-900);
+  /* 16px exactos (no 0.98rem/15.7px) — por debajo de 16px, Safari en iOS hace zoom automático
+     al enfocar el campo; a cualquiera le pasa esto la primera vez y sale como si algo fuera
+     mal. Hallazgo real de la auditoría de diseño. */
+  font-family: var(--font-body); font-size: 16px; background: white; color: var(--marine-900);
   color-scheme: light; /* evita que el navegador pinte el desplegable nativo en oscuro (modo oscuro del SO) con nuestro texto oscuro encima, invisible */
 }
 select option {
@@ -437,7 +489,7 @@ footer a { color: var(--ash-600); }
 .trip-card-price { font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; color: var(--marine-900); }
 .trip-card-route { margin-top: 6px; }
 .trip-card-meta { font-size: 0.85rem; }
-.trip-card-scarcity { margin-top: 6px; font-size: 0.82rem; color: var(--coral-dark); font-weight: 600; }
+.trip-card-scarcity { margin-top: 6px; font-size: 0.82rem; color: #B0362A; font-weight: 600; }
 
 /* Fotografía real (banco libre de derechos, Pexels License — ver docs/ATRIBUCIONES_IMAGENES.md)
    emparejada con texto, patrón BlaBlaCar/Apple: una idea, una imagen, sin saturar de tarjetas. */
@@ -489,6 +541,13 @@ footer a { color: var(--ash-600); }
   text-shadow: 0 2px 10px rgba(0,0,0,0.45); padding: 4px 12px; border-radius: 999px;
   background: rgba(20,24,31,0.32); backdrop-filter: blur(2px);
 }
+.island-gallery-pause {
+  position: absolute; right: 14px; bottom: 14px; z-index: 2;
+  width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(20,24,31,0.45); color: #fff; backdrop-filter: blur(2px);
+}
+.island-gallery-pause:hover { background: rgba(20,24,31,0.65); }
 .legal-doc li { margin-bottom: 0.4em; }
 .legal-doc strong { color: var(--marine-900); }
 .legal-doc .pending { color: var(--coral-dark); font-weight: 700; }
@@ -547,6 +606,33 @@ fieldset.route-fieldset > legend { padding: 0 0 8px; }
   padding: 16px; background: white; position: relative; z-index: 1;
 }
 .route-panel[hidden] { display: none; }
+
+/* Bug real (auditoría de diseño): a 375px las 3 pestañas ("Dentro de mi isla" / "Entre islas" /
+   "A Cuba") no cabían en una fila — la tercera se iba a su propia línea, rompiendo la ilusión de
+   "solapa de carpeta" (que solo funciona si todas están pegadas justo encima del panel). En
+   móvil, en vez de envolver, se reparten en 3 columnas iguales con texto más pequeño y permiso
+   para partirse en 2 líneas dentro de su propia celda — siguen siendo 3, siguen en una fila. */
+@media (max-width: 480px) {
+  .route-tabs { display: grid; grid-template-columns: repeat(3, 1fr); flex-wrap: nowrap; }
+  .route-tab {
+    padding: 9px 4px 10px; font-size: 0.74rem; text-align: center; white-space: normal;
+    line-height: 1.2;
+  }
+}
+
+/* ---------- Impresión ---------- */
+/* Pensado sobre todo para legal.html y precios.html — la gente sí intenta imprimir/guardar
+   como PDF los términos y una comparativa de precios. Sin esto salían con la barra fija, el
+   banner de demo y sombras de tarjeta pesadas de más, tal cual se ven en pantalla. */
+@media print {
+  .topbar, .badge-demo-banner, .nav-toggle, .skip-link, .notif-bell-wrap, .btn-download { display: none !important; }
+  body { background: #fff; color: #000; }
+  .section-dark, .hero, .canary-map-section { background: #fff !important; color: #000 !important; }
+  .section-dark h1, .section-dark h2, .section-dark h3, .section-dark p,
+  .hero h1, .hero .lead, .hero-eyebrow, .hero-explainer { color: #000 !important; }
+  .card, .step-card, .price-card { box-shadow: none !important; border: 1px solid #ccc !important; }
+  a { text-decoration: underline; color: #000; }
+}
 .btn-link-inline {
   background: none; border: none; padding: 0; font: inherit; font-size: inherit;
   color: var(--marine-800); text-decoration: underline; cursor: pointer;

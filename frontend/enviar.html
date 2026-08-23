@@ -11,6 +11,9 @@
 <meta property="og:description" content="Publica lo que necesitas enviar y ahorra frente a la paquetería tradicional.">
 <meta property="og:url" content="https://yaquevas.es/enviar.html">
 <meta name="twitter:card" content="summary">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap">
 <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
@@ -21,31 +24,31 @@
     <h1>¿Qué necesitas enviar?</h1>
     <p>Cuéntanos qué es, a quién va dirigido y cuándo lo necesitas. Solo se puede enviar contenido legal y admisible para el medio de transporte.</p>
 
-    <div id="formError"></div>
+    <div id="formError" role="alert" aria-live="assertive"></div>
 
     <form id="shipForm" class="card">
       <fieldset class="route-fieldset">
         <legend>Ruta</legend>
         <div class="route-tabs" role="tablist">
-          <button type="button" class="route-tab active" data-route="misma_zona">Dentro de mi isla</button>
-          <button type="button" class="route-tab" data-route="interinsular">Entre islas</button>
-          <button type="button" class="route-tab" data-route="internacional">A Cuba</button>
+          <button type="button" class="route-tab active" data-route="misma_zona" id="tab_misma_zona" role="tab" aria-selected="true" aria-controls="panel_misma_zona">Dentro de mi isla</button>
+          <button type="button" class="route-tab" data-route="interinsular" id="tab_interinsular" role="tab" aria-selected="false" aria-controls="panel_interinsular">Entre islas</button>
+          <button type="button" class="route-tab" data-route="internacional" id="tab_internacional" role="tab" aria-selected="false" aria-controls="panel_internacional">A Cuba</button>
         </div>
 
         <div class="route-panels">
-        <div class="route-panel" data-panel="misma_zona">
-          <label class="first">Tu isla</label>
+        <div class="route-panel" data-panel="misma_zona" id="panel_misma_zona" role="tabpanel" aria-labelledby="tab_misma_zona" tabindex="0">
+          <label class="first" for="same_island">Tu isla</label>
           <select id="same_island" required></select>
           <div class="field-row cols-2" style="margin-top:10px;">
             <div class="address-search" data-role="origin">
-              <label>Punto de recogida (opcional) — escribe una calle, un barrio o el código postal</label>
-              <input type="text" class="address-search-input" placeholder="Ej. Calle La Marina 12 o 38001" autocomplete="off">
+              <label for="ship_origin_address">Punto de recogida (opcional) — escribe una calle, un barrio o el código postal</label>
+              <input type="text" id="ship_origin_address" class="address-search-input" placeholder="Ej. Calle La Marina 12 o 38001" autocomplete="off">
               <div class="address-search-results"></div>
               <div class="address-search-picked muted" style="font-size:0.82rem; margin-top:4px; display:none;"></div>
             </div>
             <div class="address-search" data-role="destination">
-              <label>Punto de entrega (opcional) — escribe una calle, un barrio o el código postal</label>
-              <input type="text" class="address-search-input" placeholder="Ej. Avenida Marítima 5 o 38650" autocomplete="off">
+              <label for="ship_destination_address">Punto de entrega (opcional) — escribe una calle, un barrio o el código postal</label>
+              <input type="text" id="ship_destination_address" class="address-search-input" placeholder="Ej. Avenida Marítima 5 o 38650" autocomplete="off">
               <div class="address-search-results"></div>
               <div class="address-search-picked muted" style="font-size:0.82rem; margin-top:4px; display:none;"></div>
             </div>
@@ -53,43 +56,43 @@
           <p class="muted" style="font-size:0.78rem; margin-top:6px;">Búsqueda vía OpenStreetMap (© OpenStreetMap contributors) — el precio se ajusta a la distancia real entre las dos direcciones.</p>
           <button type="button" id="sameZoneGenericToggle" class="btn btn-outline" style="margin-top:8px; padding:8px 14px; font-size:0.85rem;">¿No encuentras el punto exacto? Usa un punto de encuentro genérico</button>
           <div class="field-row cols-2" id="sameZoneGenericRow" style="display:none; margin-top:6px;">
-            <div><label>Punto de recogida</label><select id="same_origin_place"></select></div>
-            <div><label>Punto de entrega</label><select id="same_destination_place"></select></div>
+            <div><label for="same_origin_place">Punto de recogida</label><select id="same_origin_place"></select></div>
+            <div><label for="same_destination_place">Punto de entrega</label><select id="same_destination_place"></select></div>
           </div>
         </div>
 
-        <div class="route-panel" data-panel="interinsular" hidden>
+        <div class="route-panel" data-panel="interinsular" id="panel_interinsular" role="tabpanel" aria-labelledby="tab_interinsular" tabindex="0" hidden>
           <div class="field-row cols-2">
-            <div><label class="first">Isla de origen</label><select id="inter_origin_island" required></select></div>
-            <div><label class="first">Isla de destino</label><select id="inter_destination_island" required></select></div>
+            <div><label class="first" for="inter_origin_island">Isla de origen</label><select id="inter_origin_island" required></select></div>
+            <div><label class="first" for="inter_destination_island">Isla de destino</label><select id="inter_destination_island" required></select></div>
           </div>
           <div class="field-row cols-2" style="margin-top:10px;">
-            <div><label>Punto de recogida</label><select id="inter_origin_place" required></select></div>
-            <div><label>Punto de entrega</label><select id="inter_destination_place" required></select></div>
+            <div><label for="inter_origin_place">Punto de recogida</label><select id="inter_origin_place" required></select></div>
+            <div><label for="inter_destination_place">Punto de entrega</label><select id="inter_destination_place" required></select></div>
           </div>
         </div>
 
-        <div class="route-panel" data-panel="internacional" hidden>
+        <div class="route-panel" data-panel="internacional" id="panel_internacional" role="tabpanel" aria-labelledby="tab_internacional" tabindex="0" hidden>
           <div class="field-row cols-2">
-            <div><label class="first">Isla de origen (Canarias)</label><select id="cuba_origin_island" required></select></div>
-            <div><label class="first">Provincia de destino (Cuba)</label><select id="cuba_destination_province" required></select></div>
+            <div><label class="first" for="cuba_origin_island">Isla de origen (Canarias)</label><select id="cuba_origin_island" required></select></div>
+            <div><label class="first" for="cuba_destination_province">Provincia de destino (Cuba)</label><select id="cuba_destination_province" required></select></div>
           </div>
           <div class="field-row cols-2" style="margin-top:10px;">
-            <div><label>Punto de recogida</label><select id="cuba_origin_place" required></select></div>
-            <div><label>Punto de entrega</label><select id="cuba_destination_place" required></select></div>
+            <div><label for="cuba_origin_place">Punto de recogida</label><select id="cuba_origin_place" required></select></div>
+            <div><label for="cuba_destination_place">Punto de entrega</label><select id="cuba_destination_place" required></select></div>
           </div>
         </div>
         </div>
 
-        <label style="margin-top:14px;">Fecha deseada</label>
+        <label style="margin-top:14px;" for="desired_date">Fecha deseada</label>
         <input id="desired_date" type="date" required>
       </fieldset>
 
       <fieldset>
         <legend>Destinatario</legend>
-        <label class="first">Nombre de quien recibe</label>
+        <label class="first" for="recipient_name">Nombre de quien recibe</label>
         <input id="recipient_name" required placeholder="Ej. Ana (mi madre)">
-        <label>Teléfono del destinatario (opcional)</label>
+        <label for="recipient_phone">Teléfono del destinatario (opcional)</label>
         <input id="recipient_phone" type="tel" placeholder="+34 600 000 000">
       </fieldset>
 
@@ -112,16 +115,16 @@
         </div>
         <div id="newItemPhotoPreview" class="muted" style="font-size:0.8rem; margin-top:6px;"></div>
         <div class="field-row cols-3" style="margin-top:16px;">
-          <div><label class="first">Peso total aprox. (kg)</label><input id="weight_kg" type="number" step="0.1" min="0" required></div>
-          <div><label class="first">Dimensiones (opcional)</label><input id="dimensions" placeholder="30x20x10 cm"></div>
-          <div><label class="first">Valor declarado (€, opcional)</label><input id="declared_value" type="number" step="1" min="0"></div>
+          <div><label class="first" for="weight_kg">Peso total aprox. (kg)</label><input id="weight_kg" type="number" step="0.1" min="0" required></div>
+          <div><label class="first" for="dimensions">Dimensiones (opcional)</label><input id="dimensions" placeholder="30x20x10 cm"></div>
+          <div><label class="first" for="declared_value">Valor declarado (€, opcional)</label><input id="declared_value" type="number" step="1" min="0"></div>
         </div>
         <div id="cubaValueWarning" class="alert alert-warning" style="display:none;"></div>
         <div class="checkbox-row">
           <input id="fragile" type="checkbox">
           <label for="fragile">Es frágil</label>
         </div>
-        <label>Observaciones</label>
+        <label for="notes">Observaciones</label>
         <textarea id="notes" rows="2" placeholder="Cualquier detalle que el viajero deba saber"></textarea>
       </fieldset>
 
@@ -222,7 +225,7 @@ let activeRoute = 'misma_zona';
 document.querySelectorAll('.route-tab').forEach((btn) => {
   btn.addEventListener('click', () => {
     activeRoute = btn.dataset.route;
-    document.querySelectorAll('.route-tab').forEach((b) => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.route-tab').forEach((b) => { const isActive = b === btn; b.classList.toggle('active', isActive); b.setAttribute('aria-selected', String(isActive)); });
     document.querySelectorAll('.route-panel').forEach((p) => { p.hidden = p.dataset.panel !== activeRoute; });
     updateCubaValueWarning();
   });

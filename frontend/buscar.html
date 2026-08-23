@@ -11,6 +11,9 @@
 <meta property="og:description" content="Alguien ya va. Aprovecha el viaje o encuentra quien lleve tu envío.">
 <meta property="og:url" content="https://yaquevas.es/buscar.html">
 <meta name="twitter:card" content="summary">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap">
 <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
@@ -21,9 +24,9 @@
     <h1>Buscar viajes y envíos</h1>
     <div class="card">
       <div class="field-row cols-3">
-        <div><label class="first">Isla de origen</label><select id="f_origin"><option value="">Todas</option></select></div>
-        <div><label class="first">Isla de destino</label><select id="f_destination"><option value="">Todas</option></select></div>
-        <div><label class="first">Mostrar</label>
+        <div><label class="first" for="f_origin">Isla de origen</label><select id="f_origin"><option value="">Todas</option></select></div>
+        <div><label class="first" for="f_destination">Isla de destino</label><select id="f_destination"><option value="">Todas</option></select></div>
+        <div><label class="first" for="f_type">Mostrar</label>
           <select id="f_type">
             <option value="trips">Viajes publicados</option>
             <option value="shipments">Envíos publicados</option>
@@ -66,19 +69,29 @@ async function doSearch() {
     if (type === 'trips') {
       const data = await YQV.api(`/api/trips?${qs.toString()}`, { auth: false });
       if (data.trips.length === 0) { box.innerHTML = '<div class="alert alert-info">No hay viajes publicados con estos filtros.</div>'; return; }
-      box.innerHTML = data.trips.map(t => `
+      box.innerHTML = data.trips.map(t => {
+        // Bug real (auditoría de diseño): un viaje sin espacio libre se mostraba exactamente
+        // igual que uno con hueco, mismo botón — quien lo pulsara llegaba a un callejón sin
+        // salida. Ahora se marca "Completo" y el CTA cambia a un enlace neutro sin invitar a
+        // publicar un envío que no cabría.
+        const isFull = t.status_capacidad.remaining_l <= 0 || t.status_capacidad.remaining_kg <= 0;
+        return `
         <div class="card row between">
           <div>
             <strong>${t.origin_island} → ${t.destination_island}</strong> · ${YQV.fmtDate(t.trip_date)} · ${YQV.TRANSPORT_LABELS[t.transport_mode]}
+            ${isFull ? '<span class="pill danger" style="margin-left:8px;">Completo</span>' : ''}
             <div class="muted" style="font-size:0.85rem;">Espacio libre: ${t.status_capacidad.remaining_l} L · ${t.status_capacidad.remaining_kg} kg · ${t.accepts_fragile ? 'Acepta frágiles' : 'No acepta frágiles'}</div>
-            ${t.notes ? `<div class="muted" style="font-size:0.85rem;">"${t.notes}"</div>` : ''}
+            ${t.notes ? `<div class="muted" style="font-size:0.85rem;">"${YQV.escapeHtml(t.notes)}"</div>` : ''}
           </div>
           <div class="row">
             <button type="button" class="btn btn-ghost share-btn" aria-label="Compartir" data-text="Viaje ${t.origin_island} → ${t.destination_island} el ${YQV.fmtDate(t.trip_date)} en YaQueVas">${YQVIcons.svg('link', { size: 16 })}</button>
-            <a href="/enviar.html" class="btn btn-outline">Enviar algo en este viaje</a>
+            ${isFull
+              ? '<span class="muted" style="font-size:0.85rem;">Sin espacio libre</span>'
+              : '<a href="/enviar.html" class="btn btn-outline">Enviar algo en este viaje</a>'}
           </div>
         </div>
-      `).join('');
+      `;
+      }).join('');
     } else {
       const data = await YQV.api(`/api/shipments?${qs.toString()}`, { auth: false });
       if (data.shipments.length === 0) { box.innerHTML = '<div class="alert alert-info">No hay envíos publicados con estos filtros.</div>'; return; }

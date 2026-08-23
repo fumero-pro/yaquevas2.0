@@ -18,6 +18,54 @@
     document.head.appendChild(link);
   }
 
+  // PWA: manifest + icono de iOS + color de la barra del navegador, inyectados aquí en vez de
+  // en las 20 páginas HTML una a una. El service worker solo cachea CSS/JS/iconos (nunca HTML
+  // ni /api/, que son datos en vivo) — ver frontend/service-worker.js.
+  function injectPwaMeta() {
+    if (document.getElementById('yqv-manifest')) return;
+    const manifestLink = document.createElement('link');
+    manifestLink.id = 'yqv-manifest';
+    manifestLink.rel = 'manifest';
+    manifestLink.href = '/manifest.json';
+    document.head.appendChild(manifestLink);
+
+    const appleTouchIcon = document.createElement('link');
+    appleTouchIcon.rel = 'apple-touch-icon';
+    appleTouchIcon.href = '/icons/apple-touch-icon.png';
+    document.head.appendChild(appleTouchIcon);
+
+    const themeColor = document.createElement('meta');
+    themeColor.name = 'theme-color';
+    themeColor.content = '#14181F';
+    document.head.appendChild(themeColor);
+
+    const appleCapable = document.createElement('meta');
+    appleCapable.name = 'apple-mobile-web-app-capable';
+    appleCapable.content = 'yes';
+    document.head.appendChild(appleCapable);
+  }
+
+  function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.register('/service-worker.js').catch(() => {
+      // Si falla (p. ej. servidor local sin HTTPS en algún entorno), la web sigue funcionando
+      // igual — el service worker es solo una mejora de velocidad, nunca un requisito.
+    });
+  }
+
+  // Detecta si el navegador puede instalar la PWA de verdad (Chrome/Edge/Android) para que el
+  // botón "Descargar app" del home dispare la instalación nativa en vez de solo avisar que
+  // "está en desarrollo" — ver el listener del botón en frontend/index.html.
+  let deferredInstallPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+  });
+  // Colgado del mismo objeto YQV que expone api.js (cargado antes que este script en todas las
+  // páginas) para que index.html pueda llamar YQV.getInstallPrompt() desde su propio <script>.
+  YQV.getInstallPrompt = () => deferredInstallPrompt;
+  YQV.clearInstallPrompt = () => { deferredInstallPrompt = null; };
+
   function renderNav() {
     injectFavicon();
     const mount = document.getElementById('yqv-nav');
@@ -26,11 +74,12 @@
     const isAdmin = YQV.isAdmin();
 
     mount.innerHTML = `
+      <a href="#" class="skip-link" id="skipLink">Saltar al contenido</a>
       <div class="badge-demo-banner">MODO DEMOSTRACIÓN — datos, pagos y verificación simulados. Ninguna operación es real.</div>
       <div class="topbar">
         <div class="topbar-inner">
           <a class="logo" href="/index.html">${LOGO_SVG}<span class="logo-text"><span class="hash">#</span>Ya<span class="dot">Que</span>Vas</span></a>
-          <button class="btn btn-outline nav-toggle" id="navToggleBtn" aria-label="Abrir menú">${YQVIcons.svg('menu', { size: 18 })}</button>
+          <button class="btn btn-outline nav-toggle" id="navToggleBtn" aria-label="Abrir menú" aria-expanded="false" aria-controls="navLinks">${YQVIcons.svg('menu', { size: 18 })}</button>
           <nav class="nav-links" id="navLinks">
             <a href="/como-funciona.html">Cómo funciona</a>
             <a href="/precios.html">Precios y tamaños</a>
@@ -39,7 +88,7 @@
             <a href="/buscar.html">Buscar</a>
             <a href="/faq.html">Ayuda</a>
             ${user ? `<div class="notif-bell-wrap" id="notifBellWrap">
-              <button class="notif-bell" id="notifBellBtn" aria-label="Notificaciones">${YQVIcons.svg('bell', { size: 19 })}<span class="notif-count" id="notifCount" style="display:none;">0</span></button>
+              <button class="notif-bell" id="notifBellBtn" aria-label="Notificaciones" aria-haspopup="true" aria-expanded="false" aria-controls="notifDropdown">${YQVIcons.svg('bell', { size: 19 })}<span class="notif-count" id="notifCount" style="display:none;">0</span></button>
               <div class="notif-dropdown" id="notifDropdown">
                 <div class="notif-dropdown-header">Notificaciones</div>
                 <div class="notif-list" id="notifList"><div class="notif-empty">Cargando…</div></div>
@@ -52,9 +101,24 @@
         </div>
       </div>
     `;
+    // "Saltar al contenido" enfoca la primera sección real de la página (justo después de este
+    // montaje) en vez de depender de un id="main" que habría que añadir a mano en las 20
+    // páginas — así funciona en todas sin tocarlas una a una.
+    const skipLink = document.getElementById('skipLink');
+    if (skipLink) skipLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      const main = mount.nextElementSibling;
+      if (!main) return;
+      if (!main.hasAttribute('tabindex')) main.setAttribute('tabindex', '-1');
+      main.focus();
+      main.scrollIntoView();
+    });
     const toggle = document.getElementById('navToggleBtn');
     const links = document.getElementById('navLinks');
-    if (toggle) toggle.addEventListener('click', () => links.classList.toggle('open'));
+    if (toggle) toggle.addEventListener('click', () => {
+      const open = links.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', String(open));
+    });
     const logout = document.getElementById('logoutLink');
     if (logout) logout.addEventListener('click', (e) => {
       e.preventDefault();
@@ -111,10 +175,14 @@
 
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      dropdown.classList.toggle('open');
+      const open = dropdown.classList.toggle('open');
+      btn.setAttribute('aria-expanded', String(open));
     });
     document.addEventListener('click', (e) => {
-      if (!dropdown.contains(e.target) && e.target !== btn) dropdown.classList.remove('open');
+      if (!dropdown.contains(e.target) && e.target !== btn) {
+        dropdown.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+      }
     });
 
     await loadNotifs();
@@ -205,5 +273,7 @@
     renderFooter();
     initScrollReveal();
     initCountUp();
+    injectPwaMeta();
+    registerServiceWorker();
   });
 })();

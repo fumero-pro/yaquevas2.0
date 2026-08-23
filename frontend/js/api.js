@@ -178,6 +178,11 @@ const YQV = (() => {
     if (!box) {
       box = document.createElement('div');
       box.id = 'yqv-toast';
+      // Un lector de pantalla anuncia cambios dentro de una region "polite" sin que el usuario
+      // tenga que estar mirando esa esquina de la pantalla — antes el toast era invisible para
+      // accesibilidad (auditoría de accesibilidad).
+      box.setAttribute('role', 'status');
+      box.setAttribute('aria-live', 'polite');
       box.style.cssText = 'position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:8px;align-items:center;';
       document.body.appendChild(box);
     }

@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin.html
+Disallow: /mi-cuenta.html
+Disallow: /perfil.html
+Disallow: /operacion.html
+Disallow: /viaje.html
+Disallow: /envio.html
+Disallow: /recuperar.html
+Disallow: /restablecer.html
+Disallow: /verificar-email.html
+
+Sitemap: https://yaquevas.es/sitemap.xml

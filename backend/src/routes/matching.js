@@ -4,7 +4,7 @@ const { calculateOrientativePrice } = require('../lib/pricing');
 const { calculateCommission } = require('../lib/commission');
 const { getConfig } = require('../lib/config');
 const { serializeTrip } = require('./trips');
-const { serializeShipment } = require('./shipments');
+const { serializePublicShipment } = require('./shipments');
 
 function register(router, db) {
   router.get('/api/matching/for-shipment/:id', async (req, res, body, params) => {
@@ -71,7 +71,11 @@ function register(router, db) {
       });
       const commission = calculateCommission(price.orientative_price, Number(config.commission_sender_pct), Number(config.commission_traveler_pct));
       return {
-        shipment: serializeShipment(m.shipment, items),
+        // Público (buscar/home antes de aceptar nada) — nunca datos del destinatario ni
+        // ubicación exacta, mismo criterio que GET /api/shipments (ver shipments.js). Bug real
+        // encontrado de paso: esto exponía recipient_name/phone/lat/lon de CUALQUIER envío a
+        // cualquiera con solo pedir /api/matching/for-trip/:id sin login.
+        shipment: serializePublicShipment(m.shipment, items),
         compatibilidad_pct: m.score,
         puedes_ganar: commission.traveler_net,
         // Solo tiene sentido en coche dentro de la misma isla (distancia real conocida) — permite
