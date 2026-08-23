@@ -54,6 +54,38 @@ function register(router, db) {
     res.status(201).json({ ok: true });
   });
 
+  // Reseñas destacadas para la home: solo texto real escrito por personas reales, nunca
+  // inventado. Reutiliza la misma regla de visibilidad "doble-ciego" que el perfil de
+  // confianza (ver lib/trust.js) — no se enseña una reseña antes de que sea pública ahí.
+  // Si todavía no hay ninguna con comentario, el frontend simplemente no muestra la sección
+  // en vez de rellenarla con testimonios de mentira.
+  router.get('/api/reviews/featured', async (req, res, body, params, query) => {
+    const limit = Math.min(Number(query?.limit) || 6, 12);
+    const rows = await db.prepare(
+      `SELECT r.rating, r.comment, r.created_at, u.name AS reviewer_name
+       FROM reviews r
+       JOIN bookings b ON b.id = r.booking_id
+       JOIN users u ON u.id = r.reviewer_id
+       WHERE r.rating >= 4
+         AND TRIM(r.comment) != ''
+         AND (
+           b.delivered_at IS NULL
+           OR julianday('now') - julianday(b.delivered_at) >= 14
+           OR EXISTS (SELECT 1 FROM reviews r2 WHERE r2.booking_id = r.booking_id AND r2.reviewer_id != r.reviewer_id)
+         )
+       ORDER BY r.created_at DESC
+       LIMIT ?`
+    ).all(limit);
+    res.json({
+      reviews: rows.map((r) => ({
+        rating: r.rating,
+        comment: r.comment,
+        reviewer_first_name: (r.reviewer_name || '').split(' ')[0],
+        created_at: r.created_at,
+      })),
+    });
+  });
+
   router.get('/api/bookings/:id/review-status', async (req, res, body, params) => {
     const user = await requireAuth(req, res, db);
     if (!user) return;

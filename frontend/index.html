@@ -175,6 +175,14 @@
   </div>
 </section>
 
+<section class="section section-tinted" id="testimoniosSection" hidden>
+  <div class="container">
+    <h2>Lo que dice la gente</h2>
+    <p class="lead section-lead">Reseñas reales de operaciones ya entregadas — nunca inventadas. En cuanto alguien deja la suya, puede aparecer aquí.</p>
+    <div id="testimoniosBox" class="card-grid cols-3" style="margin-top:20px;"></div>
+  </div>
+</section>
+
 <section class="section">
   <div class="container">
     <h2>¿Qué suele viajar entre islas?</h2>
@@ -345,6 +353,24 @@ document.getElementById('downloadAppBtn').addEventListener('click', () => {
       `).join('');
     }
   } catch { shipmentsBox.innerHTML = '<p class="muted">No se pudieron cargar los envíos.</p>'; }
+})();
+
+// Testimonios reales: la sección solo se muestra si hay al menos una reseña de verdad que
+// enseñar (ver /api/reviews/featured) — nunca se rellena con citas inventadas. Sin reseñas
+// todavía, la sección se queda oculta en vez de mostrar un hueco vacío o un ejemplo falso.
+(async () => {
+  try {
+    const { reviews } = await YQV.api('/api/reviews/featured?limit=6', { auth: false });
+    if (!reviews.length) return;
+    document.getElementById('testimoniosSection').hidden = false;
+    document.getElementById('testimoniosBox').innerHTML = reviews.map((r) => `
+      <div class="card">
+        <div style="color:var(--sun); letter-spacing:1px;">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div>
+        <p style="margin:10px 0 12px;">"${YQV.escapeHtml(r.comment)}"</p>
+        <p class="muted" style="font-size:0.85rem; margin:0;">— ${YQV.escapeHtml(r.reviewer_first_name || 'Usuario de YaQueVas')}</p>
+      </div>
+    `).join('');
+  } catch { /* si falla, la sección se queda oculta — nunca mostrar un ejemplo falso */ }
 })();
 </script>
 </body>
