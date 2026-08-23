@@ -45,10 +45,20 @@ async function seed() {
     ['Animales vivos', 'prohibido', 'No se pueden transportar mascotas a través de YaQueVas: aerolíneas y navieras exigen que sea el propietario quien viaje con el animal y su documentación (cartilla sanitaria, vacuna antirrábica vigente). Si necesitas viajar con tu mascota, contacta directamente con la compañía.'],
     ['Perfumes', 'permitido_aceptacion_expresa', 'Líquidos inflamables en avión: sujeto a normativa de equipaje de mano.'],
     ['Medicamentos', 'permitido_aceptacion_expresa', 'Requiere declaración correcta y aceptación expresa.'],
+    // Añadidos en la auditoría legal (punto 19 de REVISION_LEGAL_PARA_ABOGADO.md): prohibiciones
+    // universales que faltaban en la lista original, ninguna es específica de un solo transportista.
+    ['Restos humanos o cenizas', 'prohibido', 'Requieren un transporte funerario específico, no cubierto por YaQueVas.'],
+    ['Materiales radiactivos', 'prohibido', 'Prohibido en transporte de pasajeros por cualquier medio.'],
+    ['Productos falsificados o pirateados', 'prohibido', 'Vulneran derechos de propiedad intelectual e industrial.'],
+    ['Baterías de litio sueltas', 'permitido_aceptacion_expresa', 'Solo si van instaladas dentro de un aparato. Sueltas (de repuesto) están restringidas en avión por normativa IATA — requiere aceptación expresa del viajero y puede no ser transportable si el trayecto es en avión.'],
   ];
-  const existingProhibited = (await db.prepare('SELECT COUNT(*) c FROM prohibited_items').get()).c;
-  if (existingProhibited === 0) {
-    for (const [name, category, note] of prohibited) {
+  // Por nombre, no "solo si la tabla está vacía": ese criterio todo-o-nada dejaba fuera para
+  // siempre cualquier objeto nuevo añadido a este array en una base ya sembrada antes (como la
+  // de producción) — bug real encontrado al añadir los 4 objetos de la auditoría legal, que
+  // nunca habrían llegado a producción con el criterio anterior.
+  for (const [name, category, note] of prohibited) {
+    const existing = await db.prepare('SELECT id FROM prohibited_items WHERE name = ?').get(name);
+    if (!existing) {
       await db.prepare('INSERT INTO prohibited_items (id, name, category, note, active) VALUES (?, ?, ?, ?, 1)')
         .run(newId('proh'), name, category, note);
     }

@@ -42,10 +42,9 @@
           <input id="terms" type="checkbox" required>
           <label for="terms">He leído y acepto los <a href="/legal.html?doc=terminos" target="_blank">términos y condiciones</a> y la <a href="/legal.html?doc=privacidad" target="_blank">política de privacidad</a>.</label>
         </div>
-        <div class="checkbox-row">
-          <input id="ageConfirmed" type="checkbox" required>
-          <label for="ageConfirmed">Confirmo que soy mayor de 18 años.</label>
-        </div>
+        <label for="birthdate">Fecha de nacimiento</label>
+        <input id="birthdate" type="date" required>
+        <p class="field-hint">Debes ser mayor de 18 años para registrarte en YaQueVas.</p>
         <button class="btn btn-primary btn-block" type="submit">Crear cuenta</button>
       </form>
     </div>
@@ -61,6 +60,12 @@
 // Programa de referidos: si llegaste desde un enlace de invitación (?ref=CODIGO), lo guardamos
 // y lo mandamos con el registro. La recompensa no se da aquí — se paga cuando completes tu
 // primera operación real (ver backend/src/lib/referral.js), nunca por registrarte sin más.
+// Tope de fecha = hoy menos 18 años, para que el propio selector de fecha no deje elegir una
+// fecha que ya sabemos que va a rechazar el servidor.
+const maxBirthdate = new Date();
+maxBirthdate.setFullYear(maxBirthdate.getFullYear() - 18);
+document.getElementById('birthdate').max = maxBirthdate.toISOString().slice(0, 10);
+
 const referralCode = new URLSearchParams(window.location.search).get('ref');
 if (referralCode) {
   document.getElementById('referralBanner').innerHTML = `
@@ -82,7 +87,7 @@ document.getElementById('regForm').addEventListener('submit', async (e) => {
     password: document.getElementById('password').value,
     country: document.getElementById('country').value,
     accepted_terms: document.getElementById('terms').checked,
-    age_confirmed: document.getElementById('ageConfirmed').checked,
+    birthdate: document.getElementById('birthdate').value,
     referral_code: referralCode || undefined,
   };
   try {

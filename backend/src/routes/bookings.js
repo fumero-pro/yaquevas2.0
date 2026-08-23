@@ -213,6 +213,15 @@ function register(router, db) {
     if (!booking) return res.status(404).json({ error: 'Operación no encontrada.' });
     if (booking.sender_id !== user.id) return res.status(403).json({ error: 'Solo el remitente puede pagar esta operación.' });
     if (booking.status !== 'aceptado') return res.status(400).json({ error: `No se puede pagar una operación en estado "${booking.status}".` });
+    // Derecho de desistimiento (art. 103.a RD 1/2007): al pagar, el remitente pide expresamente
+    // que el servicio empiece de inmediato y renuncia al plazo de 14 días una vez completado —
+    // sin este consentimiento explícito en el momento del pago, no se cobra. Se registra con
+    // fecha para poder demostrarlo después (mismo criterio que la aceptación del contenido por
+    // el viajero, ver acceptances más arriba).
+    if (!body.desistimiento_aceptado) {
+      return res.status(400).json({ error: 'Debes confirmar que quieres que el servicio empiece de inmediato antes de pagar.' });
+    }
+    await db.prepare("UPDATE bookings SET withdrawal_waived_at = ? WHERE id = ?").run(new Date().toISOString(), booking.id);
 
     if (isPaymentsConfigured()) {
       // PUBLIC_APP_URL primero: req.headers.origin no siempre llega (curl, algunos clientes sin

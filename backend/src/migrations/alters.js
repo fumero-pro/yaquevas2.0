@@ -93,6 +93,17 @@ const ALTERS = [
   // ninguna de las dos columnas rellenas, el payout sigue cayendo al modo demo sin bloquear nada.
   'ALTER TABLE users ADD COLUMN stripe_connect_account_id TEXT',
   'ALTER TABLE users ADD COLUMN stripe_connect_payouts_enabled INTEGER NOT NULL DEFAULT 0',
+  // Antes la mayoría de edad era solo una casilla autodeclarada ("confirmo que soy mayor de
+  // 18") sin ningún dato que la respalde — trivial de marcar sin serlo. Ahora se pide la fecha
+  // de nacimiento real y el backend calcula la edad (ver routes/auth.js). Nullable porque los
+  // usuarios ya registrados antes de este cambio no tienen este dato — no se les bloquea
+  // retroactivamente, solo se exige a partir de ahora en el registro nuevo.
+  'ALTER TABLE users ADD COLUMN birthdate TEXT',
+  // Registro de que el remitente dio su consentimiento expreso a que el servicio empiece de
+  // inmediato y renunció al derecho de desistimiento de 14 días (art. 103.a RD 1/2007) en el
+  // momento concreto de pagar — mismo criterio de trazabilidad que ya se usa para la aceptación
+  // del contenido por parte del viajero (tabla `acceptances`). Ver routes/bookings.js (pay).
+  'ALTER TABLE bookings ADD COLUMN withdrawal_waived_at TEXT',
 ];
 
 async function applyAlters(db) {

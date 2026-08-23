@@ -2,8 +2,19 @@
 const { requireAuth, getUserFromRequest } = require('../middleware/auth');
 const { newId } = require('../lib/auth');
 const { itemsToUsage, ITEM_TYPES: TETRIS_ITEM_TYPES } = require('../lib/tetris');
-const { resolveLocation } = require('../lib/geo');
+const { resolveLocation, distanceCategory } = require('../lib/geo');
 const { validatePhoto } = require('../lib/photo');
+
+// Límite conservador de aduana cubana para un envío gestionado por un tercero (no equipaje
+// personal del propio viajero): la normativa cubana distingue "equipaje acompañado" (hasta
+// 1.000 USD, lo que lleva el propio viajero) de "envío/equipaje no acompañado por persona
+// natural" (200 USD/20kg) — sin confirmación de un gestor aduanero de si un envío pagado a
+// través de una plataforma sigue calificando como equipaje acompañado, se aplica el límite más
+// restrictivo por seguridad de quien envía (ver docs/BORRADOR_ENCAJE_LEGAL.md punto 4 y
+// docs/REVISION_LEGAL_PARA_ABOGADO.md punto 25). 180€ en vez de los ~186€ que darían 200 USD al
+// cambio actual, para no quedar justo en el límite ante fluctuación del tipo de cambio.
+const CUBA_MAX_DECLARED_VALUE_EUR = 180;
+const CUBA_MAX_WEIGHT_KG = 20;
 
 // Antes era una lista separada y desactualizada (solo 4 de las 6 tallas), así que un envío XXL u
 // XXXL (objeto_voluminoso, bulto_extra_grande) fallaba aquí con "Tipo de bulto no válido" aunque
@@ -113,6 +124,19 @@ function register(router, db) {
     }
     if (!truthfulness_accepted) {
       return res.status(400).json({ error: 'Debes aceptar la declaración de veracidad del contenido para publicar el envío.' });
+    }
+    const routeCategory = await distanceCategory(db, originLoc.id, destinationLoc.id);
+    if (routeCategory === 'internacional') {
+      if (declared_value != null && Number(declared_value) > CUBA_MAX_DECLARED_VALUE_EUR) {
+        return res.status(400).json({
+          error: `Para envíos a Cuba, el valor declarado no puede superar los ${CUBA_MAX_DECLARED_VALUE_EUR}€ por operación — es el límite de aduana para equipaje no acompañado. Si necesitas enviar algo de más valor, consulta antes con un gestor aduanero.`,
+        });
+      }
+      if (weight_kg != null && Number(weight_kg) > CUBA_MAX_WEIGHT_KG) {
+        return res.status(400).json({
+          error: `Para envíos a Cuba, el peso no puede superar los ${CUBA_MAX_WEIGHT_KG} kg por operación — es el límite de aduana para equipaje no acompañado.`,
+        });
+      }
     }
     for (const it of items) {
       if (!ITEM_TYPES.includes(it.item_type)) {

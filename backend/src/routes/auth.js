@@ -53,15 +53,28 @@ function register(router, db) {
     if (!registerLimiter(req)) {
       return res.status(429).json({ error: 'Demasiados intentos de registro. Inténtalo de nuevo en unos minutos.' });
     }
-    const { name, surname, email, phone, password, country, accepted_terms, age_confirmed, referral_code } = body;
+    const { name, surname, email, phone, password, country, accepted_terms, birthdate, referral_code } = body;
     if (!name || !surname || !email || !password) {
       return res.status(400).json({ error: 'Faltan campos obligatorios: nombre, apellidos, email, contraseña.' });
     }
     if (!accepted_terms) {
       return res.status(400).json({ error: 'Debes aceptar los términos y la política de privacidad.' });
     }
-    if (!age_confirmed) {
-      return res.status(400).json({ error: 'Debes confirmar que eres mayor de 18 años.' });
+    // Antes era solo una casilla autodeclarada ("confirmo que soy mayor de 18"), trivial de
+    // marcar sin serlo — hallazgo real de la auditoría legal. Ahora se calcula la edad de
+    // verdad a partir de la fecha de nacimiento, en el propio servidor (nunca fiarse de un
+    // booleano que manda el cliente).
+    if (!birthdate || !/^\d{4}-\d{2}-\d{2}$/.test(birthdate)) {
+      return res.status(400).json({ error: 'Introduce tu fecha de nacimiento.' });
+    }
+    const birthDate = new Date(birthdate + 'T00:00:00Z');
+    if (Number.isNaN(birthDate.getTime()) || birthDate > new Date()) {
+      return res.status(400).json({ error: 'Fecha de nacimiento no válida.' });
+    }
+    const ageMs = Date.now() - birthDate.getTime();
+    const ageYears = ageMs / (365.25 * 24 * 60 * 60 * 1000);
+    if (ageYears < 18) {
+      return res.status(400).json({ error: 'Debes ser mayor de 18 años para registrarte en YaQueVas.' });
     }
     if (password.length < 8) {
       return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });
@@ -80,9 +93,9 @@ function register(router, db) {
     const referrer = await resolveReferrer(db, referral_code);
     const myReferralCode = generateReferralCode(name);
     await db.prepare(
-      `INSERT INTO users (id, name, surname, email, phone, password_hash, password_salt, country, role, referral_code, referred_by, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'user', ?, ?, ?)`
-    ).run(id, name, surname, email.toLowerCase(), phone || null, hash, salt, country || 'ES', myReferralCode, referrer ? referrer.id : null, now);
+      `INSERT INTO users (id, name, surname, email, phone, password_hash, password_salt, country, role, referral_code, referred_by, birthdate, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'user', ?, ?, ?, ?)`
+    ).run(id, name, surname, email.toLowerCase(), phone || null, hash, salt, country || 'ES', myReferralCode, referrer ? referrer.id : null, birthdate, now);
 
     // Registrar aceptación de términos con versión (punto 45/35)
     const termsDoc = await db.prepare("SELECT version FROM legal_documents WHERE doc_type = 'terminos' ORDER BY created_at DESC LIMIT 1").get();

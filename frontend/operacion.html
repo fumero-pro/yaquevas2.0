@@ -107,6 +107,10 @@ async function load() {
       <div class="card" style="margin-top:16px;">
         <h3>El viajero ha aceptado tu envío</h3>
         <p>Realiza el pago para confirmar la operación. El importe queda retenido por el proveedor de pagos hasta que se confirme la entrega.</p>
+        <div class="checkbox-row">
+          <input id="withdrawalWaiver" type="checkbox">
+          <label for="withdrawalWaiver">Pido que el servicio empiece de inmediato y entiendo que, una vez completada la entrega, pierdo el derecho de desistimiento de 14 días.</label>
+        </div>
         <button class="btn btn-primary btn-lg" id="payBtn">Pagar ${YQV.fmtEur(booking.sender_total)} (demo)</button>
       </div>
     `;
@@ -268,8 +272,12 @@ async function load() {
 
   const payBtn = document.getElementById('payBtn');
   if (payBtn) payBtn.addEventListener('click', async () => {
+    if (!document.getElementById('withdrawalWaiver').checked) {
+      YQV.toast('Marca la casilla para confirmar que quieres que el servicio empiece de inmediato.', 'error');
+      return;
+    }
     try {
-      const res = await YQV.api(`/api/bookings/${bookingId}/pay`, { method: 'POST' });
+      const res = await YQV.api(`/api/bookings/${bookingId}/pay`, { method: 'POST', body: { desistimiento_aceptado: true } });
       if (res.checkout_url) {
         // Pago real (Stripe configurado): el pago se confirma fuera de esta pestaña, vía
         // webhook, cuando Stripe avisa de que se completó — no en esta respuesta.

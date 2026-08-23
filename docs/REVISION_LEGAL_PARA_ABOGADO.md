@@ -5,6 +5,18 @@ plataformas digitales y protección de datos) debe revisar antes de operar YaQue
 Nada de lo implementado en el código debe interpretarse como una afirmación de que estos puntos
 ya están resueltos legalmente: están **marcados como pendientes de validación legal** en todo el proyecto.
 
+**Actualización 2026-08-23**: a petición explícita del usuario, la mayoría de estos puntos se
+resolvieron adoptando la posición razonablemente más protectora (no la más cómoda), y ya están
+reflejados en `backend/src/legalDocsContent.js` (términos, privacidad, condiciones operativas) y
+en código real donde aplicaba (edad real por fecha de nacimiento en el registro, renuncia expresa
+al derecho de desistimiento al pagar con registro auditable, límite de valor/peso para envíos a
+Cuba, lista de objetos prohibidos ampliada). Puntos 1, 6, 7, 8, 9, 10, 11, 12, 13 y 17 llevan ahora
+la etiqueta "Recomendado confirmar con un abogado antes de operar con volumen/dinero real" en vez
+de "pendiente" — es una posición adoptada y documentada, no una confirmación profesional. Los
+puntos 14 y la identidad fiscal de la empresa (CIF, domicilio, registro mercantil) siguen
+genuinamente pendientes porque dependen de datos que no existen hasta que la sociedad se
+constituya — no se puede rellenar eso sin inventar datos falsos.
+
 ## 1. Calificación jurídica del servicio
 ¿Es YaQueVas un intermediario/plataforma de intermediación (facilitador de contactos) o podría
 considerarse, según cómo se redacten las condiciones y cómo se opere realmente, un operador de
